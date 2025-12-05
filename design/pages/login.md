@@ -416,3 +416,4 @@ const { data, error } = await supabase.auth.signInWithOtp({
 /dashboard         → (나중에) Pro 대시보드
 ```
 
+

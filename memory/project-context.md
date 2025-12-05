@@ -93,3 +93,4 @@ LocalizeKit/
 - Backend 서버 없이 Supabase만으로 MVP 구현
 - 추후 필요 시 (Google Sheets 동기화, AI 번역 등) 백엔드 추가 고려
 
+

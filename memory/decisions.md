@@ -33,3 +33,4 @@ NestJS 백엔드 없이 Supabase만으로 MVP 구현
 - 개발 환경과 프로덕션 환경 분리
 - Dokploy로 self-hosted 배포 관리
 
+
