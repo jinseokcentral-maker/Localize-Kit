@@ -1,5 +1,6 @@
 import { TypoH1, TypoP } from "~/components/typo";
 import { HeroSection } from "~/components/landing/HeroSection";
+import { EditorSection } from "~/components/landing/editor";
 
 export default function LandingPage() {
   return (
@@ -7,14 +8,8 @@ export default function LandingPage() {
       {/* Hero Section */}
       <HeroSection />
 
-      {/* Editor Preview Section - Placeholder */}
-      <section className="px-8 py-12">
-        <div className="bg-card border border-border rounded-lg p-8 text-center">
-          <TypoP className="text-muted-foreground">
-            Editor Section will be here
-          </TypoP>
-        </div>
-      </section>
+      {/* Editor Preview Section */}
+      <EditorSection />
 
       {/* Testimonials Section - Placeholder */}
       <section className="px-8 py-16">
