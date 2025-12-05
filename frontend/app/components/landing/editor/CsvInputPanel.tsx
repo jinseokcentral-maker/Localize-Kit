@@ -2,16 +2,32 @@ import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import CodeMirror from "@uiw/react-codemirror";
 import { Upload } from "lucide-react";
-import { TypoP } from "~/components/typo";
+import { TypoP, TypoSmall } from "~/components/typo";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { csvRainbowTheme, csvRainbowHighlight } from "./csvHighlight";
+import type { Separator } from "./EditorSection";
 
 interface CsvInputPanelProps {
   value: string;
   onChange: (value: string) => void;
   onFileUpload: (file: File) => void;
+  separator: Separator;
+  onSeparatorChange: (separator: Separator | null) => void;
 }
 
-export function CsvInputPanel({ value, onChange, onFileUpload }: CsvInputPanelProps) {
+export function CsvInputPanel({ 
+  value, 
+  onChange, 
+  onFileUpload,
+  separator,
+  onSeparatorChange,
+}: CsvInputPanelProps) {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       const file = acceptedFiles[0];
@@ -49,7 +65,26 @@ export function CsvInputPanel({ value, onChange, onFileUpload }: CsvInputPanelPr
 
       {/* Header */}
       <div className="flex items-center justify-between px-4 h-14 border-b border-border">
-        <TypoP className="text-muted-foreground">CSV Input</TypoP>
+        <div className="flex items-center gap-3">
+          <TypoP className="text-muted-foreground">CSV Input</TypoP>
+          {/* Separator Select */}
+          <div className="flex items-center gap-1.5">
+            <TypoSmall className="text-muted-foreground">Sep:</TypoSmall>
+            <Select
+              value={separator}
+              onValueChange={(value) => onSeparatorChange(value as Separator)}
+            >
+              <SelectTrigger className="w-24 h-7 text-xs px-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value=".">. (dot)</SelectItem>
+                <SelectItem value="/">/ (slash)</SelectItem>
+                <SelectItem value="-">- (dash)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         <button
           onClick={open}
           className="flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-secondary rounded transition-colors"

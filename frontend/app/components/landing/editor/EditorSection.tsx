@@ -4,12 +4,16 @@ import { CsvInputPanel } from "./CsvInputPanel";
 import { JsonOutputPanel } from "./JsonOutputPanel";
 import { EditorControls } from "./EditorControls";
 
-// 샘플 데이터
+// 샘플 데이터 (중첩 키 예시 포함)
 const SAMPLE_CSV = `key,en,ko,ja
-hello,Hello,안녕하세요,こんにちは
-goodbye,Goodbye,안녕히 가세요,さようなら
-welcome,Welcome,환영합니다,ようこそ
-thank_you,Thank you,감사합니다,ありがとう`;
+common.hello,Hello,안녕하세요,こんにちは
+common.goodbye,Goodbye,안녕히 가세요,さようなら
+common.welcome,Welcome,환영합니다,ようこそ
+auth.login,Login,로그인,ログイン
+auth.logout,Logout,로그아웃,ログアウト
+auth.signup,Sign up,회원가입,新規登録
+errors.notFound,Page not found,페이지를 찾을 수 없습니다,ページが見つかりません
+errors.serverError,Server error,서버 오류,サーバーエラー`;
 
 // CSV를 파싱해서 언어별 JSON으로 변환 (임시 로직)
 function parseCsvToJson(csv: string, nested: boolean): Record<string, Record<string, string>> {
@@ -67,7 +71,9 @@ function extractLanguages(csv: string): string[] {
 }
 
 export type OutputFormat = "json" | "yaml" | "i18n";
+export type Separator = "." | "/" | "-";
 const OUTPUT_FORMATS = ["json", "yaml", "i18n"] as const;
+const SEPARATORS = [".", "/", "-"] as const;
 
 export function EditorSection() {
   const [csvContent, setCsvContent] = useState(SAMPLE_CSV);
@@ -80,6 +86,10 @@ export function EditorSection() {
   const [nestedKeys, setNestedKeys] = useQueryState(
     "nested",
     parseAsBoolean.withDefault(false)
+  );
+  const [separator, setSeparator] = useQueryState(
+    "sep",
+    parseAsStringLiteral(SEPARATORS).withDefault(".")
   );
   const [activeLanguage, setActiveLanguage] = useQueryState("lang");
 
@@ -153,6 +163,8 @@ export function EditorSection() {
             value={csvContent}
             onChange={setCsvContent}
             onFileUpload={handleFileUpload}
+            separator={separator}
+            onSeparatorChange={setSeparator}
           />
 
           {/* Right: JSON Output */}
