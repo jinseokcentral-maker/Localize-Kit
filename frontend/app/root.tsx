@@ -10,18 +10,24 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 
-// Geist Font
-import "geist/font/sans.css";
-import "geist/font/mono.css";
-
 export const links: Route.LinksFunction = () => [
-  // JetBrains Mono for code blocks (optional, Geist Mono도 사용 가능)
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",
     href: "https://fonts.gstatic.com",
     crossOrigin: "anonymous",
   },
+  { rel: "preconnect", href: "https://cdn.jsdelivr.net" },
+  // Geist Sans & Mono from CDN
+  {
+    rel: "stylesheet",
+    href: "https://cdn.jsdelivr.net/npm/geist@1.2.2/dist/fonts/geist-sans/style.css",
+  },
+  {
+    rel: "stylesheet",
+    href: "https://cdn.jsdelivr.net/npm/geist@1.2.2/dist/fonts/geist-mono/style.css",
+  },
+  // JetBrains Mono for code blocks
   {
     rel: "stylesheet",
     href: "https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap",

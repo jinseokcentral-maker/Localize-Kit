@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Header } from "~/components/landing/Header";
 
 interface MarketingLayoutProps {
   children: ReactNode;
@@ -7,10 +8,9 @@ interface MarketingLayoutProps {
 export default function MarketingLayout({ children }: MarketingLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
-      {/* Header will be added here */}
+      <Header />
       <main>{children}</main>
       {/* Footer will be added here */}
     </div>
   );
 }
-
