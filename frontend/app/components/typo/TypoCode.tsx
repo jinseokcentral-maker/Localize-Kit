@@ -5,7 +5,12 @@ interface TypoCodeProps extends React.HTMLAttributes<HTMLElement> {
   block?: boolean;
 }
 
-export function TypoCode({ children, className, block = false, ...props }: TypoCodeProps) {
+export function TypoCode({
+  children,
+  className,
+  block = false,
+  ...props
+}: TypoCodeProps) {
   if (block) {
     return (
       <pre
@@ -35,4 +40,3 @@ export function TypoCode({ children, className, block = false, ...props }: TypoC
     </code>
   );
 }
-
