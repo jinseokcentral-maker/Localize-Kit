@@ -9,6 +9,7 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@radix-ui/react-accordion": "^1.2.12",
     "@react-router/fs-routes": "^7.10.1",
     "@react-router/node": "^7.9.2",
     "@react-router/serve": "^7.9.2",
