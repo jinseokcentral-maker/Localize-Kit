@@ -1,0 +1,15 @@
+{
+  "name": "parsing",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "parsing_bg.wasm",
+    "parsing.js",
+    "parsing.d.ts"
+  ],
+  "main": "parsing.js",
+  "types": "parsing.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

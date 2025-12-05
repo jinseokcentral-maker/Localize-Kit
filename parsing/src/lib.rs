@@ -4,6 +4,9 @@ pub mod parser;
 pub mod transform;
 pub mod types;
 
+#[cfg(test)]
+mod bench;
+
 use wasm_bindgen::prelude::*;
 
 use crate::types::{OutputFormat, ParseOptions};

@@ -1,5 +1,5 @@
 use crate::error::{anyhow, Context, Result};
-use crate::parser::{build_nested_value, validate_header};
+use crate::parser::validate_header;
 use crate::transform::process_escape_sequences;
 use crate::types::{LocaleData, ParseOptions, ParseResult};
 use calamine::{open_workbook_auto_from_rs, Reader};
@@ -12,7 +12,6 @@ pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
     let mut workbook =
         open_workbook_auto_from_rs(cursor).context("Failed to open Excel workbook")?;
 
-    // 첫 번째 시트 가져오기
     let sheet_names = workbook.sheet_names().to_vec();
     if sheet_names.is_empty() {
         return Err(anyhow!("Empty Excel workbook: no sheets found"));
@@ -31,21 +30,18 @@ pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
         .map(|cell| cell.to_string().trim().to_string())
         .collect();
 
-    // 헤더 검증
     let header_info = validate_header(&headers)?;
 
-    // 언어별 데이터 초기화
-    let mut locale_data: LocaleData = HashMap::new();
+    // 1단계: 모든 데이터를 flat하게 수집
+    let mut flat_data: HashMap<String, Vec<(String, String)>> = HashMap::new();
     for lang in &header_info.languages {
-        locale_data.insert(lang.clone(), HashMap::new());
+        flat_data.insert(lang.clone(), Vec::new());
     }
 
-    // 각 행 파싱
     let mut row_count = 0;
     for row in rows {
         row_count += 1;
 
-        // 첫 번째 컬럼: key
         let key = match row.get(0) {
             Some(cell) => cell.to_string().trim().to_string(),
             None => continue,
@@ -55,7 +51,6 @@ pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
             continue;
         }
 
-        // 각 언어별 값 추출
         for lang in &header_info.languages {
             let col_idx = header_info.language_indices[lang];
             let raw_value = row
@@ -67,43 +62,101 @@ pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
                 continue;
             }
 
-            // escape 시퀀스 처리 (\n, \t 등)
             let value = if options.process_escapes {
                 process_escape_sequences(&raw_value)
             } else {
                 raw_value
             };
 
-            let lang_map = locale_data.get_mut(lang).unwrap();
-
-            if options.nested && key.contains(&options.separator) {
-                // nested object로 변환
-                let mut nested_map = serde_json::Map::new();
-
-                // 기존 데이터를 nested_map으로 이동
-                for (k, v) in lang_map.iter() {
-                    nested_map.insert(k.clone(), v.clone());
-                }
-
-                build_nested_value(&mut nested_map, &key, &value, &options.separator);
-
-                // nested_map을 다시 lang_map으로 변환
-                lang_map.clear();
-                for (k, v) in nested_map {
-                    lang_map.insert(k, v);
-                }
-            } else {
-                // flat key로 저장
-                lang_map.insert(key.clone(), serde_json::Value::String(value));
-            }
+            flat_data.get_mut(lang).unwrap().push((key.clone(), value));
         }
     }
+
+    // 2단계: nested 또는 flat으로 변환
+    let locale_data = if options.nested {
+        build_nested_locale_data(flat_data, &options.separator)
+    } else {
+        build_flat_locale_data(flat_data)
+    };
 
     Ok(ParseResult {
         languages: header_info.languages,
         data: locale_data,
         row_count,
     })
+}
+
+/// Flat 데이터를 그대로 LocaleData로 변환
+fn build_flat_locale_data(flat_data: HashMap<String, Vec<(String, String)>>) -> LocaleData {
+    let mut result: LocaleData = HashMap::new();
+
+    for (lang, entries) in flat_data {
+        let mut lang_map: HashMap<String, serde_json::Value> = HashMap::new();
+        for (key, value) in entries {
+            lang_map.insert(key, serde_json::Value::String(value));
+        }
+        result.insert(lang, lang_map);
+    }
+
+    result
+}
+
+/// Flat 데이터를 nested 구조로 변환
+fn build_nested_locale_data(
+    flat_data: HashMap<String, Vec<(String, String)>>,
+    separator: &str,
+) -> LocaleData {
+    let mut result: LocaleData = HashMap::new();
+
+    for (lang, entries) in flat_data {
+        let mut root: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
+
+        for (key, value) in entries {
+            if key.contains(separator) {
+                insert_nested(&mut root, &key, value, separator);
+            } else {
+                root.insert(key, serde_json::Value::String(value));
+            }
+        }
+
+        let mut lang_map: HashMap<String, serde_json::Value> = HashMap::new();
+        for (k, v) in root {
+            lang_map.insert(k, v);
+        }
+        result.insert(lang, lang_map);
+    }
+
+    result
+}
+
+/// Nested 키를 JSON 구조에 삽입
+fn insert_nested(
+    root: &mut serde_json::Map<String, serde_json::Value>,
+    key: &str,
+    value: String,
+    separator: &str,
+) {
+    let parts: Vec<&str> = key.split(separator).collect();
+    let mut current = root;
+
+    for (i, part) in parts.iter().enumerate() {
+        if i == parts.len() - 1 {
+            current.insert(part.to_string(), serde_json::Value::String(value));
+            return;
+        }
+
+        if !current.contains_key(*part) {
+            current.insert(
+                part.to_string(),
+                serde_json::Value::Object(serde_json::Map::new()),
+            );
+        }
+
+        current = current
+            .get_mut(*part)
+            .and_then(|v| v.as_object_mut())
+            .expect("Expected object for nested key");
+    }
 }
 
 /// Excel 헤더만 파싱하여 언어 목록 반환

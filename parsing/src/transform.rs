@@ -7,7 +7,7 @@
 //! - 복수형 키
 //! - Nesting 참조
 
-use regex::Regex;
+use regex_lite::Regex;
 use std::sync::LazyLock;
 
 // ============================================================================

@@ -1,5 +1,5 @@
 use crate::error::Result;
-use crate::parser::{build_nested_value, validate_header};
+use crate::parser::validate_header;
 use crate::transform::process_escape_sequences;
 use crate::types::{LocaleData, ParseOptions, ParseResult};
 use csv::ReaderBuilder;
@@ -23,19 +23,17 @@ pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
     // 헤더 검증
     let header_info = validate_header(&headers)?;
 
-    // 언어별 데이터 초기화
-    let mut locale_data: LocaleData = HashMap::new();
+    // 1단계: 모든 데이터를 flat하게 수집
+    let mut flat_data: HashMap<String, Vec<(String, String)>> = HashMap::new();
     for lang in &header_info.languages {
-        locale_data.insert(lang.clone(), HashMap::new());
+        flat_data.insert(lang.clone(), Vec::new());
     }
 
-    // 각 행 파싱
     let mut row_count = 0;
     for result in reader.records() {
         let record = result?;
         row_count += 1;
 
-        // 첫 번째 컬럼: key
         let key = match record.get(0) {
             Some(k) => k.trim(),
             None => continue,
@@ -45,7 +43,6 @@ pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
             continue;
         }
 
-        // 각 언어별 값 추출
         for lang in &header_info.languages {
             let col_idx = header_info.language_indices[lang];
             let raw_value = record.get(col_idx).unwrap_or("").trim();
@@ -54,43 +51,104 @@ pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
                 continue;
             }
 
-            // escape 시퀀스 처리 (\n, \t 등)
             let value = if options.process_escapes {
                 process_escape_sequences(raw_value)
             } else {
                 raw_value.to_string()
             };
 
-            let lang_map = locale_data.get_mut(lang).unwrap();
-
-            if options.nested && key.contains(&options.separator) {
-                // nested object로 변환
-                let mut nested_map = serde_json::Map::new();
-
-                // 기존 데이터를 nested_map으로 이동
-                for (k, v) in lang_map.iter() {
-                    nested_map.insert(k.clone(), v.clone());
-                }
-
-                build_nested_value(&mut nested_map, key, &value, &options.separator);
-
-                // nested_map을 다시 lang_map으로 변환
-                lang_map.clear();
-                for (k, v) in nested_map {
-                    lang_map.insert(k, v);
-                }
-            } else {
-                // flat key로 저장
-                lang_map.insert(key.to_string(), serde_json::Value::String(value));
-            }
+            flat_data.get_mut(lang).unwrap().push((key.to_string(), value));
         }
     }
+
+    // 2단계: nested 또는 flat으로 변환
+    let locale_data = if options.nested {
+        build_nested_locale_data(flat_data, &options.separator)
+    } else {
+        build_flat_locale_data(flat_data)
+    };
 
     Ok(ParseResult {
         languages: header_info.languages,
         data: locale_data,
         row_count,
     })
+}
+
+/// Flat 데이터를 그대로 LocaleData로 변환
+fn build_flat_locale_data(flat_data: HashMap<String, Vec<(String, String)>>) -> LocaleData {
+    let mut result: LocaleData = HashMap::new();
+
+    for (lang, entries) in flat_data {
+        let mut lang_map: HashMap<String, serde_json::Value> = HashMap::new();
+        for (key, value) in entries {
+            lang_map.insert(key, serde_json::Value::String(value));
+        }
+        result.insert(lang, lang_map);
+    }
+
+    result
+}
+
+/// Flat 데이터를 nested 구조로 변환 (한 번에 처리)
+fn build_nested_locale_data(
+    flat_data: HashMap<String, Vec<(String, String)>>,
+    separator: &str,
+) -> LocaleData {
+    let mut result: LocaleData = HashMap::new();
+
+    for (lang, entries) in flat_data {
+        let mut root: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
+
+        for (key, value) in entries {
+            if key.contains(separator) {
+                insert_nested(&mut root, &key, value, separator);
+            } else {
+                root.insert(key, serde_json::Value::String(value));
+            }
+        }
+
+        // serde_json::Map을 HashMap으로 변환
+        let mut lang_map: HashMap<String, serde_json::Value> = HashMap::new();
+        for (k, v) in root {
+            lang_map.insert(k, v);
+        }
+        result.insert(lang, lang_map);
+    }
+
+    result
+}
+
+/// Nested 키를 JSON 구조에 삽입
+fn insert_nested(
+    root: &mut serde_json::Map<String, serde_json::Value>,
+    key: &str,
+    value: String,
+    separator: &str,
+) {
+    let parts: Vec<&str> = key.split(separator).collect();
+    let mut current = root;
+
+    for (i, part) in parts.iter().enumerate() {
+        if i == parts.len() - 1 {
+            // 마지막 파트: 값 삽입
+            current.insert(part.to_string(), serde_json::Value::String(value));
+            return;
+        }
+
+        // 중간 파트: object 생성 또는 기존 object 사용
+        if !current.contains_key(*part) {
+            current.insert(
+                part.to_string(),
+                serde_json::Value::Object(serde_json::Map::new()),
+            );
+        }
+
+        current = current
+            .get_mut(*part)
+            .and_then(|v| v.as_object_mut())
+            .expect("Expected object for nested key");
+    }
 }
 
 /// CSV 헤더만 파싱하여 언어 목록 반환
@@ -181,11 +239,9 @@ errors.serverError,Server error,서버 오류,サーバーエラー"#;
         };
         let result = parse(csv_str.as_bytes(), &options).unwrap();
 
-        // 언어 확인
         assert_eq!(result.languages, vec!["en", "ko", "ja"]);
         assert_eq!(result.row_count, 8);
 
-        // nested 구조 확인 (en)
         let en = result.data.get("en").unwrap();
         let common = en.get("common").unwrap().as_object().unwrap();
         assert_eq!(common.get("hello").unwrap(), "Hello");
@@ -201,19 +257,13 @@ errors.serverError,Server error,서버 오류,サーバーエラー"#;
         assert_eq!(errors.get("notFound").unwrap(), "Page not found");
         assert_eq!(errors.get("serverError").unwrap(), "Server error");
 
-        // nested 구조 확인 (ko)
         let ko = result.data.get("ko").unwrap();
         let common_ko = ko.get("common").unwrap().as_object().unwrap();
         assert_eq!(common_ko.get("hello").unwrap(), "안녕하세요");
 
-        // nested 구조 확인 (ja)
         let ja = result.data.get("ja").unwrap();
         let auth_ja = ja.get("auth").unwrap().as_object().unwrap();
         assert_eq!(auth_ja.get("login").unwrap(), "ログイン");
-
-        // JSON 출력 확인
-        let json_output = serde_json::to_string_pretty(&result).unwrap();
-        println!("=== JSON Output ===\n{}", json_output);
     }
 
     #[test]
@@ -225,12 +275,11 @@ auth.login,Login,로그인,ログイン"#;
 
         let options = ParseOptions {
             separator: ".".to_string(),
-            nested: false,  // nested 끔!
+            nested: false,
             ..Default::default()
         };
         let result = parse(csv_str.as_bytes(), &options).unwrap();
 
-        // flat 키로 저장되어야 함
         let en = result.data.get("en").unwrap();
         assert_eq!(en.get("common.hello").unwrap(), "Hello");
         assert_eq!(en.get("common.goodbye").unwrap(), "Goodbye");
@@ -238,10 +287,6 @@ auth.login,Login,로그인,ログイン"#;
 
         let ko = result.data.get("ko").unwrap();
         assert_eq!(ko.get("common.hello").unwrap(), "안녕하세요");
-
-        // JSON 출력 확인
-        let json_output = serde_json::to_string_pretty(&result).unwrap();
-        println!("=== Flat Keys Output ===\n{}", json_output);
     }
 
     #[test]
@@ -251,26 +296,19 @@ message.multiline,Hello\nWorld,안녕\n세상
 message.tab,Name:\tJohn,이름:\t홍길동
 message.quote,Say \"Hi\",\"안녕\"이라고 말해"#;
 
-        // process_escapes: true (기본값)
         let options = ParseOptions::default();
         let result = parse(csv_str.as_bytes(), &options).unwrap();
 
         let en = result.data.get("en").unwrap();
         let message = en.get("message").unwrap().as_object().unwrap();
 
-        // \n이 실제 줄바꿈으로 변환됨
         assert_eq!(message.get("multiline").unwrap(), "Hello\nWorld");
-        // \t가 실제 탭으로 변환됨
         assert_eq!(message.get("tab").unwrap(), "Name:\tJohn");
-        // \"가 실제 따옴표로 변환됨
         assert_eq!(message.get("quote").unwrap(), "Say \"Hi\"");
 
         let ko = result.data.get("ko").unwrap();
         let message_ko = ko.get("message").unwrap().as_object().unwrap();
         assert_eq!(message_ko.get("multiline").unwrap(), "안녕\n세상");
-
-        println!("=== Escape Sequences Output ===");
-        println!("{}", serde_json::to_string_pretty(&result).unwrap());
     }
 
     #[test]
@@ -278,7 +316,6 @@ message.quote,Say \"Hi\",\"안녕\"이라고 말해"#;
         let csv_str = r#"key,en,ko
 message,Hello\nWorld,안녕\n세상"#;
 
-        // process_escapes: false
         let options = ParseOptions {
             process_escapes: false,
             ..Default::default()
@@ -286,7 +323,6 @@ message,Hello\nWorld,안녕\n세상"#;
         let result = parse(csv_str.as_bytes(), &options).unwrap();
 
         let en = result.data.get("en").unwrap();
-        // \n이 그대로 유지됨 (두 글자)
         assert_eq!(en.get("message").unwrap(), "Hello\\nWorld");
     }
 
@@ -300,7 +336,6 @@ count,You have {{count}} items,{{count}}개 항목이 있습니다"#;
         let result = parse(csv_str.as_bytes(), &options).unwrap();
 
         let en = result.data.get("en").unwrap();
-        // 변수는 그대로 유지
         assert_eq!(en.get("greeting").unwrap(), "Hello {{name}}!");
         assert_eq!(en.get("count").unwrap(), "You have {{count}} items");
 
@@ -318,9 +353,7 @@ link,Visit <a href="url">link</a>,<a href="url">링크</a> 방문"#;
         let result = parse(csv_str.as_bytes(), &options).unwrap();
 
         let en = result.data.get("en").unwrap();
-        // HTML 태그 유지
         assert_eq!(en.get("styled").unwrap(), "Click <b>here</b>");
         assert!(en.get("link").unwrap().as_str().unwrap().contains("<a href="));
     }
 }
-
