@@ -1,7 +1,9 @@
 import { Link } from "react-router";
-import { Sun, Moon, Github, Globe } from "lucide-react";
+import { Sun, Moon, Globe } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { useTheme } from "~/hooks/useTheme";
+import { GithubIcon } from "~/components/icons/GithubIcon";
+import { TypoP } from "~/components/typo";
 
 export function Header() {
   const { theme, toggleTheme, isDark } = useTheme();
@@ -12,9 +14,7 @@ export function Header() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <Globe className="size-6 text-primary" />
-          <span className="text-base font-semibold text-foreground">
-            LocalizeKit
-          </span>
+          <TypoP className="font-semibold">LocalizeKit</TypoP>
         </Link>
 
         {/* Navigation */}
@@ -42,7 +42,7 @@ export function Header() {
             className="text-muted-foreground hover:text-foreground transition-colors"
             aria-label="View on GitHub"
           >
-            <Github className="size-5" />
+            <GithubIcon className="size-5" />
           </a>
 
           {/* Docs Link */}
