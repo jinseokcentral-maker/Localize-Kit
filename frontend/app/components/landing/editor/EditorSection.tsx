@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useQueryState, parseAsStringLiteral, parseAsBoolean } from "nuqs";
 import { CsvInputPanel } from "./CsvInputPanel";
 import { JsonOutputPanel } from "./JsonOutputPanel";
 import { EditorControls } from "./EditorControls";
@@ -66,17 +67,26 @@ function extractLanguages(csv: string): string[] {
 }
 
 export type OutputFormat = "json" | "yaml" | "i18n";
+const OUTPUT_FORMATS = ["json", "yaml", "i18n"] as const;
 
 export function EditorSection() {
   const [csvContent, setCsvContent] = useState(SAMPLE_CSV);
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>("json");
-  const [nestedKeys, setNestedKeys] = useState(false);
-  const [activeLanguage, setActiveLanguage] = useState<string>("");
+  
+  // URL query string으로 상태 관리
+  const [outputFormat, setOutputFormat] = useQueryState(
+    "format",
+    parseAsStringLiteral(OUTPUT_FORMATS).withDefault("json")
+  );
+  const [nestedKeys, setNestedKeys] = useQueryState(
+    "nested",
+    parseAsBoolean.withDefault(false)
+  );
+  const [activeLanguage, setActiveLanguage] = useQueryState("lang");
 
   // 언어 목록 추출
   const languages = extractLanguages(csvContent);
   
-  // 첫 번째 언어를 기본 선택
+  // 빈 문자열이면 첫 번째 파싱된 언어 사용
   const currentLanguage = activeLanguage || languages[0] || "EN";
 
   // CSV를 JSON으로 변환
@@ -92,15 +102,12 @@ export function EditorSection() {
       const text = e.target?.result as string;
       if (text) {
         setCsvContent(text);
-        // 첫 번째 언어로 초기화
-        const langs = extractLanguages(text);
-        if (langs.length > 0) {
-          setActiveLanguage(langs[0]);
-        }
+        // lang을 null로 설정하면 URL에서 제거되고, 첫 번째 언어가 자동 선택됨
+        setActiveLanguage(null);
       }
     };
     reader.readAsText(file);
-  }, []);
+  }, [setActiveLanguage]);
 
   // 복사 핸들러
   const handleCopy = useCallback(() => {
