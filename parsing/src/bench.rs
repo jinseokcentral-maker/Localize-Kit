@@ -3,6 +3,7 @@
 #[cfg(test)]
 mod tests {
     use crate::parser::csv::parse;
+    use crate::parser::excel::parse as parse_excel;
     use crate::types::ParseOptions;
     use std::time::Instant;
 
@@ -237,6 +238,108 @@ mod tests {
         println!("📊 Escape Processing (1,000 rows with special chars)");
         println!("   ⏱️  With escapes:    {:?}", with_escape_time);
         println!("   ⏱️  Without escapes: {:?}", without_escape_time);
+    }
+
+    // ========================================================================
+    // Excel 벤치마크 (시간 측정)
+    // ========================================================================
+
+    #[test]
+    fn bench_medium_excel() {
+        let data = include_bytes!("../test_files/medium.xlsx");
+        let options = ParseOptions::default();
+
+        let start = Instant::now();
+        let result = parse_excel(data, &options).unwrap();
+        let elapsed = start.elapsed();
+
+        println!("📊 medium.xlsx (100 rows, {} bytes)", data.len());
+        println!("   ⏱️  Time: {:?}", elapsed);
+        println!(
+            "   📝 Rows: {}, Languages: {:?}",
+            result.row_count, result.languages
+        );
+
+        assert_eq!(result.row_count, 100);
+    }
+
+    #[test]
+    fn bench_large_excel() {
+        let data = include_bytes!("../test_files/large.xlsx");
+        let options = ParseOptions::default();
+
+        let start = Instant::now();
+        let result = parse_excel(data, &options).unwrap();
+        let elapsed = start.elapsed();
+
+        println!("📊 large.xlsx (1,000 rows, {} bytes)", data.len());
+        println!("   ⏱️  Time: {:?}", elapsed);
+        println!(
+            "   📝 Rows: {}, Languages: {:?}",
+            result.row_count, result.languages
+        );
+
+        assert_eq!(result.row_count, 1000);
+    }
+
+    #[test]
+    fn bench_large_special_excel() {
+        let data = include_bytes!("../test_files/large_special.xlsx");
+        let options = ParseOptions::default();
+
+        let start = Instant::now();
+        let result = parse_excel(data, &options).unwrap();
+        let elapsed = start.elapsed();
+
+        println!(
+            "📊 large_special.xlsx (1,000 rows with escapes, {} bytes)",
+            data.len()
+        );
+        println!("   ⏱️  Time: {:?}", elapsed);
+        println!(
+            "   📝 Rows: {}, Languages: {:?}",
+            result.row_count, result.languages
+        );
+
+        assert_eq!(result.row_count, 1000);
+    }
+
+    #[test]
+    fn bench_xlarge_excel() {
+        let data = include_bytes!("../test_files/xlarge.xlsx");
+        let options = ParseOptions::default();
+
+        let start = Instant::now();
+        let result = parse_excel(data, &options).unwrap();
+        let elapsed = start.elapsed();
+
+        println!("📊 xlarge.xlsx (5,000 rows, {} bytes)", data.len());
+        println!("   ⏱️  Time: {:?}", elapsed);
+        println!(
+            "   📝 Rows: {}, Languages: {:?}",
+            result.row_count, result.languages
+        );
+
+        assert_eq!(result.row_count, 5000);
+    }
+
+    #[test]
+    fn bench_xxlarge_excel() {
+        let data = include_bytes!("../test_files/xxlarge.xlsx");
+        let options = ParseOptions::default();
+
+        let start = Instant::now();
+        let result = parse_excel(data, &options).unwrap();
+        let elapsed = start.elapsed();
+
+        println!("📊 xxlarge.xlsx (10,000 rows, {} bytes)", data.len());
+        println!("   ⏱️  Time: {:?}", elapsed);
+        println!(
+            "   📝 Rows: {}, Languages: {:?}",
+            result.row_count, result.languages
+        );
+
+        assert_eq!(result.row_count, 10000);
     }
 }
 

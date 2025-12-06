@@ -2,3 +2,4 @@
 /pkg
 /test_files/*.csv
 /test_files/*.py
+/test_files/*.xlsx

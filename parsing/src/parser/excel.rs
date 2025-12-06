@@ -1,4 +1,4 @@
-use crate::error::{anyhow, Context, Result};
+use crate::error::{ParseError, Result};
 use crate::parser::validate_header;
 use crate::transform::process_escape_sequences;
 use crate::types::{LocaleData, ParseOptions, ParseResult};
@@ -9,22 +9,22 @@ use std::io::Cursor;
 /// Excel 데이터 파싱
 pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
     let cursor = Cursor::new(data);
-    let mut workbook =
-        open_workbook_auto_from_rs(cursor).context("Failed to open Excel workbook")?;
+    let mut workbook = open_workbook_auto_from_rs(cursor)
+        .map_err(|e| ParseError::excel_open_error(&e.to_string()))?;
 
     let sheet_names = workbook.sheet_names().to_vec();
     if sheet_names.is_empty() {
-        return Err(anyhow!("Empty Excel workbook: no sheets found"));
+        return Err(ParseError::empty_workbook());
     }
 
     let range = workbook
         .worksheet_range(&sheet_names[0])
-        .context("Failed to read worksheet")?;
+        .map_err(|e| ParseError::worksheet_read_error(&sheet_names[0], &e.to_string()))?;
 
     let mut rows = range.rows();
 
     // 헤더 읽기
-    let header_row = rows.next().ok_or_else(|| anyhow!("Empty Excel sheet"))?;
+    let header_row = rows.next().ok_or_else(ParseError::empty_sheet)?;
     let headers: Vec<String> = header_row
         .iter()
         .map(|cell| cell.to_string().trim().to_string())
@@ -162,19 +162,19 @@ fn insert_nested(
 /// Excel 헤더만 파싱하여 언어 목록 반환
 pub fn parse_header_only(data: &[u8]) -> Result<Vec<String>> {
     let cursor = Cursor::new(data);
-    let mut workbook =
-        open_workbook_auto_from_rs(cursor).context("Failed to open Excel workbook")?;
+    let mut workbook = open_workbook_auto_from_rs(cursor)
+        .map_err(|e| ParseError::excel_open_error(&e.to_string()))?;
 
     let sheet_names = workbook.sheet_names().to_vec();
     if sheet_names.is_empty() {
-        return Err(anyhow!("Empty Excel workbook: no sheets found"));
+        return Err(ParseError::empty_workbook());
     }
 
     let range = workbook
         .worksheet_range(&sheet_names[0])
-        .context("Failed to read worksheet")?;
+        .map_err(|e| ParseError::worksheet_read_error(&sheet_names[0], &e.to_string()))?;
 
-    let header_row = range.rows().next().ok_or_else(|| anyhow!("Empty Excel sheet"))?;
+    let header_row = range.rows().next().ok_or_else(ParseError::empty_sheet)?;
     let headers: Vec<String> = header_row
         .iter()
         .map(|cell| cell.to_string().trim().to_string())

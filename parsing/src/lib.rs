@@ -24,6 +24,9 @@ pub fn init() {
 /// * `separator` - 키 구분자 (".", "/", "-")
 /// * `nested` - nested object로 변환 여부
 /// * `process_escapes` - escape 시퀀스 처리 여부 (\n, \t 등)
+///
+/// # Returns
+/// JSON string with parsed data or error details
 #[wasm_bindgen]
 pub fn parse_csv(
     data: &[u8],
@@ -39,8 +42,11 @@ pub fn parse_csv(
     };
 
     match parser::csv::parse(data, &options) {
-        Ok(result) => serde_json::to_string(&result).map_err(|e| JsValue::from_str(&e.to_string())),
-        Err(e) => Err(JsValue::from_str(&e.to_string())),
+        Ok(result) => serde_json::to_string(&result).map_err(|e| {
+            let err = error::ParseError::json_serialize_error(&e);
+            JsValue::from_str(&err.to_json())
+        }),
+        Err(e) => Err(JsValue::from_str(&e.to_json())),
     }
 }
 
@@ -51,6 +57,9 @@ pub fn parse_csv(
 /// * `separator` - 키 구분자 (".", "/", "-")
 /// * `nested` - nested object로 변환 여부
 /// * `process_escapes` - escape 시퀀스 처리 여부 (\n, \t 등)
+///
+/// # Returns
+/// JSON string with parsed data or error details
 #[wasm_bindgen]
 pub fn parse_excel(
     data: &[u8],
@@ -66,8 +75,11 @@ pub fn parse_excel(
     };
 
     match parser::excel::parse(data, &options) {
-        Ok(result) => serde_json::to_string(&result).map_err(|e| JsValue::from_str(&e.to_string())),
-        Err(e) => Err(JsValue::from_str(&e.to_string())),
+        Ok(result) => serde_json::to_string(&result).map_err(|e| {
+            let err = error::ParseError::json_serialize_error(&e);
+            JsValue::from_str(&err.to_json())
+        }),
+        Err(e) => Err(JsValue::from_str(&e.to_json())),
     }
 }
 
@@ -75,11 +87,11 @@ pub fn parse_excel(
 #[wasm_bindgen]
 pub fn get_csv_languages(data: &[u8]) -> Result<String, JsValue> {
     match parser::csv::parse_header_only(data) {
-        Ok(languages) => {
-            serde_json::to_string(&languages)
-                .map_err(|e| JsValue::from_str(&e.to_string()))
-        }
-        Err(e) => Err(JsValue::from_str(&e.to_string())),
+        Ok(languages) => serde_json::to_string(&languages).map_err(|e| {
+            let err = error::ParseError::json_serialize_error(&e);
+            JsValue::from_str(&err.to_json())
+        }),
+        Err(e) => Err(JsValue::from_str(&e.to_json())),
     }
 }
 
@@ -87,10 +99,10 @@ pub fn get_csv_languages(data: &[u8]) -> Result<String, JsValue> {
 #[wasm_bindgen]
 pub fn get_excel_languages(data: &[u8]) -> Result<String, JsValue> {
     match parser::excel::parse_header_only(data) {
-        Ok(languages) => {
-            serde_json::to_string(&languages)
-                .map_err(|e| JsValue::from_str(&e.to_string()))
-        }
-        Err(e) => Err(JsValue::from_str(&e.to_string())),
+        Ok(languages) => serde_json::to_string(&languages).map_err(|e| {
+            let err = error::ParseError::json_serialize_error(&e);
+            JsValue::from_str(&err.to_json())
+        }),
+        Err(e) => Err(JsValue::from_str(&e.to_json())),
     }
 }

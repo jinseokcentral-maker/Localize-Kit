@@ -24,6 +24,9 @@ export function init(): void;
  * * `separator` - 키 구분자 (".", "/", "-")
  * * `nested` - nested object로 변환 여부
  * * `process_escapes` - escape 시퀀스 처리 여부 (\n, \t 등)
+ *
+ * # Returns
+ * JSON string with parsed data or error details
  */
 export function parse_csv(data: Uint8Array, separator: string, nested: boolean, process_escapes: boolean): string;
 
@@ -35,6 +38,9 @@ export function parse_csv(data: Uint8Array, separator: string, nested: boolean, 
  * * `separator` - 키 구분자 (".", "/", "-")
  * * `nested` - nested object로 변환 여부
  * * `process_escapes` - escape 시퀀스 처리 여부 (\n, \t 등)
+ *
+ * # Returns
+ * JSON string with parsed data or error details
  */
 export function parse_excel(data: Uint8Array, separator: string, nested: boolean, process_escapes: boolean): string;
 

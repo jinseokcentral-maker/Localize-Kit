@@ -201,6 +201,9 @@ export function init() {
  * * `separator` - 키 구분자 (".", "/", "-")
  * * `nested` - nested object로 변환 여부
  * * `process_escapes` - escape 시퀀스 처리 여부 (\n, \t 등)
+ *
+ * # Returns
+ * JSON string with parsed data or error details
  * @param {Uint8Array} data
  * @param {string} separator
  * @param {boolean} nested
@@ -244,6 +247,9 @@ export function parse_csv(data, separator, nested, process_escapes) {
  * * `separator` - 키 구분자 (".", "/", "-")
  * * `nested` - nested object로 변환 여부
  * * `process_escapes` - escape 시퀀스 처리 여부 (\n, \t 등)
+ *
+ * # Returns
+ * JSON string with parsed data or error details
  * @param {Uint8Array} data
  * @param {string} separator
  * @param {boolean} nested

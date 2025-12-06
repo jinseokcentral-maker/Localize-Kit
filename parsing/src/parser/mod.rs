@@ -1,14 +1,14 @@
 pub mod csv;
 pub mod excel;
 
-use crate::error::{bail, Result};
+use crate::error::{ParseError, Result};
 use crate::lang_codes::{is_known_lang_code, normalize_lang_code, warn_unknown_lang_code};
 use crate::types::HeaderInfo;
 
 /// 헤더 검증: 첫 번째 컬럼이 "key"이고 나머지가 언어 코드인지 확인
 pub fn validate_header(headers: &[String]) -> Result<HeaderInfo> {
     if headers.is_empty() {
-        bail!("Empty CSV/Excel data");
+        return Err(ParseError::empty_data());
     }
 
     let mut info = HeaderInfo::new();
@@ -16,7 +16,7 @@ pub fn validate_header(headers: &[String]) -> Result<HeaderInfo> {
     // 첫 번째 컬럼이 "key"인지 확인 (대소문자 무시)
     let first_col = headers[0].trim().to_lowercase();
     if first_col != "key" {
-        bail!("Invalid header: first column must be 'key', got '{}'", headers[0]);
+        return Err(ParseError::invalid_key_column(&headers[0]));
     }
     info.has_valid_key_column = true;
 
@@ -39,7 +39,7 @@ pub fn validate_header(headers: &[String]) -> Result<HeaderInfo> {
     }
 
     if info.languages.is_empty() {
-        bail!("No language columns found in header");
+        return Err(ParseError::no_language_columns());
     }
 
     Ok(info)
