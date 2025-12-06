@@ -13,7 +13,28 @@ export function Header() {
       <div className="flex h-16 w-full items-center justify-between px-8">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <Globe className="size-6 text-primary" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-6 h-6 text-primary"
+          >
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <path d="M3 10h18" />
+            <path d="M12 10v10" />
+            <path d="M7 7h.01" />
+            <path d="M11 7h.01" />
+            <path d="M6 14h3" />
+            <path d="M6 17h2" />
+            <path d="M15 14h2" />
+            <path d="M15 17h3" />
+          </svg>
           <TypoP className="font-semibold">LocalizeKit</TypoP>
         </Link>
 

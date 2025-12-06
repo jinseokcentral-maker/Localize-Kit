@@ -233,7 +233,7 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
       <div
         className={cn(
           "bg-card border border-border rounded-[10px] overflow-hidden shadow-lg flex flex-col",
-          heightClass ?? "h-[640px]"
+          heightClass
         )}
       >
         {/* Top Controls */}
@@ -248,7 +248,12 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
         />
 
         {/* Main Editor Area */}
-        <div className="grid grid-cols-2 flex-1 min-h-0 overflow-hidden">
+        <div
+          className={cn(
+            "grid grid-cols-2 overflow-hidden",
+            heightClass ? "flex-1 min-h-0" : "min-h-[400px]"
+          )}
+        >
           {/* Left: CSV Input */}
           <CsvInputPanel
             value={csvContent}
