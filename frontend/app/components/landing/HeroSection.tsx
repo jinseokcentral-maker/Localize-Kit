@@ -13,8 +13,8 @@ export function HeroSection() {
 
       {/* Description */}
       <TypoP muted className="mt-6 text-center max-w-2xl">
-        Transform your spreadsheet translations into ready-to-use JSON, YAML, or
-        i18n resource files in seconds.
+        Transform your spreadsheet translations into ready-to-use JSON files in
+        seconds.
       </TypoP>
 
       {/* CTA Buttons */}

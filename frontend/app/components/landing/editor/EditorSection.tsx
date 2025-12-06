@@ -4,9 +4,15 @@ import { CsvInputPanel } from "./CsvInputPanel";
 import { JsonOutputPanel } from "./JsonOutputPanel";
 import { EditorControls } from "./EditorControls";
 import { useCsvStore } from "~/stores/csvStore";
-import { parseCsvString, rewriteCsvKeySeparator } from "~/lib/parser/index";
+import {
+  parseCsvString,
+  rewriteCsvKeySeparator,
+  excelToCsv,
+} from "~/lib/parser/index";
 import { logTimed } from "~/lib/logger";
 import { useLoadWasmParser } from "~/hooks/useLoadWasmParser";
+import { toast } from "sonner";
+import JSZip from "jszip";
 
 // 샘플 데이터 (중첩 키 예시 포함)
 const SAMPLE_CSV = `key,en,ko,ja
@@ -66,8 +72,19 @@ export function EditorSection() {
   const currentLanguageRaw = activeLanguage || languages[0] || "en";
   const currentLanguage = currentLanguageRaw.toLowerCase();
 
+  // 언어 키를 대소문자/구분자 무시하고 매칭
+  const resolvedLanguageKey = useMemo(() => {
+    const target = currentLanguage.toLowerCase().replace("_", "-");
+    return Object.keys(jsonOutput).find((key) => {
+      const normalized = key.toLowerCase().replace("_", "-");
+      return normalized === target;
+    });
+  }, [currentLanguage, jsonOutput]);
+
   // 현재 선택된 언어의 JSON
-  const currentJson = jsonOutput[currentLanguage] || {};
+  const currentJson = resolvedLanguageKey
+    ? jsonOutput[resolvedLanguageKey]
+    : {};
 
   // Separator 변경 시 키 컬럼을 새 구분자로 변환
   useEffect(() => {
@@ -114,16 +131,49 @@ export function EditorSection() {
 
   // 파일 업로드 핸들러
   const handleFileUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      if (text) {
-        setCsv(text);
-        // lang을 null로 설정하면 URL에서 제거되고, 첫 번째 언어가 자동 선택됨
-        setActiveLanguage(null);
+    const name = file.name.toLowerCase();
+    const isExcel = name.endsWith(".xlsx") || name.endsWith(".xls");
+    const isCsv = name.endsWith(".csv");
+
+    if (!isExcel && !isCsv) {
+      toast.error("Invalid file type. Please upload CSV or Excel.");
+      return;
+    }
+
+    if (isExcel) {
+      if (wasmStatus !== "loaded") {
+        toast.error("WASM not loaded yet. Please try again.");
+        return;
       }
-    };
-    reader.readAsText(file);
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const buffer = e.target?.result as ArrayBuffer;
+          const csvText = await excelToCsv(new Uint8Array(buffer));
+          setCsv(csvText);
+          setActiveLanguage(null);
+          toast.success("Excel converted to CSV");
+        } catch (err) {
+          toast.error("Failed to parse Excel file");
+          console.error(err);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+      return;
+    }
+
+    if (isCsv) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        if (text) {
+          setCsv(text);
+          setActiveLanguage(null);
+        }
+      };
+      reader.readAsText(file);
+      return;
+    }
   };
 
   const formatted = useMemo(() => {
@@ -137,6 +187,7 @@ export function EditorSection() {
   // 복사 핸들러
   const handleCopy = () => {
     navigator.clipboard.writeText(formatted.text);
+    toast.success("Copied output");
   };
 
   // 다운로드 핸들러
@@ -145,24 +196,30 @@ export function EditorSection() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${currentLanguage.toLowerCase()}.${formatted.ext}`;
+    a.download = `${(resolvedLanguageKey || currentLanguage).toLowerCase()}.${
+      formatted.ext
+    }`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success("Downloaded current output");
   };
 
   // 전체 다운로드 핸들러
-  const handleDownloadAll = () => {
-    // JSON 모드: 언어별 개별 다운로드
+  const handleDownloadAll = async () => {
+    const zip = new JSZip();
     Object.entries(jsonOutput).forEach(([lang, data]) => {
       const jsonString = JSON.stringify(data, null, 2);
-      const blob = new Blob([jsonString], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${lang.toLowerCase()}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      zip.file(`${lang.toLowerCase()}.json`, jsonString);
     });
+
+    const content = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(content);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "i18n.zip";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Downloaded i18n.zip");
   };
 
   return (
@@ -185,7 +242,9 @@ export function EditorSection() {
             activeLanguage={currentLanguage}
             onLanguageChange={setActiveLanguage}
             formattedText={formatted.text}
-            filename={`${currentLanguage}.${formatted.ext}`}
+            filename={`${(
+              resolvedLanguageKey || currentLanguage
+            ).toLowerCase()}.${formatted.ext}`}
             format={outputFormat}
           />
         </div>

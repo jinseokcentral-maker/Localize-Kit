@@ -5,7 +5,7 @@ import type { Route } from "./+types/_app";
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Converter - LocalizeKit" },
-    { name: "description", content: "Convert CSV to JSON, YAML, or i18n resource files instantly." },
+    { name: "description", content: "Convert CSV to JSON instantly." },
   ];
 }
 
@@ -16,4 +16,3 @@ export default function AppLayoutRoute() {
     </AppLayout>
   );
 }
-

@@ -38,8 +38,9 @@ pub fn is_known_lang_code(code: &str) -> bool {
 }
 
 /// 언어 코드 정규화 (소문자로 변환, 지역 코드는 대문자 유지)
-/// 예: "EN-us" -> "en-US", "KO" -> "ko"
+/// 예: "EN-us" -> "en-US", "KO" -> "ko", "zh_cn" -> "zh-CN"
 pub fn normalize_lang_code(code: &str) -> String {
+    let code = code.replace('_', "-"); // underscore도 동일하게 취급
     if let Some((lang, region)) = code.split_once('-') {
         format!("{}-{}", lang.to_lowercase(), region.to_uppercase())
     } else {
@@ -91,6 +92,8 @@ mod tests {
         assert!(is_known_lang_code("Ko"));
         assert!(is_known_lang_code("en-us"));
         assert!(is_known_lang_code("ZH-cn"));
+        assert!(is_known_lang_code("zh_cn"));
+        assert!(is_known_lang_code("EN_us"));
     }
 
     #[test]

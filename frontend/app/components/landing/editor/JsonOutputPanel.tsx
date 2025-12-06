@@ -31,7 +31,7 @@ export function JsonOutputPanel({
           <button
             key={lang}
             onClick={() => onLanguageChange(lang.toLowerCase())}
-            className={`px-3 py-1.5 text-sm rounded transition-colors ${
+            className={`px-3 py-1.5 text-sm rounded transition-colors whitespace-nowrap ${
               current === lang.toLowerCase()
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground hover:bg-secondary"

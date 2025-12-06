@@ -456,3 +456,65 @@ export function rewriteCsvKeySeparator(
 ): string {
   return rewrite_csv_key_separator(csvText, separator);
 }
+
+// ============================================================================
+// Language helpers (tabs with hyphen codes like zh-CN, zh-TW)
+// ============================================================================
+
+/**
+ * 언어 코드 정규화
+ * - 기본은 소문자, 지역 코드는 대문자
+ *   예: 'zh-cn' -> 'zh-CN', 'pt-br' -> 'pt-BR'
+ */
+export function normalizeLangCode(code: string): string {
+  if (code.includes("-")) {
+    const [lang, region] = code.split("-");
+    return `${lang.toLowerCase()}-${region.toUpperCase()}`;
+  }
+  return code.toLowerCase();
+}
+
+/**
+ * 내부 데이터에서 언어 키를 대소문자 구분 없이 찾는다.
+ * - 우선 exact match
+ * - 없으면 lower-case 비교
+ * - 그래도 없으면 normalizeLangCode로 비교
+ */
+function findLanguageKey(
+  data: Record<string, unknown>,
+  langCode: string
+): string | undefined {
+  if (data[langCode]) return langCode;
+
+  const lowerTarget = langCode.toLowerCase();
+  for (const key of Object.keys(data)) {
+    if (key.toLowerCase() === lowerTarget) return key;
+  }
+
+  const normalized = normalizeLangCode(langCode);
+  if (data[normalized]) return normalized;
+
+  for (const key of Object.keys(data)) {
+    if (normalizeLangCode(key) === normalized) return key;
+  }
+
+  return undefined;
+}
+
+/**
+ * 언어 데이터 가져오기 (탭 코드와 혼동 방지)
+ */
+export function getLanguageData(
+  result: ParseResult,
+  langCode: string
+): Record<string, unknown> | undefined {
+  const key = findLanguageKey(result.data, langCode);
+  return key ? result.data[key] : undefined;
+}
+
+/**
+ * 언어 목록 (정규화된 코드)
+ */
+export function getLanguageList(result: ParseResult): string[] {
+  return result.languages.map(normalizeLangCode);
+}
