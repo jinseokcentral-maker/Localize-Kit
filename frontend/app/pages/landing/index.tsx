@@ -1,6 +1,7 @@
 import { TypoH1, TypoP } from "~/components/typo";
 import { HeroSection } from "~/components/landing/HeroSection";
 import { EditorSection } from "~/components/landing/editor";
+import { PerformanceSection } from "~/components/landing/PerformanceSection";
 
 export default function LandingPage() {
   return (
@@ -10,6 +11,9 @@ export default function LandingPage() {
 
       {/* Editor Preview Section */}
       <EditorSection heightClass="h-[600px] md:h-[720px]" />
+
+      {/* Performance Section */}
+      <PerformanceSection />
 
       {/* Testimonials Section - Placeholder */}
       <section className="px-8 py-16">
