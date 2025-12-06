@@ -39,6 +39,17 @@ pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
         let record = result?;
         row_count += 1;
 
+        // 컬럼 개수 불일치 검사 (헤더 기준)
+        if record.len() != headers.len() {
+            // csv::Position line은 header 포함 1-based, 여기 row_count는 data row 기준 1-based => line = row_count + 1
+            let line_number = row_count + 1;
+            return Err(crate::error::ParseError::column_count_mismatch(
+                line_number,
+                headers.len(),
+                record.len(),
+            ));
+        }
+
         let key = match record.get(0) {
             Some(k) => k.trim(),
             None => continue,
@@ -401,5 +412,13 @@ auth/login,Login,로그인"#;
         };
         let err = parse(csv_str.as_bytes(), &options).unwrap_err();
         assert_eq!(err.kind, crate::error::ErrorKind::MixedSeparators);
+    }
+
+    #[test]
+    fn test_column_count_mismatch_error() {
+        let csv_str = "key,en,ko\nhello,Hello"; // missing column
+        let options = ParseOptions::default();
+        let err = parse(csv_str.as_bytes(), &options).unwrap_err();
+        assert_eq!(err.kind, crate::error::ErrorKind::ColumnCountMismatch);
     }
 }

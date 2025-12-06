@@ -247,6 +247,12 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
           onDownloadAll={handleDownloadAll}
         />
 
+        {parseError && (
+          <div className="px-4 py-3 border-b border-destructive/40 bg-destructive/10 text-destructive text-sm">
+            {parseError}
+          </div>
+        )}
+
         {/* Main Editor Area */}
         <div
           className={cn(

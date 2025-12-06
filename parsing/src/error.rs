@@ -59,6 +59,7 @@ pub enum ErrorKind {
     DuplicateKey,
     InvalidKeyFormat,
     MissingTranslation,
+    ColumnCountMismatch,
     
     // Conversion errors
     NestedKeyConflict,
@@ -182,39 +183,74 @@ impl ParseError {
         separators.sort();
         separators.dedup();
 
-        let msg = format!(
+        let mut msg = format!(
             "Mixed key separators found: expected '{}', but found: {}",
             expected,
             separators.join(", ")
         );
+        if let Some(r) = row {
+            msg = format!("{} (row {})", msg, r);
+        }
 
         let mut err = Self::new(ErrorKind::MixedSeparators, msg)
             .with_suggestion("Use a single separator consistently ('.', '/', or '-')");
 
-        if let Some(r) = row {
-            err = err.at_row(r);
-        }
+        // 위치 정보: key 컬럼(1열)
+        let loc = ErrorLocation {
+            row,
+            column: Some(1),
+            column_name: Some("key".to_string()),
+            key: None,
+        };
+        err = err.with_location(loc);
 
         err
+    }
+
+    /// Column count mismatch (row has different number of columns than header)
+    pub fn column_count_mismatch(row: usize, expected: usize, found: usize) -> Self {
+        // row is 1-based including header (caller should supply)
+        let msg = format!(
+            "Column count mismatch: expected {} columns (from header), but found {} (row {})",
+            expected, found, row
+        );
+        Self::new(ErrorKind::ColumnCountMismatch, msg)
+            .with_location(ErrorLocation {
+                row: Some(row),
+                column: None,
+                column_name: None,
+                key: None,
+            })
+            .with_suggestion("Ensure each row has the same number of columns as the header")
     }
 
     /// CSV parsing error
     pub fn csv_parse_error(err: &csv::Error) -> Self {
         let (row, _col) = match err.position() {
+            // csv::Position::line() is 1-based including header
             Some(pos) => (Some(pos.line() as usize), Some(pos.byte() as usize)),
             None => (None, None),
         };
 
-        let mut error = Self::new(
-            ErrorKind::CsvParseError,
-            format!("CSV parsing error: {}", err),
-        );
-
+        let mut msg = format!("CSV parsing error: {}", err);
         if let Some(r) = row {
-            error = error.at_row(r);
+            msg = format!("{} (row {})", msg, r);
         }
 
-        error.with_suggestion("Check for unescaped quotes, mismatched columns, or invalid CSV format")
+        let mut error = Self::new(ErrorKind::CsvParseError, msg)
+            .with_suggestion("Check for unescaped quotes, mismatched columns, or invalid CSV format");
+
+        if let Some(r) = row {
+            // location: row, unknown column
+            error = error.with_location(ErrorLocation {
+                row: Some(r),
+                column: None,
+                column_name: None,
+                key: None,
+            });
+        }
+
+        error
     }
 
     /// UTF-8 encoding error
@@ -379,6 +415,7 @@ impl fmt::Display for ErrorKind {
             ErrorKind::DuplicateKey => "DUPLICATE_KEY",
             ErrorKind::InvalidKeyFormat => "INVALID_KEY_FORMAT",
             ErrorKind::MissingTranslation => "MISSING_TRANSLATION",
+            ErrorKind::ColumnCountMismatch => "COLUMN_COUNT_MISMATCH",
             ErrorKind::NestedKeyConflict => "NESTED_KEY_CONFLICT",
             ErrorKind::JsonSerializeError => "JSON_SERIALIZE_ERROR",
             ErrorKind::YamlSerializeError => "YAML_SERIALIZE_ERROR",
