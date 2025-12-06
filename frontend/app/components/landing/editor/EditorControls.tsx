@@ -49,7 +49,6 @@ export function EditorControls({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="json">JSON</SelectItem>
-              <SelectItem value="yaml">YAML</SelectItem>
             </SelectContent>
           </Select>
         </div>

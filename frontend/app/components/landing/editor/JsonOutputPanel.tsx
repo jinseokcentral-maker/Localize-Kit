@@ -7,18 +7,21 @@ interface JsonOutputPanelProps {
   languages: string[];
   activeLanguage: string;
   onLanguageChange: (lang: string) => void;
-  jsonData: Record<string, unknown>;
+  formattedText: string;
+  filename: string;
+  format: "json";
 }
 
 export function JsonOutputPanel({
   languages,
   activeLanguage,
   onLanguageChange,
-  jsonData,
+  formattedText,
+  filename,
+  format,
 }: JsonOutputPanelProps) {
-  const jsonString = JSON.stringify(jsonData, null, 2);
   const current = activeLanguage.toLowerCase();
-  const filename = `${current}.json`;
+  const isJson = format === "json";
 
   return (
     <div className="flex flex-col">
@@ -49,10 +52,10 @@ export function JsonOutputPanel({
         </div>
 
         <CodeMirror
-          value={jsonString}
+          value={formattedText}
           readOnly
           theme={jsonOutputTheme}
-          extensions={[json(), jsonHighlighting]}
+          extensions={isJson ? [json(), jsonHighlighting] : []}
           basicSetup={{
             lineNumbers: false,
             foldGutter: false,

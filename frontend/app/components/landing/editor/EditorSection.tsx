@@ -1,5 +1,5 @@
 import { useQueryState, parseAsStringLiteral, parseAsBoolean } from "nuqs";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CsvInputPanel } from "./CsvInputPanel";
 import { JsonOutputPanel } from "./JsonOutputPanel";
 import { EditorControls } from "./EditorControls";
@@ -28,9 +28,9 @@ function extractLanguages(csv: string): string[] {
   return headers.filter((h) => h.toLowerCase() !== "key").map((h) => h); // 원본 케이스 유지
 }
 
-export type OutputFormat = "json" | "yaml" | "i18n";
+export type OutputFormat = "json";
 export type Separator = "." | "/" | "-";
-const OUTPUT_FORMATS = ["json", "yaml", "i18n"] as const;
+const OUTPUT_FORMATS = ["json"] as const;
 const SEPARATORS = [".", "/", "-"] as const;
 
 export function EditorSection() {
@@ -110,7 +110,7 @@ export function EditorSection() {
     return () => {
       cancelled = true;
     };
-  }, [csvContent, separator, nestedKeys, wasmStatus]);
+  }, [csvContent, separator, nestedKeys, wasmStatus, outputFormat]);
 
   // 파일 업로드 핸들러
   const handleFileUpload = (file: File) => {
@@ -126,28 +126,33 @@ export function EditorSection() {
     reader.readAsText(file);
   };
 
+  const formatted = useMemo(() => {
+    return {
+      text: JSON.stringify(currentJson, null, 2),
+      ext: "json",
+      mime: "application/json",
+    };
+  }, [currentJson]);
+
   // 복사 핸들러
   const handleCopy = () => {
-    const jsonString = JSON.stringify(currentJson, null, 2);
-    navigator.clipboard.writeText(jsonString);
+    navigator.clipboard.writeText(formatted.text);
   };
 
   // 다운로드 핸들러
   const handleDownload = () => {
-    const jsonString = JSON.stringify(currentJson, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
+    const blob = new Blob([formatted.text], { type: formatted.mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${currentLanguage.toLowerCase()}.json`;
+    a.download = `${currentLanguage.toLowerCase()}.${formatted.ext}`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   // 전체 다운로드 핸들러
   const handleDownloadAll = () => {
-    // 각 언어별 파일을 ZIP으로 묶어서 다운로드 (추후 구현)
-    // 지금은 개별 다운로드
+    // JSON 모드: 언어별 개별 다운로드
     Object.entries(jsonOutput).forEach(([lang, data]) => {
       const jsonString = JSON.stringify(data, null, 2);
       const blob = new Blob([jsonString], { type: "application/json" });
@@ -179,7 +184,9 @@ export function EditorSection() {
             languages={languages}
             activeLanguage={currentLanguage}
             onLanguageChange={setActiveLanguage}
-            jsonData={currentJson}
+            formattedText={formatted.text}
+            filename={`${currentLanguage}.${formatted.ext}`}
+            format={outputFormat}
           />
         </div>
 
