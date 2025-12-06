@@ -11,19 +11,10 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm run build
 
-FROM node:20-alpine AS prod-deps
-WORKDIR /app
-RUN corepack enable
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --prod --no-optional
-
-FROM node:20-alpine
-ENV NODE_ENV=production
+FROM nginx:alpine
 ENV PORT=8000
 EXPOSE 8000
-WORKDIR /app
-RUN corepack enable
-COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --from=build /app/build ./build
-COPY package.json pnpm-lock.yaml ./
-CMD ["pnpm", "run", "start"]
+# Nginx will listen on $PORT and serve the SPA; path fallback -> index.html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/build/client /usr/share/nginx/html
+CMD ["nginx", "-g", "daemon off;"]
