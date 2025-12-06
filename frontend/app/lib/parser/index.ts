@@ -24,6 +24,7 @@ import init, {
   parse_excel,
   get_csv_languages,
   get_excel_languages,
+  rewrite_csv_key_separator,
 } from "./parsing.js";
 
 let wasmInitialized = false;
@@ -328,4 +329,20 @@ export async function getLanguages(file: File): Promise<string[]> {
   const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
 
   return isExcel ? getExcelLanguages(file) : getCsvLanguages(file);
+}
+
+// ============================================================================
+// Utility: key separator rewrite
+// ============================================================================
+
+/**
+ * Rewrite key separator in CSV text.
+ * - Only the first column (key) is rewritten; header is preserved.
+ * - Replaces '.', '/', '-' with the provided separator.
+ */
+export function rewriteCsvKeySeparator(
+  csvText: string,
+  separator: string
+): string {
+  return rewrite_csv_key_separator(csvText, separator);
 }

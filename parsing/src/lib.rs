@@ -106,3 +106,10 @@ pub fn get_excel_languages(data: &[u8]) -> Result<String, JsValue> {
         Err(e) => Err(JsValue::from_str(&e.to_json())),
     }
 }
+
+/// Rewrite key separator in CSV text (header is kept as-is).
+/// Replaces '.', '/', '-' in the first column (key) with `target_sep`.
+#[wasm_bindgen]
+pub fn rewrite_csv_key_separator(csv_text: &str, target_sep: &str) -> String {
+    transform::rewrite_key_separator_in_csv(csv_text, target_sep)
+}

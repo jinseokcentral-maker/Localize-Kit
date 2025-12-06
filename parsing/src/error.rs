@@ -43,6 +43,7 @@ pub enum ErrorKind {
     EmptyData,
     InvalidKeyColumn,
     NoLanguageColumns,
+    MixedSeparators,
     
     // CSV parsing errors
     CsvParseError,
@@ -174,9 +175,31 @@ impl ParseError {
         .with_suggestion("Add language columns after 'key' column (e.g., 'en', 'ko', 'ja')")
     }
 
+    /// Mixed or invalid separators in key column
+    pub fn mixed_separators(found: Vec<char>, expected: &str, row: Option<usize>) -> Self {
+        let mut separators: Vec<String> = found.iter().map(|c| c.to_string()).collect();
+        separators.sort();
+        separators.dedup();
+
+        let msg = format!(
+            "Mixed key separators found: expected '{}', but found: {}",
+            expected,
+            separators.join(", ")
+        );
+
+        let mut err = Self::new(ErrorKind::MixedSeparators, msg)
+            .with_suggestion("Use a single separator consistently ('.', '/', or '-')");
+
+        if let Some(r) = row {
+            err = err.at_row(r);
+        }
+
+        err
+    }
+
     /// CSV parsing error
     pub fn csv_parse_error(err: &csv::Error) -> Self {
-        let (row, col) = match err.position() {
+        let (row, _col) = match err.position() {
             Some(pos) => (Some(pos.line() as usize), Some(pos.byte() as usize)),
             None => (None, None),
         };
@@ -337,6 +360,7 @@ impl fmt::Display for ErrorKind {
             ErrorKind::EmptyData => "EMPTY_DATA",
             ErrorKind::InvalidKeyColumn => "INVALID_KEY_COLUMN",
             ErrorKind::NoLanguageColumns => "NO_LANGUAGE_COLUMNS",
+            ErrorKind::MixedSeparators => "MIXED_SEPARATORS",
             ErrorKind::CsvParseError => "CSV_PARSE_ERROR",
             ErrorKind::Utf8Error => "UTF8_ERROR",
             ErrorKind::ExcelOpenError => "EXCEL_OPEN_ERROR",

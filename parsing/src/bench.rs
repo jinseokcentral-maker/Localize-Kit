@@ -241,6 +241,62 @@ mod tests {
     }
 
     // ========================================================================
+    // Separator rewrite 벤치마크 (CSV 텍스트)
+    // ========================================================================
+
+    #[test]
+    fn bench_rewrite_separator_medium() {
+        let csv_text = include_str!("../test_files/medium.csv");
+        let start = Instant::now();
+        let _out = crate::transform::rewrite_key_separator_in_csv(csv_text, "/");
+        let elapsed = start.elapsed();
+        println!(
+            "📊 rewrite separator (medium.csv, {} bytes) -> {:?}",
+            csv_text.len(),
+            elapsed
+        );
+    }
+
+    #[test]
+    fn bench_rewrite_separator_large() {
+        let csv_text = include_str!("../test_files/large.csv");
+        let start = Instant::now();
+        let _out = crate::transform::rewrite_key_separator_in_csv(csv_text, "/");
+        let elapsed = start.elapsed();
+        println!(
+            "📊 rewrite separator (large.csv, {} bytes) -> {:?}",
+            csv_text.len(),
+            elapsed
+        );
+    }
+
+    #[test]
+    fn bench_rewrite_separator_xlarge() {
+        let csv_text = include_str!("../test_files/xlarge.csv");
+        let start = Instant::now();
+        let _out = crate::transform::rewrite_key_separator_in_csv(csv_text, "/");
+        let elapsed = start.elapsed();
+        println!(
+            "📊 rewrite separator (xlarge.csv, {} bytes) -> {:?}",
+            csv_text.len(),
+            elapsed
+        );
+    }
+
+    #[test]
+    fn bench_rewrite_separator_xxlarge() {
+        let csv_text = include_str!("../test_files/xxlarge.csv");
+        let start = Instant::now();
+        let _out = crate::transform::rewrite_key_separator_in_csv(csv_text, "/");
+        let elapsed = start.elapsed();
+        println!(
+            "📊 rewrite separator (xxlarge.csv, {} bytes) -> {:?}",
+            csv_text.len(),
+            elapsed
+        );
+    }
+
+    // ========================================================================
     // Excel 벤치마크 (시간 측정)
     // ========================================================================
 

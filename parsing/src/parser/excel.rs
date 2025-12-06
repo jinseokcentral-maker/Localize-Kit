@@ -38,6 +38,11 @@ pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
         flat_data.insert(lang.clone(), Vec::new());
     }
 
+    // separator 검증용
+    let mut separators_found: std::collections::HashSet<char> = std::collections::HashSet::new();
+    let mut first_offending_row: Option<usize> = None;
+    let expected_sep = options.separator.chars().next().unwrap_or('.');
+
     let mut row_count = 0;
     for row in rows {
         row_count += 1;
@@ -49,6 +54,16 @@ pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
 
         if key.is_empty() {
             continue;
+        }
+
+        // key 안의 구분자 추출
+        for ch in key.chars() {
+            if ch == '.' || ch == '/' || ch == '-' {
+                separators_found.insert(ch);
+                if ch != expected_sep && first_offending_row.is_none() {
+                    first_offending_row = Some(row_count);
+                }
+            }
         }
 
         for lang in &header_info.languages {
@@ -70,6 +85,20 @@ pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
 
             flat_data.get_mut(lang).unwrap().push((key.clone(), value));
         }
+    }
+
+    // 구분자 혼재 여부 체크
+    let invalid: Vec<char> = separators_found
+        .iter()
+        .cloned()
+        .filter(|c| *c != expected_sep)
+        .collect();
+    if !invalid.is_empty() {
+        return Err(ParseError::mixed_separators(
+            invalid,
+            &options.separator,
+            first_offending_row,
+        ));
     }
 
     // 2단계: nested 또는 flat으로 변환

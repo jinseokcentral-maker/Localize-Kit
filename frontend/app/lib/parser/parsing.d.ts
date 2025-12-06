@@ -44,6 +44,12 @@ export function parse_csv(data: Uint8Array, separator: string, nested: boolean, 
  */
 export function parse_excel(data: Uint8Array, separator: string, nested: boolean, process_escapes: boolean): string;
 
+/**
+ * Rewrite key separator in CSV text (header is kept as-is).
+ * Replaces '.', '/', '-' in the first column (key) with `target_sep`.
+ */
+export function rewrite_csv_key_separator(csv_text: string, target_sep: string): string;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
@@ -52,6 +58,7 @@ export interface InitOutput {
   readonly get_excel_languages: (a: number, b: number, c: number) => void;
   readonly parse_csv: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
   readonly parse_excel: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+  readonly rewrite_csv_key_separator: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly init: () => void;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_export: (a: number, b: number) => number;

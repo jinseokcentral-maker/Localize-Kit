@@ -222,6 +222,45 @@ pub fn has_nesting_references(input: &str) -> bool {
 }
 
 // ============================================================================
+// 키 separator 변환 (CSV 텍스트)
+// ============================================================================
+
+/// CSV 텍스트의 첫 번째 컬럼(key)에 포함된 구분자를 원하는 구분자로 치환합니다.
+///
+/// - 헤더(`key, ...`)는 그대로 둡니다.
+/// - 첫 번째 컬럼만 치환하고, 나머지 컬럼은 수정하지 않습니다.
+/// - 치환 대상 구분자: `.`, `/`, `-`
+pub fn rewrite_key_separator_in_csv(input: &str, target_sep: &str) -> String {
+    let mut output = Vec::new();
+
+    for (idx, line) in input.lines().enumerate() {
+        // 헤더는 그대로 둔다
+        if idx == 0 {
+            output.push(line.to_string());
+            continue;
+        }
+
+        // 첫 번째 콤마까지가 key
+        if let Some(comma_idx) = line.find(',') {
+            let (key_part, rest) = line.split_at(comma_idx);
+            let mut new_key = String::with_capacity(key_part.len());
+            for ch in key_part.chars() {
+                match ch {
+                    '.' | '/' | '-' => new_key.push_str(target_sep),
+                    _ => new_key.push(ch),
+                }
+            }
+            output.push(format!("{new_key}{rest}"));
+        } else {
+            // 콤마가 없으면 그대로
+            output.push(line.to_string());
+        }
+    }
+
+    output.join("\n")
+}
+
+// ============================================================================
 // 복수형 키 처리
 // ============================================================================
 
@@ -447,6 +486,14 @@ mod tests {
         assert!(analysis.has_html_tags);
         assert!(analysis.is_plural_key);
         assert_eq!(analysis.plural_base_key, Some("items".to_string()));
+    }
+
+    #[test]
+    fn test_rewrite_key_separator_in_csv() {
+        let input = "key,en,ko\ncommon.hello,Hello,안녕하세요\nauth/login,Login,로그인\nerrors-server,Error,에러";
+        let out = rewrite_key_separator_in_csv(input, "/");
+        let expected = "key,en,ko\ncommon/hello,Hello,안녕하세요\nauth/login,Login,로그인\nerrors/server,Error,에러";
+        assert_eq!(out, expected);
     }
 }
 
