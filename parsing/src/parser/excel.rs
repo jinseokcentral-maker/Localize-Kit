@@ -3,7 +3,7 @@ use crate::parser::validate_header;
 use crate::transform::process_escape_sequences;
 use crate::types::{LocaleData, ParseOptions, ParseResult};
 use calamine::{open_workbook_auto_from_rs, Reader};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::io::Cursor;
 
 /// Excel 데이터 파싱
@@ -39,7 +39,7 @@ pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
     }
 
     // separator 검증용
-    let mut separators_found: std::collections::HashSet<char> = std::collections::HashSet::new();
+    let mut separators_found: HashSet<char> = HashSet::new();
     let mut first_offending_row: Option<usize> = None;
     let expected_sep = options.separator.chars().next().unwrap_or('.');
 
@@ -102,11 +102,14 @@ pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
     }
 
     // 2단계: nested 또는 flat으로 변환
-    let locale_data = if options.nested {
+    let mut locale_data = if options.nested {
         build_nested_locale_data(flat_data, &options.separator)
     } else {
         build_flat_locale_data(flat_data)
     };
+
+    // 알파벳 순 정렬
+    locale_data = crate::transform::sort_locale_data(locale_data);
 
     Ok(ParseResult {
         languages: header_info.languages,
@@ -117,10 +120,10 @@ pub fn parse(data: &[u8], options: &ParseOptions) -> Result<ParseResult> {
 
 /// Flat 데이터를 그대로 LocaleData로 변환
 fn build_flat_locale_data(flat_data: HashMap<String, Vec<(String, String)>>) -> LocaleData {
-    let mut result: LocaleData = HashMap::new();
+    let mut result: LocaleData = BTreeMap::new();
 
     for (lang, entries) in flat_data {
-        let mut lang_map: HashMap<String, serde_json::Value> = HashMap::new();
+        let mut lang_map: BTreeMap<String, serde_json::Value> = BTreeMap::new();
         for (key, value) in entries {
             lang_map.insert(key, serde_json::Value::String(value));
         }
@@ -135,7 +138,7 @@ fn build_nested_locale_data(
     flat_data: HashMap<String, Vec<(String, String)>>,
     separator: &str,
 ) -> LocaleData {
-    let mut result: LocaleData = HashMap::new();
+    let mut result: LocaleData = BTreeMap::new();
 
     for (lang, entries) in flat_data {
         let mut root: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
@@ -148,9 +151,9 @@ fn build_nested_locale_data(
             }
         }
 
-        let mut lang_map: HashMap<String, serde_json::Value> = HashMap::new();
+        let mut lang_map: BTreeMap<String, serde_json::Value> = BTreeMap::new();
         for (k, v) in root {
-            lang_map.insert(k, v);
+            lang_map.insert(k, crate::transform::sort_value(v));
         }
         result.insert(lang, lang_map);
     }
@@ -212,3 +215,4 @@ pub fn parse_header_only(data: &[u8]) -> Result<Vec<String>> {
     let header_info = validate_header(&headers)?;
     Ok(header_info.languages)
 }
+

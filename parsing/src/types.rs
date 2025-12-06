@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 /// CSV/Excel 헤더 정보
 #[derive(Debug, Clone)]
@@ -63,7 +63,8 @@ pub enum OutputFormat {
 
 /// 파싱 결과: 언어별 키-값 맵
 /// 예: { "en": { "greeting": "Hello" }, "ko": { "greeting": "안녕" } }
-pub type LocaleData = HashMap<String, HashMap<String, serde_json::Value>>;
+/// BTreeMap을 사용해 키 알파벳 순서를 보장
+pub type LocaleData = BTreeMap<String, BTreeMap<String, serde_json::Value>>;
 
 /// 파싱 결과
 #[derive(Debug, Clone, Serialize, Deserialize)]

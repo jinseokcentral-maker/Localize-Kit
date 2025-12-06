@@ -330,6 +330,50 @@ pub fn get_context_base_key(key: &str) -> Option<String> {
 }
 
 // ============================================================================
+// LocaleData 정렬 (알파벳 순)
+// ============================================================================
+
+use crate::types::LocaleData;
+use std::collections::BTreeMap;
+
+/// 값이 Object인 경우 키를 알파벳 순으로 정렬하여 새로운 Value로 반환
+pub(crate) fn sort_value(value: serde_json::Value) -> serde_json::Value {
+    match value {
+        serde_json::Value::Object(map) => {
+            let mut keys: Vec<_> = map.keys().cloned().collect();
+            keys.sort();
+
+            let mut sorted = serde_json::Map::new();
+            for k in keys {
+                if let Some(v) = map.get(&k) {
+                    sorted.insert(k, sort_value(v.clone()));
+                }
+            }
+            serde_json::Value::Object(sorted)
+        }
+        serde_json::Value::Array(arr) => {
+            serde_json::Value::Array(arr.into_iter().map(sort_value).collect())
+        }
+        other => other,
+    }
+}
+
+/// LocaleData의 각 언어별 데이터를 알파벳 순으로 정렬
+pub fn sort_locale_data(locale_data: LocaleData) -> LocaleData {
+    let mut sorted_locale: LocaleData = LocaleData::new();
+
+    for (lang, data) in locale_data {
+        let mut sorted_lang: BTreeMap<String, serde_json::Value> = BTreeMap::new();
+        for (k, v) in data {
+            sorted_lang.insert(k, sort_value(v));
+        }
+        sorted_locale.insert(lang, sorted_lang);
+    }
+
+    sorted_locale
+}
+
+// ============================================================================
 // 문자열 분석 결과
 // ============================================================================
 

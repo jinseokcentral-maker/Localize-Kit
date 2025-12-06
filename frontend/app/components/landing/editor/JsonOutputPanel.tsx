@@ -17,7 +17,8 @@ export function JsonOutputPanel({
   jsonData,
 }: JsonOutputPanelProps) {
   const jsonString = JSON.stringify(jsonData, null, 2);
-  const filename = `${activeLanguage.toLowerCase()}.json`;
+  const current = activeLanguage.toLowerCase();
+  const filename = `${current}.json`;
 
   return (
     <div className="flex flex-col">
@@ -26,14 +27,14 @@ export function JsonOutputPanel({
         {languages.map((lang) => (
           <button
             key={lang}
-            onClick={() => onLanguageChange(lang)}
+            onClick={() => onLanguageChange(lang.toLowerCase())}
             className={`px-3 py-1.5 text-sm rounded transition-colors ${
-              activeLanguage === lang
+              current === lang.toLowerCase()
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:text-foreground hover:bg-secondary"
             }`}
           >
-            {lang}
+            {lang.toUpperCase()}
           </button>
         ))}
       </div>
@@ -67,4 +68,3 @@ export function JsonOutputPanel({
     </div>
   );
 }
-
