@@ -1,7 +1,7 @@
 import CodeMirror from "@uiw/react-codemirror";
 import { json } from "@codemirror/lang-json";
 import { TypoSmall } from "~/components/typo";
-import { jsonOutputTheme } from "./csvHighlight";
+import { jsonOutputTheme, jsonHighlighting } from "./csvHighlight";
 
 interface JsonOutputPanelProps {
   languages: string[];
@@ -51,7 +51,7 @@ export function JsonOutputPanel({
           value={jsonString}
           readOnly
           theme={jsonOutputTheme}
-          extensions={[json()]}
+          extensions={[json(), jsonHighlighting]}
           basicSetup={{
             lineNumbers: false,
             foldGutter: false,

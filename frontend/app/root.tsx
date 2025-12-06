@@ -7,6 +7,7 @@ import {
   ScrollRestoration,
 } from "react-router";
 import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
+import { useLoadWasmParser } from "~/hooks/useLoadWasmParser";
 
 import type { Route } from "./+types/root";
 import "./app.css";
@@ -54,6 +55,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  // Lazy-load WASM parser without blocking initial render
+  useLoadWasmParser();
+
   return (
     <NuqsAdapter>
       <Outlet />
