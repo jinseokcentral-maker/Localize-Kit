@@ -22,8 +22,11 @@
 import init, {
   parse_csv,
   parse_excel,
+  parse_csv_yaml,
+  parse_excel_yaml,
   get_csv_languages,
   get_excel_languages,
+  excel_to_csv,
   rewrite_csv_key_separator,
 } from "./parsing.js";
 
@@ -81,6 +84,8 @@ export type ErrorKind =
   | "MISSING_TRANSLATION"
   | "NESTED_KEY_CONFLICT"
   | "JSON_SERIALIZE_ERROR"
+  | "YAML_SERIALIZE_ERROR"
+  | "MIXED_SEPARATORS"
   | "IO_ERROR"
   | "UNKNOWN_ERROR";
 
@@ -155,6 +160,8 @@ export interface ParseResult {
   row_count: number;
 }
 
+export type OutputFormat = "json" | "yaml";
+
 /**
  * 파싱 옵션
  */
@@ -165,6 +172,8 @@ export interface ParseOptions {
   nested?: boolean;
   /** escape 시퀀스 처리 여부 (기본값: true) */
   processEscapes?: boolean;
+  /** 출력 포맷 (기본값: json) */
+  format?: OutputFormat;
 }
 
 // ============================================================================
@@ -177,6 +186,13 @@ function handleResult(resultJson: string): ParseResult {
     throw ParseError.fromJson(resultJson);
   }
   return JSON.parse(resultJson);
+}
+
+function handleYaml(resultStr: string): string {
+  if (ParseError.isErrorJson(resultStr)) {
+    throw ParseError.fromJson(resultStr);
+  }
+  return resultStr;
 }
 
 function handleError(error: unknown): never {
@@ -219,6 +235,30 @@ export async function parseCsv(
 }
 
 /**
+ * CSV 파일 파싱 (YAML 출력)
+ *
+ * @throws {ParseError} 파싱 실패 시
+ */
+export async function parseCsvYaml(
+  file: File | Uint8Array,
+  options: ParseOptions = {}
+): Promise<string> {
+  await initWasm();
+
+  const { separator = ".", nested = true, processEscapes = true } = options;
+
+  const data =
+    file instanceof File ? new Uint8Array(await file.arrayBuffer()) : file;
+
+  try {
+    const resultStr = parse_csv_yaml(data, separator, nested, processEscapes);
+    return handleYaml(resultStr);
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
  * Excel 파일 파싱 (.xlsx, .xls)
  *
  * @throws {ParseError} 파싱 실패 시
@@ -243,6 +283,30 @@ export async function parseExcel(
 }
 
 /**
+ * Excel 파일 파싱 (YAML 출력)
+ *
+ * @throws {ParseError} 파싱 실패 시
+ */
+export async function parseExcelYaml(
+  file: File | Uint8Array,
+  options: ParseOptions = {}
+): Promise<string> {
+  await initWasm();
+
+  const { separator = ".", nested = true, processEscapes = true } = options;
+
+  const data =
+    file instanceof File ? new Uint8Array(await file.arrayBuffer()) : file;
+
+  try {
+    const resultStr = parse_excel_yaml(data, separator, nested, processEscapes);
+    return handleYaml(resultStr);
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
  * 파일 타입에 따라 자동으로 파서 선택
  *
  * @throws {ParseError} 파싱 실패 시
@@ -258,6 +322,21 @@ export async function parseFile(
 }
 
 /**
+ * 파일 타입에 따라 자동으로 파서 선택 (YAML 출력)
+ *
+ * @throws {ParseError} 파싱 실패 시
+ */
+export async function parseFileYaml(
+  file: File,
+  options: ParseOptions = {}
+): Promise<string> {
+  const fileName = file.name.toLowerCase();
+  const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
+
+  return isExcel ? parseExcelYaml(file, options) : parseCsvYaml(file, options);
+}
+
+/**
  * CSV 문자열 파싱
  *
  * @throws {ParseError} 파싱 실패 시
@@ -269,6 +348,18 @@ export async function parseCsvString(
   const encoder = new TextEncoder();
   const data = encoder.encode(csvString);
   return parseCsv(data, options);
+}
+
+/**
+ * CSV 문자열 파싱 (YAML 출력)
+ */
+export async function parseCsvStringYaml(
+  csvString: string,
+  options: ParseOptions = {}
+): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(csvString);
+  return parseCsvYaml(data, options);
 }
 
 /**
@@ -329,6 +420,25 @@ export async function getLanguages(file: File): Promise<string[]> {
   const isExcel = fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
 
   return isExcel ? getExcelLanguages(file) : getCsvLanguages(file);
+}
+
+// ============================================================================
+// Excel -> CSV 변환
+// ============================================================================
+
+/**
+ * Excel 첫 시트를 CSV 문자열로 변환
+ */
+export async function excelToCsv(file: File | Uint8Array): Promise<string> {
+  await initWasm();
+  const data =
+    file instanceof File ? new Uint8Array(await file.arrayBuffer()) : file;
+  try {
+    const resultStr = excel_to_csv(data);
+    return handleYaml(resultStr); // 에러 포맷 동일하게 처리
+  } catch (error) {
+    handleError(error);
+  }
 }
 
 // ============================================================================

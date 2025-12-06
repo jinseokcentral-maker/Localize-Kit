@@ -40,7 +40,9 @@ export function EditorControls({
           <TypoSmall className="text-muted-foreground">Output:</TypoSmall>
           <Select
             value={outputFormat}
-            onValueChange={(value) => onOutputFormatChange(value as OutputFormat)}
+            onValueChange={(value) =>
+              onOutputFormatChange(value as OutputFormat)
+            }
           >
             <SelectTrigger className="w-[100px] h-9 text-sm">
               <SelectValue />
@@ -48,7 +50,6 @@ export function EditorControls({
             <SelectContent>
               <SelectItem value="json">JSON</SelectItem>
               <SelectItem value="yaml">YAML</SelectItem>
-              <SelectItem value="i18n">i18n</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -60,7 +61,10 @@ export function EditorControls({
             checked={nestedKeys}
             onCheckedChange={(checked) => onNestedKeysChange(checked === true)}
           />
-          <Label htmlFor="nested-keys" className="text-sm text-foreground cursor-pointer">
+          <Label
+            htmlFor="nested-keys"
+            className="text-sm text-foreground cursor-pointer"
+          >
             Nested Keys
           </Label>
         </div>
@@ -84,4 +88,3 @@ export function EditorControls({
     </div>
   );
 }
-

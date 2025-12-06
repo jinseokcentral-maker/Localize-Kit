@@ -161,6 +161,41 @@ fn build_nested_locale_data(
     result
 }
 
+/// Excel을 CSV 문자열로 변환 (첫 번째 시트 기준)
+pub fn to_csv(data: &[u8]) -> Result<String> {
+    let cursor = Cursor::new(data);
+    let mut workbook = open_workbook_auto_from_rs(cursor)
+        .map_err(|e| ParseError::excel_open_error(&e.to_string()))?;
+
+    let sheet_names = workbook.sheet_names().to_vec();
+    if sheet_names.is_empty() {
+        return Err(ParseError::empty_workbook());
+    }
+
+    let range = workbook
+        .worksheet_range(&sheet_names[0])
+        .map_err(|e| ParseError::worksheet_read_error(&sheet_names[0], &e.to_string()))?;
+
+    let mut wtr = csv::Writer::from_writer(Vec::new());
+
+    for row in range.rows() {
+        let cells: Vec<String> = row.iter().map(|c| c.to_string()).collect();
+        wtr.write_record(cells)
+            .map_err(|e| ParseError::csv_parse_error(&e))?;
+    }
+
+    let bytes = wtr
+        .into_inner()
+        .map_err(|e| {
+            let io_ref = e.error();
+            let io_err = std::io::Error::new(io_ref.kind(), io_ref.to_string());
+            let csv_err = csv::Error::from(io_err);
+            ParseError::csv_parse_error(&csv_err)
+        })?;
+
+    String::from_utf8(bytes).map_err(|e| ParseError::utf8_error(&e.utf8_error()))
+}
+
 /// Nested 키를 JSON 구조에 삽입
 fn insert_nested(
     root: &mut serde_json::Map<String, serde_json::Value>,

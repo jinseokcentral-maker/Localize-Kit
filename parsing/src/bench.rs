@@ -397,5 +397,13 @@ mod tests {
 
         assert_eq!(result.row_count, 10000);
     }
+
+    #[test]
+    fn test_excel_to_csv() {
+        let data = include_bytes!("../test_files/medium.xlsx");
+        let csv = crate::parser::excel::to_csv(data).unwrap();
+        assert!(!csv.is_empty());
+        println!("✅ excel_to_csv ok (medium.xlsx)");
+    }
 }
 

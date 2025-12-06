@@ -63,6 +63,7 @@ pub enum ErrorKind {
     // Conversion errors
     NestedKeyConflict,
     JsonSerializeError,
+    YamlSerializeError,
     
     // Generic errors
     IoError,
@@ -305,10 +306,18 @@ impl ParseError {
     }
 
     /// JSON serialization error
-    pub fn json_serialize_error(err: &serde_json::Error) -> Self {
+    pub fn json_serialize_error(err: serde_json::Error) -> Self {
         Self::new(
             ErrorKind::JsonSerializeError,
             format!("Failed to serialize to JSON: {}", err),
+        )
+    }
+
+    /// YAML serialization error
+    pub fn yaml_serialize_error(err: serde_yaml::Error) -> Self {
+        Self::new(
+            ErrorKind::YamlSerializeError,
+            format!("Failed to serialize to YAML: {}", err),
         )
     }
 
@@ -372,6 +381,7 @@ impl fmt::Display for ErrorKind {
             ErrorKind::MissingTranslation => "MISSING_TRANSLATION",
             ErrorKind::NestedKeyConflict => "NESTED_KEY_CONFLICT",
             ErrorKind::JsonSerializeError => "JSON_SERIALIZE_ERROR",
+            ErrorKind::YamlSerializeError => "YAML_SERIALIZE_ERROR",
             ErrorKind::IoError => "IO_ERROR",
             ErrorKind::Unknown => "UNKNOWN_ERROR",
         };
@@ -399,7 +409,7 @@ impl From<std::str::Utf8Error> for ParseError {
 
 impl From<serde_json::Error> for ParseError {
     fn from(err: serde_json::Error) -> Self {
-        ParseError::json_serialize_error(&err)
+        ParseError::json_serialize_error(err)
     }
 }
 

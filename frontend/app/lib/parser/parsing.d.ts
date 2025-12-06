@@ -2,6 +2,11 @@
 /* eslint-disable */
 
 /**
+ * Excel -> CSV 변환 (첫 번째 시트)
+ */
+export function excel_to_csv(data: Uint8Array): string;
+
+/**
  * CSV 헤더만 파싱하여 언어 목록 반환 - WASM 바인딩
  */
 export function get_csv_languages(data: Uint8Array): string;
@@ -31,6 +36,11 @@ export function init(): void;
 export function parse_csv(data: Uint8Array, separator: string, nested: boolean, process_escapes: boolean): string;
 
 /**
+ * CSV 파싱 - YAML 출력
+ */
+export function parse_csv_yaml(data: Uint8Array, separator: string, nested: boolean, process_escapes: boolean): string;
+
+/**
  * Excel 파싱 - WASM 바인딩
  *
  * # Arguments
@@ -45,6 +55,11 @@ export function parse_csv(data: Uint8Array, separator: string, nested: boolean, 
 export function parse_excel(data: Uint8Array, separator: string, nested: boolean, process_escapes: boolean): string;
 
 /**
+ * Excel 파싱 - YAML 출력
+ */
+export function parse_excel_yaml(data: Uint8Array, separator: string, nested: boolean, process_escapes: boolean): string;
+
+/**
  * Rewrite key separator in CSV text (header is kept as-is).
  * Replaces '.', '/', '-' in the first column (key) with `target_sep`.
  */
@@ -54,10 +69,13 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
+  readonly excel_to_csv: (a: number, b: number, c: number) => void;
   readonly get_csv_languages: (a: number, b: number, c: number) => void;
   readonly get_excel_languages: (a: number, b: number, c: number) => void;
   readonly parse_csv: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+  readonly parse_csv_yaml: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
   readonly parse_excel: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+  readonly parse_excel_yaml: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
   readonly rewrite_csv_key_separator: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly init: () => void;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;

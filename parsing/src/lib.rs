@@ -9,7 +9,19 @@ mod bench;
 
 use wasm_bindgen::prelude::*;
 
-use crate::types::{OutputFormat, ParseOptions};
+use crate::error::{ErrorKind, ParseError};
+use crate::types::{OutputFormat, ParseOptions, ParseResult};
+
+fn serialize_result(result: &ParseResult, format: OutputFormat) -> std::result::Result<String, ParseError> {
+    match format {
+        OutputFormat::Json => serde_json::to_string(result).map_err(ParseError::json_serialize_error),
+        OutputFormat::Yaml => serde_yaml::to_string(result).map_err(ParseError::yaml_serialize_error),
+        OutputFormat::I18n => Err(ParseError::new(
+            ErrorKind::Unknown,
+            "i18n format is not implemented yet",
+        )),
+    }
+}
 
 /// WASM 모듈 초기화
 #[wasm_bindgen(start)]
@@ -42,10 +54,8 @@ pub fn parse_csv(
     };
 
     match parser::csv::parse(data, &options) {
-        Ok(result) => serde_json::to_string(&result).map_err(|e| {
-            let err = error::ParseError::json_serialize_error(&e);
-            JsValue::from_str(&err.to_json())
-        }),
+        Ok(result) => serialize_result(&result, OutputFormat::Json)
+            .map_err(|e| JsValue::from_str(&e.to_json())),
         Err(e) => Err(JsValue::from_str(&e.to_json())),
     }
 }
@@ -75,10 +85,8 @@ pub fn parse_excel(
     };
 
     match parser::excel::parse(data, &options) {
-        Ok(result) => serde_json::to_string(&result).map_err(|e| {
-            let err = error::ParseError::json_serialize_error(&e);
-            JsValue::from_str(&err.to_json())
-        }),
+        Ok(result) => serialize_result(&result, OutputFormat::Json)
+            .map_err(|e| JsValue::from_str(&e.to_json())),
         Err(e) => Err(JsValue::from_str(&e.to_json())),
     }
 }
@@ -88,7 +96,7 @@ pub fn parse_excel(
 pub fn get_csv_languages(data: &[u8]) -> Result<String, JsValue> {
     match parser::csv::parse_header_only(data) {
         Ok(languages) => serde_json::to_string(&languages).map_err(|e| {
-            let err = error::ParseError::json_serialize_error(&e);
+            let err = error::ParseError::json_serialize_error(e);
             JsValue::from_str(&err.to_json())
         }),
         Err(e) => Err(JsValue::from_str(&e.to_json())),
@@ -100,11 +108,61 @@ pub fn get_csv_languages(data: &[u8]) -> Result<String, JsValue> {
 pub fn get_excel_languages(data: &[u8]) -> Result<String, JsValue> {
     match parser::excel::parse_header_only(data) {
         Ok(languages) => serde_json::to_string(&languages).map_err(|e| {
-            let err = error::ParseError::json_serialize_error(&e);
+            let err = error::ParseError::json_serialize_error(e);
             JsValue::from_str(&err.to_json())
         }),
         Err(e) => Err(JsValue::from_str(&e.to_json())),
     }
+}
+
+/// CSV 파싱 - YAML 출력
+#[wasm_bindgen]
+pub fn parse_csv_yaml(
+    data: &[u8],
+    separator: &str,
+    nested: bool,
+    process_escapes: bool,
+) -> Result<String, JsValue> {
+    let options = ParseOptions {
+        separator: separator.to_string(),
+        nested,
+        output_format: OutputFormat::Yaml,
+        process_escapes,
+    };
+
+    match parser::csv::parse(data, &options) {
+        Ok(result) => serialize_result(&result, OutputFormat::Yaml)
+            .map_err(|e| JsValue::from_str(&e.to_json())),
+        Err(e) => Err(JsValue::from_str(&e.to_json())),
+    }
+}
+
+/// Excel 파싱 - YAML 출력
+#[wasm_bindgen]
+pub fn parse_excel_yaml(
+    data: &[u8],
+    separator: &str,
+    nested: bool,
+    process_escapes: bool,
+) -> Result<String, JsValue> {
+    let options = ParseOptions {
+        separator: separator.to_string(),
+        nested,
+        output_format: OutputFormat::Yaml,
+        process_escapes,
+    };
+
+    match parser::excel::parse(data, &options) {
+        Ok(result) => serialize_result(&result, OutputFormat::Yaml)
+            .map_err(|e| JsValue::from_str(&e.to_json())),
+        Err(e) => Err(JsValue::from_str(&e.to_json())),
+    }
+}
+
+/// Excel -> CSV 변환 (첫 번째 시트)
+#[wasm_bindgen]
+pub fn excel_to_csv(data: &[u8]) -> Result<String, JsValue> {
+    parser::excel::to_csv(data).map_err(|e| JsValue::from_str(&e.to_json()))
 }
 
 /// Rewrite key separator in CSV text (header is kept as-is).
