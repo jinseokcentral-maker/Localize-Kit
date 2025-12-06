@@ -13,7 +13,7 @@ export default function ConverterPageRoute() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Header />
-      <main className="px-8 pb-12">
+      <main className="pb-12">
         <EditorSection />
       </main>
     </div>

@@ -9,7 +9,7 @@ export default function LandingPage() {
       <HeroSection />
 
       {/* Editor Preview Section */}
-      <EditorSection />
+      <EditorSection heightClass="h-[600px] md:h-[720px]" />
 
       {/* Testimonials Section - Placeholder */}
       <section className="px-8 py-16">

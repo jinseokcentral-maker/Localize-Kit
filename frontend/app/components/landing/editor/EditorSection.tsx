@@ -1,5 +1,6 @@
 import { useQueryState, parseAsStringLiteral, parseAsBoolean } from "nuqs";
 import { useEffect, useMemo, useState } from "react";
+import { cn } from "~/lib/utils";
 import { CsvInputPanel } from "./CsvInputPanel";
 import { JsonOutputPanel } from "./JsonOutputPanel";
 import { EditorControls } from "./EditorControls";
@@ -39,7 +40,12 @@ export type Separator = "." | "/" | "-";
 const OUTPUT_FORMATS = ["json"] as const;
 const SEPARATORS = [".", "/", "-"] as const;
 
-export function EditorSection() {
+interface EditorSectionProps {
+  /** Optional height utility classes (e.g., h-[720px]) for the editor area */
+  heightClass?: string;
+}
+
+export function EditorSection({ heightClass }: EditorSectionProps) {
   const { csv: csvContent, setCsv } = useCsvStore();
   const wasmStatus = useLoadWasmParser();
   const [jsonOutput, setJsonOutput] = useState<
@@ -224,7 +230,12 @@ export function EditorSection() {
 
   return (
     <section className="px-8 py-12">
-      <div className="bg-card border border-border rounded-[10px] overflow-hidden shadow-lg">
+      <div
+        className={cn(
+          "bg-card border border-border rounded-[10px] overflow-hidden shadow-lg flex flex-col",
+          heightClass ?? "h-[640px]"
+        )}
+      >
         {/* Top Controls */}
         <EditorControls
           outputFormat={outputFormat}
@@ -237,7 +248,7 @@ export function EditorSection() {
         />
 
         {/* Main Editor Area */}
-        <div className="grid grid-cols-2 min-h-[400px]">
+        <div className="grid grid-cols-2 flex-1 min-h-0 overflow-hidden">
           {/* Left: CSV Input */}
           <CsvInputPanel
             value={csvContent}
