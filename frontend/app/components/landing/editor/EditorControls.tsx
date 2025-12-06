@@ -32,7 +32,7 @@ export function EditorControls({
   onDownloadAll,
 }: EditorControlsProps) {
   return (
-    <div className="flex items-center justify-between px-4 py-4 border-t border-border">
+    <div className="flex items-center justify-between px-4 py-4 border-b border-border">
       {/* Left: Output format & Nested Keys */}
       <div className="flex items-center gap-6">
         {/* Output Format Dropdown */}

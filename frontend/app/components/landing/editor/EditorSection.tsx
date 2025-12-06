@@ -225,6 +225,17 @@ export function EditorSection() {
   return (
     <section className="px-8 py-12">
       <div className="bg-card border border-border rounded-[10px] overflow-hidden shadow-lg">
+        {/* Top Controls */}
+        <EditorControls
+          outputFormat={outputFormat}
+          onOutputFormatChange={setOutputFormat}
+          nestedKeys={nestedKeys}
+          onNestedKeysChange={setNestedKeys}
+          onCopy={handleCopy}
+          onDownload={handleDownload}
+          onDownloadAll={handleDownloadAll}
+        />
+
         {/* Main Editor Area */}
         <div className="grid grid-cols-2 min-h-[400px]">
           {/* Left: CSV Input */}
@@ -248,17 +259,6 @@ export function EditorSection() {
             format={outputFormat}
           />
         </div>
-
-        {/* Bottom Controls */}
-        <EditorControls
-          outputFormat={outputFormat}
-          onOutputFormatChange={setOutputFormat}
-          nestedKeys={nestedKeys}
-          onNestedKeysChange={setNestedKeys}
-          onCopy={handleCopy}
-          onDownload={handleDownload}
-          onDownloadAll={handleDownloadAll}
-        />
       </div>
     </section>
   );
