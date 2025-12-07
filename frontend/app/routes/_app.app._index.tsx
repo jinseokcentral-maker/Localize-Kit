@@ -1,6 +1,7 @@
 import Header from "~/components/landing/Header";
 import { EditorSection } from "~/components/landing/editor";
 import { ProBanner } from "~/components/landing/ProBanner";
+import { Footer } from "~/components/landing/Footer";
 import type { Route } from "./+types/_app.app._index";
 
 export function meta({}: Route.MetaArgs) {
@@ -18,6 +19,7 @@ export default function ConverterPageRoute() {
         <ProBanner />
         <EditorSection />
       </main>
+      <Footer />
     </div>
   );
 }
