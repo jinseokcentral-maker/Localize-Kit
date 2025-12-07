@@ -21,7 +21,7 @@ export function HeroSection() {
       <div className="mt-10 flex items-center gap-4">
         {/* Primary CTA */}
         <Button size="lg" asChild>
-          <Link to="/app">🚀 Go to Converter</Link>
+          <Link to="/app">🚀 Convert CSV/Excel now</Link>
         </Button>
 
         {/* GitHub Link */}
