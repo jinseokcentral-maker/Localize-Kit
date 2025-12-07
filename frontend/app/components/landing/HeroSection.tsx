@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { Sparkles } from "lucide-react";
+import { Sparkles, FileDown } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { TypoH1, TypoP } from "~/components/typo";
 
@@ -22,6 +22,18 @@ export function HeroSection() {
         {/* Primary CTA */}
         <Button size="lg" variant="secondary" asChild>
           <Link to="/app">🚀 Convert CSV/Excel now</Link>
+        </Button>
+
+        {/* Download sample Excel */}
+        <Button size="lg" variant="outline" asChild>
+          <a
+            href="/example.xlsx"
+            download
+            className="flex items-center gap-2"
+          >
+            <FileDown className="size-4" />
+            Test with Example Excel
+          </a>
         </Button>
 
         {/* GitHub Link */}
