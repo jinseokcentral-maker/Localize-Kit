@@ -53,6 +53,7 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
   >({});
   const [parsedLanguages, setParsedLanguages] = useState<string[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // URL query string으로 상태 관리
   const [outputFormat, setOutputFormat] = useQueryState(
@@ -91,6 +92,17 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
   const currentJson = resolvedLanguageKey
     ? jsonOutput[resolvedLanguageKey]
     : {};
+
+  // Body scroll lock for fullscreen
+  useEffect(() => {
+    if (isFullscreen) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prev;
+      };
+    }
+  }, [isFullscreen]);
 
   // Separator 변경 시 키 컬럼을 새 구분자로 변환
   useEffect(() => {
@@ -261,25 +273,38 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
           )}
         >
           {/* Left: CSV Input */}
-          <CsvInputPanel
-            value={csvContent}
-            onChange={setCsv}
-            onFileUpload={handleFileUpload}
-            separator={separator}
-            onSeparatorChange={setSeparator}
-          />
+          <div
+            className={cn(
+              "relative flex flex-col",
+              isFullscreen
+                ? "fixed inset-0 z-50 bg-background h-screen max-h-screen"
+                : "relative"
+            )}
+          >
+            <CsvInputPanel
+              value={csvContent}
+              onChange={setCsv}
+              onFileUpload={handleFileUpload}
+              separator={separator}
+              onSeparatorChange={setSeparator}
+              isFullscreen={isFullscreen}
+              onToggleFullscreen={() => setIsFullscreen((v) => !v)}
+            />
+          </div>
 
           {/* Right: JSON Output */}
-          <JsonOutputPanel
-            languages={languages}
-            activeLanguage={currentLanguage}
-            onLanguageChange={setActiveLanguage}
-            formattedText={formatted.text}
-            filename={`${(
-              resolvedLanguageKey || currentLanguage
-            ).toLowerCase()}.${formatted.ext}`}
-            format={outputFormat}
-          />
+          {!isFullscreen && (
+            <JsonOutputPanel
+              languages={languages}
+              activeLanguage={currentLanguage}
+              onLanguageChange={setActiveLanguage}
+              formattedText={formatted.text}
+              filename={`${(
+                resolvedLanguageKey || currentLanguage
+              ).toLowerCase()}.${formatted.ext}`}
+              format={outputFormat}
+            />
+          )}
         </div>
       </div>
     </section>

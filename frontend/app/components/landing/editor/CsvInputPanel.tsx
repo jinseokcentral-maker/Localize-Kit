@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import CodeMirror from "@uiw/react-codemirror";
-import { Upload } from "lucide-react";
+import { Upload, Maximize2, X } from "lucide-react";
 import { TypoP, TypoSmall } from "~/components/typo";
 import {
   Select,
@@ -19,6 +19,8 @@ interface CsvInputPanelProps {
   onFileUpload: (file: File) => void;
   separator: Separator;
   onSeparatorChange: (separator: Separator | null) => void;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
 export function CsvInputPanel({ 
@@ -27,6 +29,8 @@ export function CsvInputPanel({
   onFileUpload,
   separator,
   onSeparatorChange,
+  isFullscreen = false,
+  onToggleFullscreen,
 }: CsvInputPanelProps) {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -52,7 +56,7 @@ export function CsvInputPanel({
   return (
     <div
       {...getRootProps()}
-      className="border-r border-border flex flex-col relative"
+      className="border-r border-border flex flex-col relative h-full min-h-0"
     >
       <input {...getInputProps()} />
 
@@ -85,13 +89,24 @@ export function CsvInputPanel({
             </Select>
           </div>
         </div>
-        <button
-          onClick={open}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-secondary rounded transition-colors"
-        >
-          <Upload className="size-4" />
-          Upload
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={open}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-foreground hover:bg-secondary rounded transition-colors"
+          >
+            <Upload className="size-4" />
+            Upload
+          </button>
+          {onToggleFullscreen && (
+            <button
+              onClick={onToggleFullscreen}
+              className="flex items-center justify-center w-9 h-9 rounded-md hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+              title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            >
+              {isFullscreen ? <X className="size-4" /> : <Maximize2 className="size-4" />}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Editor */}
