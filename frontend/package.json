@@ -31,6 +31,8 @@
     "@react-router/fs-routes": "^7.10.1",
     "@react-router/node": "^7.10.1",
     "@react-router/serve": "^7.10.1",
+    "@supabase/ssr": "^0.8.0",
+    "@supabase/supabase-js": "^2.86.2",
     "@uiw/react-codemirror": "^4.25.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
