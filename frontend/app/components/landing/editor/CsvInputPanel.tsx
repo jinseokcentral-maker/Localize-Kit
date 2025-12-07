@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import CodeMirror from "@uiw/react-codemirror";
-import { Upload, Maximize2, X } from "lucide-react";
+import { Upload, Maximize2, X, Table, FileText } from "lucide-react";
 import { TypoP, TypoSmall } from "~/components/typo";
 import {
   Select,
@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { csvRainbowTheme, csvRainbowHighlight } from "./csvHighlight";
+import { ExcelPlaceholder } from "./ExcelPlaceholder";
 import type { Separator } from "./EditorSection";
 
 interface CsvInputPanelProps {
@@ -21,16 +22,20 @@ interface CsvInputPanelProps {
   onSeparatorChange: (separator: Separator | null) => void;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
+  viewMode?: "code" | "excel";
+  onToggleViewMode?: () => void;
 }
 
-export function CsvInputPanel({ 
-  value, 
-  onChange, 
+export function CsvInputPanel({
+  value,
+  onChange,
   onFileUpload,
   separator,
   onSeparatorChange,
   isFullscreen = false,
   onToggleFullscreen,
+  viewMode = "code",
+  onToggleViewMode,
 }: CsvInputPanelProps) {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -46,7 +51,9 @@ export function CsvInputPanel({
     onDrop,
     accept: {
       "text/csv": [".csv"],
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [
+        ".xlsx",
+      ],
       "application/vnd.ms-excel": [".xls"],
     },
     noClick: true,
@@ -63,7 +70,9 @@ export function CsvInputPanel({
       {/* Drag Overlay */}
       {isDragActive && (
         <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary z-10 flex items-center justify-center">
-          <TypoP className="text-primary font-medium">Drop your CSV or Excel file here</TypoP>
+          <TypoP className="text-primary font-medium">
+            Drop your CSV or Excel file here
+          </TypoP>
         </div>
       )}
 
@@ -103,7 +112,28 @@ export function CsvInputPanel({
               className="flex items-center justify-center w-9 h-9 rounded-md hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
               title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
             >
-              {isFullscreen ? <X className="size-4" /> : <Maximize2 className="size-4" />}
+              {isFullscreen ? (
+                <X className="size-4" />
+              ) : (
+                <Maximize2 className="size-4" />
+              )}
+            </button>
+          )}
+          {onToggleViewMode && (
+            <button
+              onClick={onToggleViewMode}
+              className="flex items-center justify-center w-9 h-9 rounded-md hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+              title={
+                viewMode === "code"
+                  ? "Switch to Excel View"
+                  : "Switch to Code View"
+              }
+            >
+              {viewMode === "code" ? (
+                <Table className="size-4" />
+              ) : (
+                <FileText className="size-4" />
+              )}
             </button>
           )}
         </div>
@@ -111,24 +141,27 @@ export function CsvInputPanel({
 
       {/* Editor */}
       <div className="flex-1 overflow-auto">
-        <CodeMirror
-          value={value}
-          onChange={onChange}
-          theme={csvRainbowTheme}
-          extensions={[csvRainbowHighlight()]}
-          basicSetup={{
-            lineNumbers: false,
-            foldGutter: false,
-            highlightActiveLine: false,
-            highlightSelectionMatches: false,
-          }}
-          className="h-full font-mono text-sm"
-          style={{
-            height: "100%",
-          }}
-        />
+        {viewMode === "code" ? (
+          <CodeMirror
+            value={value}
+            onChange={onChange}
+            theme={csvRainbowTheme}
+            extensions={[csvRainbowHighlight()]}
+            basicSetup={{
+              lineNumbers: false,
+              foldGutter: false,
+              highlightActiveLine: false,
+              highlightSelectionMatches: false,
+            }}
+            className="h-full font-mono text-sm"
+            style={{
+              height: "100%",
+            }}
+          />
+        ) : (
+          <ExcelPlaceholder />
+        )}
       </div>
     </div>
   );
 }
-

@@ -54,6 +54,7 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
   const [parsedLanguages, setParsedLanguages] = useState<string[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [viewMode, setViewMode] = useState<"code" | "excel">("code");
 
   // URL query string으로 상태 관리
   const [outputFormat, setOutputFormat] = useQueryState(
@@ -289,6 +290,10 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
               onSeparatorChange={setSeparator}
               isFullscreen={isFullscreen}
               onToggleFullscreen={() => setIsFullscreen((v) => !v)}
+              viewMode={viewMode}
+              onToggleViewMode={() =>
+                setViewMode((v) => (v === "code" ? "excel" : "code"))
+              }
             />
           </div>
 
