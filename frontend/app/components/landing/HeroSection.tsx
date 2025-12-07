@@ -1,6 +1,6 @@
 import { Link } from "react-router";
+import { Sparkles } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { GithubIcon } from "~/components/icons/GithubIcon";
 import { TypoH1, TypoP } from "~/components/typo";
 
 export function HeroSection() {
@@ -20,20 +20,18 @@ export function HeroSection() {
       {/* CTA Buttons */}
       <div className="mt-10 flex items-center gap-4">
         {/* Primary CTA */}
-        <Button size="lg" asChild>
+        <Button size="lg" variant="secondary" asChild>
           <Link to="/app">🚀 Convert CSV/Excel now</Link>
         </Button>
 
         {/* GitHub Link */}
-        <Button variant="outline" size="lg" asChild>
+        <Button size="lg" asChild>
           <a
-            href="https://github.com/jinseokcentral-maker/Localize-Kit"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2"
+            href="#cta-section"
+            className="flex items-center gap-2 font-semibold text-primary-foreground"
           >
-            <GithubIcon className="size-4" />
-            View on GitHub
+            <Sparkles className="size-4 text-primary-foreground" />
+            Need more feature
           </a>
         </Button>
       </div>
