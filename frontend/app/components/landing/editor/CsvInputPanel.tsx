@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { csvRainbowTheme, csvRainbowHighlight } from "./csvHighlight";
-import { ExcelPlaceholder } from "./ExcelPlaceholder";
+import { ExcelView } from "./ExcelView";
 import type { Separator } from "./EditorSection";
 
 interface CsvInputPanelProps {
@@ -159,7 +159,7 @@ export function CsvInputPanel({
             }}
           />
         ) : (
-          <ExcelPlaceholder />
+          <ExcelView csvText={value} onChangeCsv={onChange} />
         )}
       </div>
     </div>
