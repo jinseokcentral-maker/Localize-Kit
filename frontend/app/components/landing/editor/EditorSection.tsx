@@ -1,5 +1,5 @@
 import { useQueryState, parseAsStringLiteral, parseAsBoolean } from "nuqs";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "~/lib/utils";
 import { CsvInputPanel } from "./CsvInputPanel";
 import { JsonOutputPanel } from "./JsonOutputPanel";
@@ -51,6 +51,7 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
   const [jsonOutput, setJsonOutput] = useState<
     Record<string, Record<string, unknown>>
   >({});
+  const uploadToastRef = useRef<number | null>(null);
   const [parsedLanguages, setParsedLanguages] = useState<string[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -132,6 +133,13 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
         setParseError(null);
         const end = performance.now();
         logTimed("Parse CSV", end - start);
+
+        if (uploadToastRef.current !== null) {
+          const durationMs = Math.round(end - start);
+          const rows = result.row_count ?? 0;
+          toast.success(`${rows} rows converted in ${durationMs}ms.`);
+          uploadToastRef.current = null;
+        }
       } catch (err) {
         if (cancelled) return;
         setJsonOutput({});
@@ -140,6 +148,7 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
           err instanceof Error ? err.message : "Failed to parse CSV"
         );
         console.warn("[Editor] parse error", err);
+        uploadToastRef.current = null;
       }
     };
     run();
@@ -171,6 +180,7 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
           const csvText = await excelToCsv(new Uint8Array(buffer));
           setCsv(csvText);
           setActiveLanguage(null);
+          uploadToastRef.current = performance.now();
           toast.success("Excel converted to CSV");
         } catch (err) {
           toast.error("Failed to parse Excel file");
@@ -188,6 +198,7 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
         if (text) {
           setCsv(text);
           setActiveLanguage(null);
+          uploadToastRef.current = performance.now();
         }
       };
       reader.readAsText(file);
