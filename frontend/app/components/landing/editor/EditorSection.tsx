@@ -1,5 +1,5 @@
 import { useQueryState, parseAsStringLiteral, parseAsBoolean } from "nuqs";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "~/lib/utils";
 import { CsvInputPanel } from "./CsvInputPanel";
 import { JsonOutputPanel } from "./JsonOutputPanel";
@@ -52,6 +52,8 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
     Record<string, Record<string, unknown>>
   >({});
   const uploadToastRef = useRef<number | null>(null);
+  const parseRunIdRef = useRef(0);
+  const debounceTimerRef = useRef<number | null>(null);
   const [parsedLanguages, setParsedLanguages] = useState<string[]>([]);
   const [parseError, setParseError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -81,16 +83,14 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
   const currentLanguageRaw = activeLanguage || languages[0] || "en";
   const currentLanguage = currentLanguageRaw.toLowerCase();
 
-  // 언어 키를 대소문자/구분자 무시하고 매칭
-  const resolvedLanguageKey = useMemo(() => {
+  const resolvedLanguageKey = (() => {
     const target = currentLanguage.toLowerCase().replace("_", "-");
     return Object.keys(jsonOutput).find((key) => {
       const normalized = key.toLowerCase().replace("_", "-");
       return normalized === target;
     });
-  }, [currentLanguage, jsonOutput]);
+  })();
 
-  // 현재 선택된 언어의 JSON
   const currentJson = resolvedLanguageKey
     ? jsonOutput[resolvedLanguageKey]
     : {};
@@ -106,56 +106,124 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
     }
   }, [isFullscreen]);
 
-  // Separator 변경 시 키 컬럼을 새 구분자로 변환
-  useEffect(() => {
+  async function parseAndSet(
+    csv: string,
+    {
+      fromUpload = false,
+      separatorOverride,
+      nestedOverride,
+    }: {
+      fromUpload?: boolean;
+      separatorOverride?: Separator;
+      nestedOverride?: boolean;
+    } = {}
+  ) {
     if (wasmStatus !== "loaded") return;
-    const rewritten = rewriteCsvKeySeparator(csvContent, separator);
-    if (rewritten !== csvContent) {
-      setCsv(rewritten);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [separator, wasmStatus]);
+    const runId = ++parseRunIdRef.current;
+    const start = performance.now();
+    try {
+      const result = await parseCsvString(csv, {
+        separator: separatorOverride ?? separator,
+        nested: nestedOverride ?? nestedKeys,
+      });
+      if (runId !== parseRunIdRef.current) return;
+      setJsonOutput(result.data ?? {});
+      setParsedLanguages(result.languages || []);
+      setParseError(null);
+      const end = performance.now();
+      logTimed("Parse CSV", end - start);
 
-  // CSV 파싱 (WASM) - async
-  useEffect(() => {
-    if (wasmStatus !== "loaded") return;
-    let cancelled = false;
-    const run = async () => {
-      const start = performance.now();
-      try {
-        const result = await parseCsvString(csvContent, {
-          separator,
-          nested: nestedKeys,
-        });
-        if (cancelled) return;
-        setJsonOutput(result.data ?? {});
-        setParsedLanguages(result.languages || []);
-        setParseError(null);
-        const end = performance.now();
-        logTimed("Parse CSV", end - start);
-
-        if (uploadToastRef.current !== null) {
-          const durationMs = Math.round(end - start);
-          const rows = result.row_count ?? 0;
-          toast.success(`${rows} rows converted in ${durationMs}ms.`);
-          uploadToastRef.current = null;
-        }
-      } catch (err) {
-        if (cancelled) return;
-        setJsonOutput({});
-        setParsedLanguages([]);
-        setParseError(
-          err instanceof Error ? err.message : "Failed to parse CSV"
-        );
-        console.warn("[Editor] parse error", err);
+      if (fromUpload || uploadToastRef.current !== null) {
+        const durationMs = Math.round(end - start);
+        const rows = result.row_count ?? 0;
+        toast.success(`${rows} rows converted in ${durationMs}ms.`);
         uploadToastRef.current = null;
       }
-    };
-    run();
+    } catch (err) {
+      if (runId !== parseRunIdRef.current) return;
+      setJsonOutput({});
+      setParsedLanguages([]);
+      setParseError(err instanceof Error ? err.message : "Failed to parse CSV");
+      console.warn("[Editor] parse error", err);
+      uploadToastRef.current = null;
+    }
+  }
+
+  function triggerParse(
+    csv: string,
+    {
+      immediate = false,
+      fromUpload = false,
+      separatorOverride,
+      nestedOverride,
+    }: {
+      immediate?: boolean;
+      fromUpload?: boolean;
+      separatorOverride?: Separator;
+      nestedOverride?: boolean;
+    } = {}
+  ) {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    if (immediate) {
+      parseAndSet(csv, { fromUpload, separatorOverride, nestedOverride });
+      return;
+    }
+
+    debounceTimerRef.current = window.setTimeout(() => {
+      parseAndSet(csv, { fromUpload, separatorOverride, nestedOverride });
+    }, 400);
+  }
+
+  useEffect(() => {
     return () => {
-      cancelled = true;
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
     };
-  }, [csvContent, separator, nestedKeys, wasmStatus, outputFormat]);
+  }, []);
+
+  const hasInitialParseRef = useRef(false);
+  useEffect(() => {
+    if (hasInitialParseRef.current) return;
+    if (wasmStatus === "loaded") {
+      hasInitialParseRef.current = true;
+      const rewritten = rewriteCsvKeySeparator(csvContent, separator);
+      if (rewritten !== csvContent) {
+        setCsv(rewritten);
+      }
+      triggerParse(rewritten, {
+        immediate: true,
+        separatorOverride: separator,
+      });
+    }
+  }, [wasmStatus, csvContent, separator]); // setCsv/triggerParse stable enough in scope
+
+  const handleSeparatorChange = (sep: Separator | null) => {
+    if (!sep) return;
+    setSeparator(sep);
+    const rewritten = rewriteCsvKeySeparator(csvContent, sep);
+    setCsv(rewritten);
+    triggerParse(rewritten, {
+      immediate: true,
+      separatorOverride: sep,
+    });
+  };
+
+  const handleNestedChange = (value: boolean) => {
+    setNestedKeys(value);
+    triggerParse(csvContent, {
+      immediate: true,
+      nestedOverride: value,
+    });
+  };
+
+  const handleCsvChange = (value: string) => {
+    setCsv(value);
+    triggerParse(value);
+  };
 
   // 파일 업로드 핸들러
   const handleFileUpload = (file: File) => {
@@ -182,6 +250,7 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
           setActiveLanguage(null);
           uploadToastRef.current = performance.now();
           toast.success("Excel converted to CSV");
+          triggerParse(csvText, { immediate: true, fromUpload: true });
         } catch (err) {
           toast.error("Failed to parse Excel file");
           console.error(err);
@@ -199,6 +268,7 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
           setCsv(text);
           setActiveLanguage(null);
           uploadToastRef.current = performance.now();
+          triggerParse(text, { immediate: true, fromUpload: true });
         }
       };
       reader.readAsText(file);
@@ -206,13 +276,11 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
     }
   };
 
-  const formatted = useMemo(() => {
-    return {
-      text: JSON.stringify(currentJson, null, 2),
-      ext: "json",
-      mime: "application/json",
-    };
-  }, [currentJson]);
+  const formatted = {
+    text: JSON.stringify(currentJson, null, 2),
+    ext: "json",
+    mime: "application/json",
+  };
 
   // 복사 핸들러
   const handleCopy = () => {
@@ -265,7 +333,7 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
           outputFormat={outputFormat}
           onOutputFormatChange={setOutputFormat}
           nestedKeys={nestedKeys}
-          onNestedKeysChange={setNestedKeys}
+          onNestedKeysChange={handleNestedChange}
           onCopy={handleCopy}
           onDownload={handleDownload}
           onDownloadAll={handleDownloadAll}
@@ -295,10 +363,10 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
           >
             <CsvInputPanel
               value={csvContent}
-              onChange={setCsv}
+              onChange={handleCsvChange}
               onFileUpload={handleFileUpload}
               separator={separator}
-              onSeparatorChange={setSeparator}
+              onSeparatorChange={handleSeparatorChange}
               isFullscreen={isFullscreen}
               onToggleFullscreen={() => setIsFullscreen((v) => !v)}
               viewMode={viewMode}

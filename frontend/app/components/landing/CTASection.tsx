@@ -1,3 +1,4 @@
+import { Link } from "react-router";
 import {
   ArrowRight,
   Code,
@@ -74,10 +75,10 @@ export function CTASection() {
             <p className="text-muted-foreground mb-6 text-sm">
               Join thousands of developers building faster.
             </p>
-            <Button className="w-full" size="lg">
-              <span className="flex items-center justify-center gap-2">
+            <Button className="w-full" size="lg" asChild>
+              <Link to="/pricing" className="flex items-center justify-center gap-2">
                 View Pricing <ArrowRight className="w-4 h-4" />
-              </span>
+              </Link>
             </Button>
           </div>
         </div>
@@ -85,8 +86,12 @@ export function CTASection() {
         <div className="flex justify-center pt-8 border-t border-border/40">
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             Need basic features only?
-            <Button variant="link" className="p-0 h-auto text-primary font-medium">
-              Get Started Free
+            <Button
+              variant="link"
+              className="p-0 h-auto text-primary font-medium"
+              asChild
+            >
+              <Link to="/app">Get Started Free</Link>
             </Button>
           </p>
         </div>
