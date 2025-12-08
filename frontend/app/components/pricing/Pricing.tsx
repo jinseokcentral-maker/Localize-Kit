@@ -112,7 +112,7 @@ export function Pricing() {
               <PricingFeature included text="1 Project" />
               <PricingFeature included text="Unlimited Languages" />
               <PricingFeature included text="Manual Import" info="CSV, Excel" />
-              <PricingFeature included text="JSON File Download" />
+              <PricingFeature included text="JSON Download" />
               <PricingFeature included text="Read-only Table View" />
               <PricingFeature included={false} text="Dashboard Editing" />
               <PricingFeature included={false} text="Delivery API" />
@@ -138,7 +138,7 @@ export function Pricing() {
             </div>
 
             <Button className="w-full mb-8" size="lg" asChild>
-              <Link to="/auth/login">Upgrade to Pro</Link>
+              <Link to="/login">Upgrade to Pro</Link>
             </Button>
 
             <div className="space-y-4 flex-1">
@@ -171,20 +171,24 @@ export function Pricing() {
             </div>
 
             <Button className="w-full mb-8" size="lg" asChild>
-              <Link to="/auth/login">Upgrade to Team</Link>
+              <Link to="/login">Upgrade to Team</Link>
             </Button>
 
             <div className="space-y-4 flex-1">
+              <PricingFeature included text="Everything in Pro" />
               <PricingFeature included text="Unlimited Projects" />
               <PricingFeature
                 included
                 text="3 Members Included"
                 info="+$5/user/month"
               />
-              <PricingFeature included text="Real-time Sync" info="Webhook based" />
               <PricingFeature
                 included
-                text="High-vol Delivery API"
+                text="Webhook-based Auto Sync"
+              />
+              <PricingFeature
+                included
+                text="High-volume API"
                 info="200K req/month"
               />
               <PricingFeature
@@ -192,7 +196,7 @@ export function Pricing() {
                 text="Role-based Access"
                 info="Admin, Dev, Translator"
               />
-              <PricingFeature included text="Full Audit Logs" />
+              <PricingFeature included text="Audit Logs" />
               <PricingFeature included text="Team Billing" />
             </div>
           </div>
