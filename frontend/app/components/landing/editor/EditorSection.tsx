@@ -64,7 +64,7 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
   );
   const [nestedKeys, setNestedKeys] = useQueryState(
     "nested",
-    parseAsBoolean.withDefault(false)
+    parseAsBoolean.withDefault(true)
   );
   const [separator, setSeparator] = useQueryState(
     "sep",
