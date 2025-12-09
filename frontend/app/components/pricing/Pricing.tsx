@@ -1,43 +1,52 @@
-import { parseAsBoolean, useQueryState } from "nuqs";
-import { Link } from "react-router";
-import { Check, X, Zap } from "lucide-react";
-import { Button } from "~/components/ui/button";
+import React, { useState } from 'react';
+
+import { Check, X, Info, Zap, Users, Shield } from 'lucide-react';
+
+
 
 interface PricingFeatureProps {
+
   included: boolean;
+
   text: string;
+
   info?: string;
+
 }
 
-function PricingFeature({ included, text, info }: PricingFeatureProps) {
-  return (
-    <div
-      className={`flex items-start gap-3 ${
-        included ? "text-foreground" : "text-muted-foreground/40"
-      }`}
-    >
-      {included ? (
-        <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-      ) : (
-        <X className="w-5 h-5 shrink-0 mt-0.5" />
-      )}
-      <span className="text-sm leading-6 flex-1 text-left">
-        {text}
-        {info && (
-          <span className="text-muted-foreground text-xs block mt-0.5">
-            {info}
-          </span>
-        )}
-      </span>
-    </div>
-  );
-}
 
-export function Pricing() {
-  const [isAnnual, setIsAnnual] = useQueryState(
-    "annual",
-    parseAsBoolean.withDefault(true)
-  );
+
+const PricingFeature: React.FC<PricingFeatureProps> = ({ included, text, info }) => (
+
+  <div className={`flex items-start gap-3 ${included ? 'text-foreground' : 'text-muted-foreground/40'}`}>
+
+    {included ? (
+
+      <Check className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+
+    ) : (
+
+      <X className="w-5 h-5 shrink-0 mt-0.5" />
+
+    )}
+
+    <span className="text-sm leading-6 flex-1 text-left">
+
+        {text} 
+
+        {info && <span className="text-muted-foreground text-xs block mt-0.5">{info}</span>}
+
+    </span>
+
+  </div>
+
+);
+
+
+
+export const Pricing: React.FC = () => {
+
+  const [isAnnual, setIsAnnual] = useState(true);
 
   return (
     <section
@@ -57,32 +66,31 @@ export function Pricing() {
           </p>
 
           <div className="flex items-center justify-center gap-4">
-            <span
-              className={`text-sm ${
-                !isAnnual ? "text-foreground font-medium" : "text-muted-foreground"
-              }`}
-            >
-              Monthly
-            </span>
+
+            <span className={`text-sm ${!isAnnual ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>Monthly</span>
+
             <button
-              onClick={() => setIsAnnual((v) => !v)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                isAnnual ? "bg-primary" : "bg-input"
-              }`}
+
+              onClick={() => setIsAnnual(!isAnnual)}
+
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${isAnnual ? 'bg-primary' : 'bg-input'}`}
+
             >
+
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${
-                  isAnnual ? "translate-x-6" : "translate-x-1"
-                }`}
+
+                className={`inline-block h-4 w-4 transform rounded-full bg-background shadow-lg ring-0 transition-transform ${isAnnual ? 'translate-x-6' : 'translate-x-1'}`}
+
               />
+
             </button>
-            <span
-              className={`text-sm ${
-                isAnnual ? "text-foreground font-medium" : "text-muted-foreground"
-              }`}
-            >
+
+            <span className={`text-sm ${isAnnual ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+
               Yearly
+
             </span>
+
           </div>
         </div>
 
@@ -99,106 +107,135 @@ export function Pricing() {
               </p>
             </div>
 
-            <Button
-              className="w-full mb-8"
-              variant="secondary"
-              asChild
-              size="lg"
-            >
-              <Link to="/app">Get Started</Link>
-            </Button>
+              
+              <button className="w-full py-2.5 px-4 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg font-medium transition-colors mb-8">
 
-            <div className="space-y-4 flex-1">
-              <PricingFeature included text="1 Project" />
-              <PricingFeature included text="Unlimited Languages" />
-              <PricingFeature included text="Manual Import" info="CSV, Excel" />
-              <PricingFeature included text="JSON Download" />
-              <PricingFeature included text="Read-only Table View" />
-              <PricingFeature included={false} text="Dashboard Editing" />
-              <PricingFeature included={false} text="Delivery API" />
-              <PricingFeature included={false} text="Auto Sync" />
-            </div>
+                Get Started
+
+              </button>
+
+
+
+              <div className="space-y-4 flex-1">
+
+                <PricingFeature included={true} text="1 Project" />
+
+                <PricingFeature included={true} text="Unlimited Languages" />
+
+                <PricingFeature included={true} text="Manual Import" info="CSV, Excel" />
+
+                <PricingFeature included={true} text="JSON Import" info="Read-only" />
+
+                <PricingFeature included={true} text="Export" info="CSV, Excel, JSON" />
+
+                <PricingFeature included={true} text="Community Support" />
+
+                <PricingFeature included={false} text="Dashboard Editing" />
+
+                <PricingFeature included={false} text="Delivery API" />
+
+              </div>
           </div>
 
-          <div className="rounded-2xl border-2 border-primary bg-card p-8 flex flex-col relative shadow-[0_0_40px_-10px_rgba(124,58,237,0.3)] md:-translate-y-4">
+            <div className="rounded-2xl border-2 border-primary bg-card p-8 flex flex-col relative shadow-[0_0_40px_-10px_rgba(124,58,237,0.3)] transform md:-translate-y-4">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold tracking-wide flex items-center gap-1">
               <Zap className="w-3 h-3" /> MOST POPULAR
             </div>
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold mb-2 text-primary">Pro</h3>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold">
-                  {isAnnual ? "12" : "19"}
-                </span>
-                <span className="text-muted-foreground">/month</span>
+              <div className="mb-6">
+
+                <h3 className="text-xl font-semibold mb-2 text-primary">Pro</h3>
+
+                <div className="flex items-baseline gap-1">
+
+                  <span className="text-4xl font-bold">${isAnnual ? '12' : '15'}</span>
+
+                  <span className="text-muted-foreground">/month</span>
+
+                </div>
+
+                <p className="text-muted-foreground mt-4 text-sm">For professional developers and shipping apps.</p>
+
               </div>
-              <p className="text-muted-foreground mt-4 text-sm">
-                For professional developers and shipping apps.
-              </p>
-            </div>
 
-            <Button className="w-full mb-8" size="lg" asChild>
-              <Link to="/login">Upgrade to Pro</Link>
-            </Button>
+              
 
-            <div className="space-y-4 flex-1">
-              <PricingFeature included text="10 Projects" />
-              <PricingFeature included text="Unlimited Languages" />
-              <PricingFeature included text="Dashboard Editing" />
-              <PricingFeature included text="Delivery API" info="50K req/month" />
-              <PricingFeature
-                included
-                text="Auto Google Sheet Sync"
-                info="5-10 min polling"
-              />
-              <PricingFeature included text="Code Snippets" info="React, Next.js, RN" />
-              <PricingFeature included text="Webhooks" />
-            </div>
+              <button className="w-full py-2.5 px-4 bg-primary text-primary-foreground hover:opacity-90 rounded-lg font-medium transition-opacity mb-8 shadow-lg shadow-primary/25">
+
+                Upgrade to Pro
+
+              </button>
+
+
+
+              <div className="space-y-4 flex-1">
+
+                <PricingFeature included={true} text="10 Projects" />
+
+                <PricingFeature included={true} text="Unlimited Languages" />
+
+                <PricingFeature included={true} text="Dashboard Editing" />
+
+                <PricingFeature included={true} text="Manual Import" info="CSV, Excel" />
+
+                <PricingFeature included={true} text="JSON Import" info="Full Editable" />
+
+                <PricingFeature included={true} text="Delivery API" info="50k req/mo" />
+
+                <PricingFeature included={true} text="Code Snippets" />
+
+                <PricingFeature included={true} text="Webhooks" />
+
+                <PricingFeature included={true} text="Priority Email Support" />
+
+              </div>
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-8 flex flex-col hover:border-border/80 transition-colors">
-            <div className="mb-6">
-              <h3 className="text-xl font-semibold mb-2">Team</h3>
-              <div className="flex items-baseline gap-1">
-                <span className="text-4xl font-bold">
-                  {isAnnual ? "39" : "49"}
-                </span>
-                <span className="text-muted-foreground">/month</span>
+              <div className="mb-6">
+
+                <h3 className="text-xl font-semibold mb-2">Team</h3>
+
+                <div className="flex items-baseline gap-1">
+
+                  <span className="text-4xl font-bold">$39</span>
+
+                  <span className="text-muted-foreground">/month</span>
+
+                </div>
+
+                <p className="text-muted-foreground mt-4 text-sm">For scaling teams with advanced needs.</p>
+
               </div>
-              <p className="text-muted-foreground mt-4 text-sm">
-                For scaling teams with advanced needs.
-              </p>
-            </div>
 
-            <Button className="w-full mb-8" size="lg" asChild>
-              <Link to="/login">Upgrade to Team</Link>
-            </Button>
+              
 
-            <div className="space-y-4 flex-1">
-              <PricingFeature included text="Everything in Pro" />
-              <PricingFeature included text="Unlimited Projects" />
-              <PricingFeature
-                included
-                text="3 Members Included"
-                info="+$5/user/month"
-              />
-              <PricingFeature
-                included
-                text="Webhook-based Auto Sync"
-              />
-              <PricingFeature
-                included
-                text="High-volume API"
-                info="200K req/month"
-              />
-              <PricingFeature
-                included
-                text="Role-based Access"
-                info="Admin, Dev, Translator"
-              />
-              <PricingFeature included text="Audit Logs" />
-              <PricingFeature included text="Team Billing" />
-            </div>
+              <button className="w-full py-2.5 px-4 bg-primary text-primary-foreground hover:opacity-90 rounded-lg font-medium transition-opacity mb-8 shadow-lg shadow-primary/25">
+
+                Upgrade to Team
+
+              </button>
+
+
+
+              <div className="space-y-4 flex-1">
+
+                <PricingFeature included={true} text="Everything in Pro" />
+
+                <PricingFeature included={true} text="Unlimited Projects" />
+
+                <PricingFeature included={true} text="3 Members Included" info="+$5/user/mo" />
+
+                <PricingFeature included={true} text="Role-based Access" />
+
+                <PricingFeature included={true} text="Audit Logs" />
+
+                <PricingFeature included={true} text="Team Billing" />
+
+                <PricingFeature included={true} text="Delivery API" info="200k req/mo" />
+
+                <PricingFeature included={true} text="Priority Support" info="+ SLA" />
+
+              </div>
           </div>
         </div>
 
@@ -211,22 +248,22 @@ export function Pricing() {
               <strong className="text-foreground block mb-2">
                 Faster Time-to-Market
               </strong>
-              Launch new markets in days, not months. Automate the handoff between
-              design, code, and translation.
+              Launch new markets in days, not months. Automate the handoff
+              between design, code, and translation.
             </div>
             <div className="p-4 bg-card/50 rounded-lg border border-border/50">
               <strong className="text-foreground block mb-2">
                 Reduce Operational Costs
               </strong>
-              Stop wasting engineering hours on manual file management. Let your team
-              focus on building features.
+              Stop wasting engineering hours on manual file management. Let your
+              team focus on building features.
             </div>
             <div className="p-4 bg-card/50 rounded-lg border border-border/50">
               <strong className="text-foreground block mb-2">
                 Seamless Collaboration
               </strong>
-              Bridge the gap between developers, translators, and product managers
-              with a single source of truth.
+              Bridge the gap between developers, translators, and product
+              managers with a single source of truth.
             </div>
           </div>
         </div>
@@ -234,4 +271,3 @@ export function Pricing() {
     </section>
   );
 }
-

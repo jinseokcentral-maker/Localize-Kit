@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { Mail } from "lucide-react";
 import { Link } from "react-router";
-import { toast } from "sonner";
 
 interface LoginCardProps {
-  onGoogleLogin: () => void;
-  onMagicLinkSent: (email: string) => void;
+  onGoogleLogin: () => Promise<void> | void;
+  onMagicLinkSent: (email: string) => Promise<void> | void;
 }
 
 export function LoginCard({ onGoogleLogin, onMagicLinkSent }: LoginCardProps) {
@@ -16,11 +15,11 @@ export function LoginCard({ onGoogleLogin, onMagicLinkSent }: LoginCardProps) {
     e.preventDefault();
     if (!email) return;
     setIsLoading(true);
-    setTimeout(() => {
-      onMagicLinkSent(email);
-      toast.success("Magic link sent");
+    try {
+      await onMagicLinkSent(email);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   return (

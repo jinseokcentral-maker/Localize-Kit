@@ -1,4 +1,3 @@
-import { Link } from "react-router";
 import {
   ArrowRight,
   Code,
@@ -7,6 +6,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import { Link } from "react-router";
 import { Button } from "~/components/ui/button";
 import { TypoH1, TypoP } from "~/components/typo";
 
@@ -76,8 +76,10 @@ export function CTASection() {
               Join thousands of developers building faster.
             </p>
             <Button className="w-full" size="lg" asChild>
-              <Link to="/pricing" className="flex items-center justify-center gap-2">
-                View Pricing <ArrowRight className="w-4 h-4" />
+              <Link to="/pricing">
+                <span className="flex items-center justify-center gap-2">
+                  View Pricing <ArrowRight className="w-4 h-4" />
+                </span>
               </Link>
             </Button>
           </div>
@@ -86,12 +88,8 @@ export function CTASection() {
         <div className="flex justify-center pt-8 border-t border-border/40">
           <p className="text-sm text-muted-foreground flex items-center gap-2">
             Need basic features only?
-            <Button
-              variant="link"
-              className="p-0 h-auto text-primary font-medium"
-              asChild
-            >
-              <Link to="/app">Get Started Free</Link>
+            <Button variant="link" className="p-0 h-auto text-primary font-medium">
+              Get Started Free
             </Button>
           </p>
         </div>

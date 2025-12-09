@@ -1,19 +1,52 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { EmailSentView } from "~/components/auth/EmailSentView";
 import { LoginCard } from "~/components/auth/LoginCard";
 import { LoginFooter } from "~/components/auth/LoginFooter";
 import { LoginHeader } from "~/components/auth/LoginHeader";
+import { supabase, isSupabaseConfigured } from "~/lib/supabaseClient";
 
 export default function LoginPage() {
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
 
+  const redirectTo = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return `${window.location.origin}/login`;
+  }, []);
+
   const handleGoogleLogin = () => {
-    toast.info("Google login coming soon");
+    if (!isSupabaseConfigured) {
+      toast.error("Supabase env vars missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+      return;
+    }
+    supabase.auth
+      .signInWithOAuth({
+        provider: "google",
+        options: { redirectTo },
+      })
+      .catch((error) => {
+        toast.error(error.message);
+      });
   };
 
-  const handleMagicLinkSent = (email: string) => {
+  const handleMagicLinkSent = async (email: string) => {
+    if (!isSupabaseConfigured) {
+      toast.error("Supabase env vars missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+      return;
+    }
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo,
+        shouldCreateUser: true,
+      },
+    });
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
     setEmailSentTo(email);
+    toast.success("Magic link sent. Check your inbox.");
   };
 
   const handleBackToLogin = () => {
@@ -21,7 +54,8 @@ export default function LoginPage() {
   };
 
   const handleResend = async () => {
-    toast.success("Magic link resent");
+    if (!emailSentTo) return;
+    await handleMagicLinkSent(emailSentTo);
   };
 
   return (
