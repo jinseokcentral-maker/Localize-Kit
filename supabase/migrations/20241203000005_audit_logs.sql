@@ -40,3 +40,6 @@ COMMENT ON COLUMN audit_logs.metadata IS 'Additional context: old/new values, ch
 
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
+
+
+

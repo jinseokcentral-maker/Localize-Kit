@@ -35,3 +35,6 @@ DROP TRIGGER IF EXISTS update_api_usage_updated_at ON api_usage;
 COMMENT ON FUNCTION update_updated_at() IS 'Helper function - call manually from backend if needed';
 COMMENT ON FUNCTION generate_random_username() IS 'Helper function - call manually from backend if needed';
 
+
+
+

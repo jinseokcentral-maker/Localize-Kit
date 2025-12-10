@@ -34,3 +34,6 @@ CREATE POLICY "audit_logs_select"
 -- Users cannot update or delete audit logs (immutable)
 -- No update/delete policies
 
+
+
+

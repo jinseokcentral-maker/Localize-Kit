@@ -9,14 +9,13 @@ import { supabase, isSupabaseConfigured } from "~/lib/supabaseClient";
 export default function LoginPage() {
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
 
-  const redirectTo = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    return `${window.location.origin}/login`;
-  }, []);
+  const redirectTo = `${window.location.origin}${"/verify"}`;
 
   const handleGoogleLogin = () => {
     if (!isSupabaseConfigured) {
-      toast.error("Supabase env vars missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+      toast.error(
+        "Supabase env vars missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY."
+      );
       return;
     }
     supabase.auth
@@ -31,7 +30,9 @@ export default function LoginPage() {
 
   const handleMagicLinkSent = async (email: string) => {
     if (!isSupabaseConfigured) {
-      toast.error("Supabase env vars missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.");
+      toast.error(
+        "Supabase env vars missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY."
+      );
       return;
     }
     const { error } = await supabase.auth.signInWithOtp({
@@ -79,4 +80,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
