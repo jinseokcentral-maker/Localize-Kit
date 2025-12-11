@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Put, Req } from '@nestjs/common';
 import {
+  ApiBody,
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiConflictResponse,
@@ -58,6 +59,50 @@ const projectSchema: SchemaObject = {
   required: ['id', 'name', 'slug', 'ownerId'],
 };
 
+const createProjectRequestSchema: SchemaObject = {
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    description: oneOfString(),
+    languages: {
+      oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }],
+    },
+    defaultLanguage: oneOfString(),
+    slug: { type: 'string' },
+  },
+  required: ['name'],
+};
+
+const updateProjectRequestSchema: SchemaObject = {
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    description: oneOfString(),
+    languages: {
+      oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }],
+    },
+    defaultLanguage: oneOfString(),
+    slug: { type: 'string' },
+  },
+};
+
+const addMemberRequestSchema: SchemaObject = {
+  type: 'object',
+  properties: {
+    userId: { type: 'string', format: 'uuid' },
+    role: { type: 'string', enum: ['owner', 'editor', 'viewer'] },
+  },
+  required: ['userId', 'role'],
+};
+
+const removeMemberRequestSchema: SchemaObject = {
+  type: 'object',
+  properties: {
+    userId: { type: 'string', format: 'uuid' },
+  },
+  required: ['userId'],
+};
+
 function oneOfString(format?: string): SchemaObject {
   return {
     oneOf: [
@@ -77,6 +122,10 @@ export class ProjectController {
   @Post()
   @ApiOperation({ summary: 'Create project' })
   @ApiOkResponse({ description: 'Created project', schema: projectSchema })
+  @ApiBody({
+    description: 'Project creation payload',
+    schema: createProjectRequestSchema,
+  })
   @ApiBadRequestResponse({
     description: 'Invalid payload',
     schema: errorSchema,
@@ -121,6 +170,10 @@ export class ProjectController {
   @Put(':id')
   @ApiOperation({ summary: 'Update project' })
   @ApiOkResponse({ description: 'Updated project', schema: projectSchema })
+  @ApiBody({
+    description: 'Project update payload',
+    schema: updateProjectRequestSchema,
+  })
   @ApiBadRequestResponse({
     description: 'Invalid payload',
     schema: errorSchema,
@@ -154,6 +207,10 @@ export class ProjectController {
   @Post(':id/members')
   @ApiOperation({ summary: 'Add project member (owner only)' })
   @ApiOkResponse({ description: 'Member added' })
+  @ApiBody({
+    description: 'Add member payload',
+    schema: addMemberRequestSchema,
+  })
   @ApiBadRequestResponse({
     description: 'Invalid payload',
     schema: errorSchema,
@@ -183,6 +240,10 @@ export class ProjectController {
   @Post(':id/members/remove')
   @ApiOperation({ summary: 'Remove project member (owner only)' })
   @ApiOkResponse({ description: 'Member removed' })
+  @ApiBody({
+    description: 'Remove member payload',
+    schema: removeMemberRequestSchema,
+  })
   @ApiBadRequestResponse({
     description: 'Invalid payload',
     schema: errorSchema,
