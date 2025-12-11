@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { UserModule } from './user/user.module';
+import { ProjectModule } from './project/project.module';
 
 const PRODUCTION_ENV = 'production';
 
@@ -19,6 +20,7 @@ const PRODUCTION_ENV = 'production';
     AuthModule,
     SupabaseModule,
     UserModule,
+    ProjectModule,
   ],
   controllers: [AppController],
   providers: [AppService],
