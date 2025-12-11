@@ -14,6 +14,7 @@ import {
   ForbiddenProjectAccessError,
 } from './errors/project.errors';
 import type { Project, ProjectRow, TeamMemberRow } from './project.types';
+import { canCreateProject, type PlanName } from './plan/plan.util';
 
 const PROJECT_CONFLICT_CODE = '23505';
 
@@ -24,10 +25,19 @@ export class ProjectService {
   createProject(
     userId: string,
     input: CreateProjectInput,
-  ): Effect.Effect<Project, ProjectConflictError> {
+    plan: PlanName = 'free',
+  ): Effect.Effect<
+    Project,
+    ProjectConflictError | ForbiddenProjectAccessError
+  > {
     const client = this.getClient();
     return Effect.tryPromise({
       try: async () => {
+        const currentCount = await this.countProjects(client, userId);
+        if (!canCreateProject(plan, currentCount)) {
+          throw new ForbiddenProjectAccessError();
+        }
+
         const { data, error } = await client
           .from('projects')
           .insert({
@@ -233,6 +243,20 @@ export class ProjectService {
 
   private getClient(): SupabaseClient<Database> {
     return this.supabaseService.getClient();
+  }
+
+  private async countProjects(
+    client: SupabaseClient<Database>,
+    userId: string,
+  ): Promise<number> {
+    const { count, error } = await client
+      .from('projects')
+      .select('*', { count: 'exact', head: true })
+      .eq('owner_id', userId);
+    if (error !== null || count === null) {
+      return 0;
+    }
+    return count;
   }
 }
 
