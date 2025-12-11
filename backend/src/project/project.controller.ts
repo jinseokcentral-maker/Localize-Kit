@@ -1,13 +1,24 @@
-import { Body, Controller, Get, Param, Post, Put, Req } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  Req,
+} from '@nestjs/common';
 import {
   ApiBody,
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiConflictResponse,
+  ApiExtraModels,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import type { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { Effect, pipe } from 'effect';
@@ -26,6 +37,13 @@ import type {
   UpdateProjectInput,
 } from './project.schemas';
 import type { Project } from './project.types';
+import {
+  AddMemberDto,
+  CreateProjectDto,
+  ProjectDto,
+  UpdateProjectDto,
+} from './project.schemas';
+import { ZodError } from 'zod';
 
 type AuthenticatedRequest = {
   user?: JwtPayload;
@@ -39,51 +57,6 @@ const errorSchema: SchemaObject = {
     error: { type: 'string' },
   },
   required: ['statusCode', 'message'],
-};
-
-const projectSchema: SchemaObject = {
-  type: 'object',
-  properties: {
-    id: { type: 'string', format: 'uuid' },
-    name: { type: 'string' },
-    description: oneOfString(),
-    languages: {
-      oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }],
-    },
-    defaultLanguage: oneOfString(),
-    slug: { type: 'string' },
-    ownerId: { type: 'string' },
-    createdAt: oneOfString('date-time'),
-    updatedAt: oneOfString('date-time'),
-  },
-  required: ['id', 'name', 'slug', 'ownerId'],
-};
-
-const createProjectRequestSchema: SchemaObject = {
-  type: 'object',
-  properties: {
-    name: { type: 'string' },
-    description: oneOfString(),
-    languages: {
-      oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }],
-    },
-    defaultLanguage: oneOfString(),
-    slug: { type: 'string' },
-  },
-  required: ['name'],
-};
-
-const updateProjectRequestSchema: SchemaObject = {
-  type: 'object',
-  properties: {
-    name: { type: 'string' },
-    description: oneOfString(),
-    languages: {
-      oneOf: [{ type: 'array', items: { type: 'string' } }, { type: 'null' }],
-    },
-    defaultLanguage: oneOfString(),
-    slug: { type: 'string' },
-  },
 };
 
 const addMemberRequestSchema: SchemaObject = {
@@ -115,16 +88,20 @@ function oneOfString(format?: string): SchemaObject {
 @ApiTags('projects')
 @ApiBearerAuth('jwt')
 @Private()
+@ApiExtraModels(CreateProjectDto, UpdateProjectDto, AddMemberDto, ProjectDto)
 @Controller('projects')
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create project' })
-  @ApiOkResponse({ description: 'Created project', schema: projectSchema })
+  @ApiOkResponse({
+    description: 'Created project',
+    schema: { $ref: getSchemaPath(ProjectDto) },
+  })
   @ApiBody({
     description: 'Project creation payload',
-    schema: createProjectRequestSchema,
+    schema: { $ref: getSchemaPath(CreateProjectDto) },
   })
   @ApiBadRequestResponse({
     description: 'Invalid payload',
@@ -147,7 +124,7 @@ export class ProjectController {
           ),
         ),
       ),
-      Effect.catchAll((err) => Effect.fail(toUnauthorizedException(err))),
+      Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
       Effect.runPromise,
     );
   }
@@ -156,23 +133,29 @@ export class ProjectController {
   @ApiOperation({ summary: 'List my projects' })
   @ApiOkResponse({
     description: 'Projects list',
-    schema: { type: 'array', items: projectSchema },
+    schema: {
+      type: 'array',
+      items: { $ref: getSchemaPath(ProjectDto) },
+    },
   })
   listProjects(@Req() req: AuthenticatedRequest): Promise<Project[]> {
     return pipe(
       this.requireUserId(req),
       Effect.flatMap((userId) => this.projectService.listProjects(userId)),
-      Effect.catchAll((err) => Effect.fail(toUnauthorizedException(err))),
+      Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
       Effect.runPromise,
     );
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Update project' })
-  @ApiOkResponse({ description: 'Updated project', schema: projectSchema })
+  @ApiOkResponse({
+    description: 'Updated project',
+    schema: { $ref: getSchemaPath(ProjectDto) },
+  })
   @ApiBody({
     description: 'Project update payload',
-    schema: updateProjectRequestSchema,
+    schema: { $ref: getSchemaPath(UpdateProjectDto) },
   })
   @ApiBadRequestResponse({
     description: 'Invalid payload',
@@ -199,7 +182,7 @@ export class ProjectController {
           input as UpdateProjectInput,
         ),
       ),
-      Effect.catchAll((err) => Effect.fail(toUnauthorizedException(err))),
+      Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
       Effect.runPromise,
     );
   }
@@ -209,7 +192,7 @@ export class ProjectController {
   @ApiOkResponse({ description: 'Member added' })
   @ApiBody({
     description: 'Add member payload',
-    schema: addMemberRequestSchema,
+    schema: { $ref: getSchemaPath(AddMemberDto) },
   })
   @ApiBadRequestResponse({
     description: 'Invalid payload',
@@ -232,7 +215,7 @@ export class ProjectController {
         this.projectService.addMember(userId, id, input as AddMemberInput),
       ),
       Effect.as(void 0),
-      Effect.catchAll((err) => Effect.fail(toUnauthorizedException(err))),
+      Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
       Effect.runPromise,
     );
   }
@@ -258,7 +241,7 @@ export class ProjectController {
       Effect.flatMap((userId) =>
         this.projectService.removeMember(userId, id, memberId),
       ),
-      Effect.catchAll((err) => Effect.fail(toUnauthorizedException(err))),
+      Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
       Effect.runPromise,
     );
   }
@@ -270,4 +253,14 @@ export class ProjectController {
       Effect.orElseFail(() => new Error('Unauthorized')),
     );
   }
+}
+
+function mapControllerError(err: unknown): Error {
+  if (err instanceof ZodError) {
+    return new BadRequestException(err.issues);
+  }
+  if (err instanceof Error) {
+    return err;
+  }
+  return toUnauthorizedException(err);
 }
