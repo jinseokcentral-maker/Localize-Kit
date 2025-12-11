@@ -8,6 +8,7 @@ import {
 } from '@nestjs/jwt';
 import { Data, Effect } from 'effect';
 import { JWT_EXPIRES_IN_KEY, JWT_SECRET_KEY } from './constants/auth.constants';
+import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 class MissingJwtEnvError extends Data.TaggedError('MissingJwtEnvError')<{
@@ -34,11 +35,13 @@ class MissingJwtEnvError extends Data.TaggedError('MissingJwtEnvError')<{
     }),
   ],
   providers: [
+    AuthService,
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
   ],
+  exports: [AuthService],
 })
 export class AuthModule {}
 
