@@ -7,3 +7,4 @@
 /build/
 .cursor/
 .pnpm-store/
+.env.local

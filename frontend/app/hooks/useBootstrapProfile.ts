@@ -1,42 +1,28 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useUserStore } from "~/stores/useUserStore";
 import { useAuth } from "./useAuth";
 
+type BootstrapStatus = "idle" | "ready";
 
 export function useBootstrapProfile() {
   const { isInitialized, isSupabaseReady, isAuthenticated } = useAuth();
-  const { setProfile, fetchProfile, registerUser } =
-    useUserStore();
-
+  const { setProfile } = useUserStore();
+  const [status, setStatus] = useState<BootstrapStatus>("idle");
 
   useEffect(() => {
-    if (!isInitialized || !isSupabaseReady || !isAuthenticated ) {
+    if (!isInitialized || !isSupabaseReady) {
+      setStatus("idle");
+      return;
+    }
+    if (!isAuthenticated) {
       setProfile(null);
+      setStatus("idle");
       return;
     }
 
+    // DB work is handled by backend; mark ready once auth is ready.
+    setStatus("ready");
+  }, [isInitialized, isSupabaseReady, isAuthenticated, setProfile]);
 
-    fetchProfile()
-      .then(async (data) => {
-        if (data) {
-          setProfile(data);
-          return;
-        }
-
-        await registerUser();
-      })
-      .catch((err) => {
-        const message = err?.message || "Profile bootstrap failed";
-      })
-  }, [
-    isInitialized,
-    isSupabaseReady,
-    isAuthenticated,
-    fetchProfile,
-    registerUser,
-    setProfile,
-  ]);
-
-
+  return { status };
 }
-
