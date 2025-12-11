@@ -32,20 +32,6 @@
   animation: scroll-x 35s linear infinite;
 }
 
-@keyframes progress-bar {
-  0%,
-  100% {
-    transform: scaleX(0.35);
-  }
-  50% {
-    transform: scaleX(0.8);
-  }
-}
-
-.animate-progress-bar {
-  animation: progress-bar 1.5s ease-in-out infinite;
-}
-
 html,
 body {
   @apply bg-background text-foreground;
