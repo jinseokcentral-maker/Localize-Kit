@@ -1,0 +1,56 @@
+English only. Keep responses concise unless detail is requested.
+
+Package management
+
+- Install dependencies only via command line with pnpm.
+
+TypeScript and naming
+
+- Always type parameters, return values, and variables; avoid any.
+- One export per file. Use PascalCase for classes, camelCase for variables/functions, kebab-case for file and directory names, and UPPERCASE for environment variables/constants.
+- Start function names with verbs; boolean-returning functions use is/has/can.
+- Avoid magic numbers; define constants.
+- Use complete words (except standard abbreviations: API, URL, i/j loops, err, ctx, req/res/next).
+
+Structure and style
+
+- Prefer small, single-purpose functions (<20 statements) and single-level abstractions.
+- Use early returns to reduce nesting; extract utilities instead of deep nesting.
+- Prefer immutability; mark readonly when applicable.
+- Use RO-RO: objects for multi-parameter inputs/outputs with explicit types.
+- Add JSDoc to public classes and methods.
+- Avoid blank lines inside functions.
+
+NestJS architecture
+
+- Modularize by domain: one module per route; controller per route; DTOs in models folder validated with class-validator; services per entity; entities with MikroORM.
+- Core module: global filters, middlewares, guards, interceptors.
+- Shared module: shared utilities and business logic.
+
+Testing
+
+- Use Jest. Follow Arrange-Act-Assert for unit tests and Given-When-Then for acceptance/e2e.
+- Add tests for each public function; mock expensive dependencies.
+- Add admin/test smoke endpoint per controller.
+
+Exceptions
+
+- Throw for unexpected errors; catch only to handle expected issues or to add context. Otherwise rely on global handlers.
+
+Effect library
+
+- Reference https://effect.website/llms-full.txt when adding or changing NestJS functions; prefer Effect-style patterns for control flow, error handling, and resource safety.
+- Implement new or refactored NestJS functions with Effect primitives (e.g., `Effect.try`, `Effect.all`, tagged errors via `Data.TaggedError`) for validation, error handling, and resource safety instead of ad-hoc throws.
+
+Validation
+
+- Prefer zod for form/request/response validation; simple cases can be lighter-weight, but default to zod schemas for verification.
+
+Types
+
+- Use types from `src/type/supabse.ts` for database-related typing to keep models aligned with Supabase schema.
+- When querying Supabase, type the client and query generics (e.g., `.single<UserProfileRow>()`) to ensure row shapes match `src/type/supabse.ts`.
+
+API docs
+
+- Include Swagger docs with bearer JWT security and annotate public/private routes accordingly when adding controllers or endpoints.
