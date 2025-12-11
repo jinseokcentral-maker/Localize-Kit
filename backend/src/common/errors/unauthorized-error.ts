@@ -19,3 +19,4 @@ function deriveReason(error: unknown): string {
   }
   return 'Unauthorized';
 }
+

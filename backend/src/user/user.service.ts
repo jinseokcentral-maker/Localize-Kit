@@ -1,19 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
-import { Data, Effect, pipe } from 'effect';
+import { Effect, pipe } from 'effect';
 import { JWT_REFRESH_EXPIRES_IN_KEY } from '../auth/constants/auth.constants';
 import { SupabaseService } from '../supabase/supabase.service';
+import { UserConflictError, UserNotFoundError } from './errors/user.errors';
 import type { RegisterUserInput, UpdateUserInput } from './user.schemas';
 import type { User, UserProfileRow } from './user.types';
 
 const USER_CONFLICT_CODE = '23505';
-
-class UserNotFoundError extends Data.TaggedError('UserNotFoundError') {}
-
-class UserConflictError extends Data.TaggedError('UserConflictError')<{
-  readonly reason: string;
-}> {}
 
 @Injectable()
 export class UserService {

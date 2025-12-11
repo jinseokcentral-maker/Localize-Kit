@@ -8,10 +8,12 @@ import {
   AUTH_ACCESS_LEVEL_KEY,
   type AuthAccessLevel,
 } from '../constants/auth.constants';
+import { toUnauthorizedException } from '../../common/errors/unauthorized-error';
 import {
-  UnauthorizedError,
-  toUnauthorizedException,
-} from '../../common/errors/unauthorized-error';
+  InvalidAuthSchemeError,
+  InvalidTokenError,
+  MissingAuthHeaderError,
+} from '../errors/auth.errors';
 
 const BEARER_PREFIX = 'Bearer ';
 
@@ -28,16 +30,6 @@ export const jwtPayloadSchema = z.object({
 });
 
 export type JwtPayload = z.infer<typeof jwtPayloadSchema>;
-
-class MissingAuthHeaderError extends Data.TaggedError(
-  'MissingAuthHeaderError',
-) {}
-
-class InvalidAuthSchemeError extends Data.TaggedError(
-  'InvalidAuthSchemeError',
-) {}
-
-class InvalidTokenError extends UnauthorizedError {}
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
