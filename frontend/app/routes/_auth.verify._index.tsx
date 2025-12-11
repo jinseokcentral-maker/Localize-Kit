@@ -1,4 +1,4 @@
-import VerifyPage from "~/pages/auth/verify";
+import { VerifyPage } from "~/pages/auth/verify";
 import type { Route } from "./+types/_auth.verify._index";
 
 export function meta({}: Route.MetaArgs) {
@@ -11,4 +11,5 @@ export function meta({}: Route.MetaArgs) {
 export default function VerifyPageRoute() {
   return <VerifyPage />;
 }
+
 

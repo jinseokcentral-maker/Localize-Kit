@@ -16,7 +16,6 @@ export default function LoginPage() {
       toast.error(
         "Supabase env vars missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY."
       );
-      return;
     }
     supabase.auth
       .signInWithOAuth({
