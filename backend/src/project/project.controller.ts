@@ -25,6 +25,11 @@ import { Effect, pipe } from 'effect';
 import { Private } from '../auth/decorators/auth-access.decorator';
 import type { JwtPayload } from '../auth/guards/jwt-auth.guard';
 import { toUnauthorizedException } from '../common/errors/unauthorized-error';
+import {
+  ResponseEnvelopeDto,
+  type ResponseEnvelope,
+} from '../common/response/response.schema';
+import { buildResponse } from '../common/response/response.util';
 import { ProjectService } from './project.service';
 import {
   addMemberSchema,
@@ -88,7 +93,13 @@ function oneOfString(format?: string): SchemaObject {
 @ApiTags('projects')
 @ApiBearerAuth('jwt')
 @Private()
-@ApiExtraModels(CreateProjectDto, UpdateProjectDto, AddMemberDto, ProjectDto)
+@ApiExtraModels(
+  CreateProjectDto,
+  UpdateProjectDto,
+  AddMemberDto,
+  ProjectDto,
+  ResponseEnvelopeDto,
+)
 @Controller('projects')
 export class ProjectController {
   constructor(private readonly projectService: ProjectService) {}
@@ -97,7 +108,12 @@ export class ProjectController {
   @ApiOperation({ summary: 'Create project' })
   @ApiOkResponse({
     description: 'Created project',
-    schema: { $ref: getSchemaPath(ProjectDto) },
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ResponseEnvelopeDto) },
+        { properties: { data: { $ref: getSchemaPath(ProjectDto) } } },
+      ],
+    },
   })
   @ApiBody({
     description: 'Project creation payload',
@@ -111,7 +127,7 @@ export class ProjectController {
   createProject(
     @Req() req: AuthenticatedRequest,
     @Body() body: unknown,
-  ): Promise<Project> {
+  ): Promise<ResponseEnvelope<Project>> {
     return pipe(
       this.requireUserId(req),
       Effect.flatMap((userId) =>
@@ -125,6 +141,7 @@ export class ProjectController {
         ),
       ),
       Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
+      Effect.map((project) => buildResponse(project)),
       Effect.runPromise,
     );
   }
@@ -134,15 +151,27 @@ export class ProjectController {
   @ApiOkResponse({
     description: 'Projects list',
     schema: {
-      type: 'array',
-      items: { $ref: getSchemaPath(ProjectDto) },
+      allOf: [
+        { $ref: getSchemaPath(ResponseEnvelopeDto) },
+        {
+          properties: {
+            data: {
+              type: 'array',
+              items: { $ref: getSchemaPath(ProjectDto) },
+            },
+          },
+        },
+      ],
     },
   })
-  listProjects(@Req() req: AuthenticatedRequest): Promise<Project[]> {
+  listProjects(
+    @Req() req: AuthenticatedRequest,
+  ): Promise<ResponseEnvelope<Project[]>> {
     return pipe(
       this.requireUserId(req),
       Effect.flatMap((userId) => this.projectService.listProjects(userId)),
       Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
+      Effect.map((projects) => buildResponse(projects)),
       Effect.runPromise,
     );
   }
@@ -151,7 +180,12 @@ export class ProjectController {
   @ApiOperation({ summary: 'Update project' })
   @ApiOkResponse({
     description: 'Updated project',
-    schema: { $ref: getSchemaPath(ProjectDto) },
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ResponseEnvelopeDto) },
+        { properties: { data: { $ref: getSchemaPath(ProjectDto) } } },
+      ],
+    },
   })
   @ApiBody({
     description: 'Project update payload',
@@ -166,7 +200,7 @@ export class ProjectController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: unknown,
-  ): Promise<Project> {
+  ): Promise<ResponseEnvelope<Project>> {
     return pipe(
       Effect.all({
         userId: this.requireUserId(req),
@@ -183,13 +217,26 @@ export class ProjectController {
         ),
       ),
       Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
+      Effect.map((project) => buildResponse(project)),
       Effect.runPromise,
     );
   }
 
   @Post(':id/members')
   @ApiOperation({ summary: 'Add project member (owner only)' })
-  @ApiOkResponse({ description: 'Member added' })
+  @ApiOkResponse({
+    description: 'Member added',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ResponseEnvelopeDto) },
+        {
+          properties: {
+            data: { type: 'null' },
+          },
+        },
+      ],
+    },
+  })
   @ApiBody({
     description: 'Add member payload',
     schema: { $ref: getSchemaPath(AddMemberDto) },
@@ -202,7 +249,7 @@ export class ProjectController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: unknown,
-  ): Promise<void> {
+  ): Promise<ResponseEnvelope<null>> {
     return pipe(
       Effect.all({
         userId: this.requireUserId(req),
@@ -214,15 +261,27 @@ export class ProjectController {
       Effect.flatMap(({ userId, input }) =>
         this.projectService.addMember(userId, id, input as AddMemberInput),
       ),
-      Effect.as(void 0),
       Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
+      Effect.map(() => buildResponse(null)),
       Effect.runPromise,
     );
   }
 
   @Post(':id/members/remove')
   @ApiOperation({ summary: 'Remove project member (owner only)' })
-  @ApiOkResponse({ description: 'Member removed' })
+  @ApiOkResponse({
+    description: 'Member removed',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ResponseEnvelopeDto) },
+        {
+          properties: {
+            data: { type: 'null' },
+          },
+        },
+      ],
+    },
+  })
   @ApiBody({
     description: 'Remove member payload',
     schema: removeMemberRequestSchema,
@@ -235,13 +294,14 @@ export class ProjectController {
     @Req() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body('userId') memberId: string,
-  ): Promise<void> {
+  ): Promise<ResponseEnvelope<null>> {
     return pipe(
       this.requireUserId(req),
       Effect.flatMap((userId) =>
         this.projectService.removeMember(userId, id, memberId),
       ),
       Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
+      Effect.map(() => buildResponse(null)),
       Effect.runPromise,
     );
   }

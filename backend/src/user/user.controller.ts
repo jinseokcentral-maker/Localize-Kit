@@ -1,23 +1,39 @@
-import { Body, Controller, Get, Post, Put, Req } from '@nestjs/common';
 import {
-  ApiBearerAuth,
-  ApiConflictResponse,
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Req,
+} from '@nestjs/common';
+import {
   ApiBadRequestResponse,
   ApiBody,
+  ApiBearerAuth,
+  ApiConflictResponse,
+  ApiExtraModels,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import type { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
 import { Effect, pipe } from 'effect';
 import { Public } from '../auth/decorators/auth-access.decorator';
 import type { JwtPayload } from '../auth/guards/jwt-auth.guard';
 import { toUnauthorizedException } from '../common/errors/unauthorized-error';
+import {
+  ResponseEnvelopeDto,
+  type ResponseEnvelope,
+} from '../common/response/response.schema';
+import { buildResponse } from '../common/response/response.util';
 import { UserService } from './user.service';
 import { registerUserSchema, updateUserSchema } from './user.schemas';
 import type { RegisterUserInput, UpdateUserInput } from './user.schemas';
 import type { User } from './user.types';
+import { ZodError } from 'zod';
 
 type AuthenticatedRequest = {
   user?: JwtPayload;
@@ -68,6 +84,16 @@ const userSchema = {
   required: ['id'],
 } satisfies SchemaObject;
 
+function mapUserError(err: unknown): Error {
+  if (err instanceof ZodError) {
+    return new BadRequestException(err.issues);
+  }
+  if (err instanceof Error) {
+    return err;
+  }
+  return toUnauthorizedException(err);
+}
+
 function oneOfString(format?: string): SchemaObject {
   return {
     oneOf: [
@@ -78,6 +104,8 @@ function oneOfString(format?: string): SchemaObject {
 }
 
 @ApiTags('users')
+@ApiBearerAuth('jwt')
+@ApiExtraModels(ResponseEnvelopeDto)
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -92,12 +120,21 @@ export class UserController {
   @ApiOkResponse({
     description: 'Created user and JWT token',
     schema: {
-      type: 'object',
-      properties: {
-        user: userSchema,
-        accessToken: { type: 'string' },
-        refreshToken: { type: 'string' },
-      },
+      allOf: [
+        { $ref: getSchemaPath(ResponseEnvelopeDto) },
+        {
+          properties: {
+            data: {
+              type: 'object',
+              properties: {
+                user: userSchema,
+                accessToken: { type: 'string' },
+                refreshToken: { type: 'string' },
+              },
+            },
+          },
+        },
+      ],
     },
   })
   @ApiBadRequestResponse({
@@ -107,7 +144,9 @@ export class UserController {
   @ApiConflictResponse({ description: 'User already exists' })
   register(
     @Body() body: unknown,
-  ): Promise<{ user: User; accessToken: string; refreshToken: string }> {
+  ): Promise<
+    ResponseEnvelope<{ user: User; accessToken: string; refreshToken: string }>
+  > {
     return pipe(
       Effect.try({
         try: () => registerUserSchema.parse(body),
@@ -116,30 +155,46 @@ export class UserController {
       Effect.flatMap((input: RegisterUserInput) =>
         this.userService.registerUser(input),
       ),
-      Effect.catchAll((err) => Effect.fail(err)),
+      Effect.catchAll((err) => Effect.fail(mapUserError(err))),
+      Effect.map((payload) => buildResponse(payload)),
       Effect.runPromise,
     );
   }
 
   @Get('me')
-  @ApiBearerAuth('jwt')
   @ApiOperation({ summary: 'Get current user profile' })
-  @ApiOkResponse({ description: 'Current user', schema: userSchema })
+  @ApiOkResponse({
+    description: 'Current user',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ResponseEnvelopeDto) },
+        { properties: { data: userSchema } },
+      ],
+    },
+  })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
-  getMe(@Req() req: AuthenticatedRequest): Promise<User> {
+  getMe(@Req() req: AuthenticatedRequest): Promise<ResponseEnvelope<User>> {
     return pipe(
       this.requireAuthUser(req),
       Effect.flatMap((userId) => this.userService.getUserById(userId)),
-      Effect.catchAll((err) => Effect.fail(toUnauthorizedException(err))),
+      Effect.catchAll((err) => Effect.fail(mapUserError(err))),
+      Effect.map((user) => buildResponse(user)),
       Effect.runPromise,
     );
   }
 
   @Put('me')
-  @ApiBearerAuth('jwt')
   @ApiOperation({ summary: 'Update current user profile' })
   @ApiBody({ description: 'User update payload', schema: updateRequestSchema })
-  @ApiOkResponse({ description: 'Updated user', schema: userSchema })
+  @ApiOkResponse({
+    description: 'Updated user',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ResponseEnvelopeDto) },
+        { properties: { data: userSchema } },
+      ],
+    },
+  })
   @ApiBadRequestResponse({
     description: 'Invalid request',
     schema: errorSchema,
@@ -148,7 +203,7 @@ export class UserController {
   updateMe(
     @Req() req: AuthenticatedRequest,
     @Body() body: unknown,
-  ): Promise<User> {
+  ): Promise<ResponseEnvelope<User>> {
     return pipe(
       Effect.all({
         userId: this.requireAuthUser(req),
@@ -160,7 +215,8 @@ export class UserController {
       Effect.flatMap(({ userId, input }) =>
         this.userService.updateUser(userId, input as UpdateUserInput),
       ),
-      Effect.catchAll((err) => Effect.fail(toUnauthorizedException(err))),
+      Effect.catchAll((err) => Effect.fail(mapUserError(err))),
+      Effect.map((user) => buildResponse(user)),
       Effect.runPromise,
     );
   }

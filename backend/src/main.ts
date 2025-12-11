@@ -68,6 +68,7 @@ function setupSwagger(app: NestFastifyApplication): void {
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, swaggerDocument, {
     swaggerOptions: { persistAuthorization: true, docExpansion: 'list' },
+    jsonDocumentUrl: 'docs-json',
   });
 }
 

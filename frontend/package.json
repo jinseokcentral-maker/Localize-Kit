@@ -9,7 +9,8 @@
     "typecheck": "react-router typegen && tsc",
     "outdated": "pnpm outdated",
     "upgrade:check": "npx npm-check-updates",
-    "upgrade:interactive": "npx npm-check-updates -i"
+    "upgrade:interactive": "npx npm-check-updates -i",
+    "api-gen-local": "openapi-ts"
   },
   "dependencies": {
     "@codemirror/lang-json": "^6.0.2",
@@ -33,6 +34,7 @@
     "@react-router/serve": "^7.10.1",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.86.2",
+    "@tanstack/react-query": "^5.90.12",
     "@uiw/react-codemirror": "^4.25.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -56,9 +58,11 @@
     "routes": "link:@react-router/dev/routes",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
+    "zod": "^4.1.13",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "0.89.0",
     "@react-router/dev": "^7.10.1",
     "@tailwindcss/vite": "^4.1.17",
     "@types/lodash": "^4.17.21",

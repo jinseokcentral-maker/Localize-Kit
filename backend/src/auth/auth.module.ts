@@ -8,6 +8,7 @@ import {
 } from '@nestjs/jwt';
 import { Data, Effect } from 'effect';
 import { JWT_EXPIRES_IN_KEY, JWT_SECRET_KEY } from './constants/auth.constants';
+import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
@@ -34,6 +35,7 @@ class MissingJwtEnvError extends Data.TaggedError('MissingJwtEnvError')<{
       },
     }),
   ],
+  controllers: [AuthController],
   providers: [
     AuthService,
     {
