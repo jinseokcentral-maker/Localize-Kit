@@ -6,6 +6,8 @@ import type { Database } from '../type/supabse';
 import type {
   AddMemberInput,
   CreateProjectInput,
+  ListProjectsInput,
+  ListProjectsOutput,
   UpdateProjectInput,
 } from './project.schemas';
 import {
@@ -67,41 +69,60 @@ export class ProjectService {
     });
   }
 
-  listProjects(userId: string): Effect.Effect<Project[], never> {
+  listProjects(
+    userId: string,
+    pagination: ListProjectsInput,
+  ): Effect.Effect<ListProjectsOutput, never> {
     const client = this.getClient();
+    const { pageSize, index } = pagination;
+    const from = index * pageSize;
+    const to = from + pageSize;
     return Effect.tryPromise(async () => {
-      const ownedPromise = client
-        .from('projects')
-        .select('*')
-        .eq('owner_id', userId);
-      const memberPromise = client
+      const { data: memberRows, error: memberError } = await client
         .from('team_members')
         .select('project_id')
         .eq('user_id', userId);
-
-      const [owned, member] = await Promise.all([ownedPromise, memberPromise]);
+      if (memberError !== null) {
+        throw memberError;
+      }
 
       const memberProjectIds =
-        member.data?.map((row) => row.project_id).filter(Boolean) ?? [];
+        memberRows?.map((row) => row.project_id).filter(Boolean) ?? [];
 
-      const memberProjects =
-        memberProjectIds.length === 0
-          ? { data: [], error: null }
-          : await client
-              .from('projects')
-              .select('*')
-              .in('id', memberProjectIds);
-
-      if (owned.error !== null) {
-        throw owned.error;
-      }
-      if (memberProjects.error !== null) {
-        throw memberProjects.error;
+      const filters = [`owner_id.eq.${userId}`];
+      if (memberProjectIds.length > 0) {
+        filters.push(`id.in.(${memberProjectIds.join(',')})`);
       }
 
-      const all = [...(owned.data ?? []), ...(memberProjects.data ?? [])];
-      return all.map(mapProject);
-    }).pipe(Effect.catchAll(() => Effect.succeed([] as Project[])));
+      const { data, error } = await client
+        .from('projects')
+        .select('*')
+        .or(filters.join(','))
+        .order('created_at', { ascending: false })
+        .range(from, to);
+      if (error !== null || data === null) {
+        throw error ?? new Error('Failed to list projects');
+      }
+
+      const hasNext = data.length > pageSize;
+      const items = hasNext ? data.slice(0, pageSize) : data;
+
+      return {
+        items: items.map(mapProject),
+        meta: {
+          index,
+          pageSize,
+          hasNext,
+        },
+      };
+    }).pipe(
+      Effect.catchAll(() =>
+        Effect.succeed({
+          items: [] as Project[],
+          meta: { index, pageSize, hasNext: false },
+        }),
+      ),
+    );
   }
 
   updateProject(

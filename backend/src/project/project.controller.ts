@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
 } from '@nestjs/common';
 import {
@@ -18,6 +19,7 @@ import {
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
+  ApiQuery,
   getSchemaPath,
 } from '@nestjs/swagger';
 import type { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface';
@@ -34,11 +36,14 @@ import { ProjectService } from './project.service';
 import {
   addMemberSchema,
   createProjectSchema,
+  listProjectsSchema,
   updateProjectSchema,
 } from './project.schemas';
 import type {
   AddMemberInput,
   CreateProjectInput,
+  ListProjectsInput,
+  ListProjectsOutput,
   UpdateProjectInput,
 } from './project.schemas';
 import type { Project } from './project.types';
@@ -46,6 +51,7 @@ import {
   AddMemberDto,
   CreateProjectDto,
   ProjectDto,
+  ListProjectsResponseDto,
   UpdateProjectDto,
 } from './project.schemas';
 import { ZodError } from 'zod';
@@ -98,6 +104,7 @@ function oneOfString(format?: string): SchemaObject {
   UpdateProjectDto,
   AddMemberDto,
   ProjectDto,
+  ListProjectsResponseDto,
   ResponseEnvelopeDto,
 )
 @Controller('projects')
@@ -155,21 +162,42 @@ export class ProjectController {
         { $ref: getSchemaPath(ResponseEnvelopeDto) },
         {
           properties: {
-            data: {
-              type: 'array',
-              items: { $ref: getSchemaPath(ProjectDto) },
-            },
+            data: { $ref: getSchemaPath(ListProjectsResponseDto) },
           },
         },
       ],
     },
   })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    schema: { type: 'integer', minimum: 1, default: 15 },
+    description: 'Number of projects per page',
+  })
+  @ApiQuery({
+    name: 'index',
+    required: false,
+    schema: { type: 'integer', minimum: 0, default: 0 },
+    description: 'Zero-based page index',
+  })
   listProjects(
     @Req() req: AuthenticatedRequest,
-  ): Promise<ResponseEnvelope<Project[]>> {
+    @Query() query: unknown,
+  ): Promise<ResponseEnvelope<ListProjectsOutput>> {
     return pipe(
-      this.requireUserId(req),
-      Effect.flatMap((userId) => this.projectService.listProjects(userId)),
+      Effect.all({
+        userId: this.requireUserId(req),
+        pagination: Effect.try({
+          try: () => listProjectsSchema.parse(query),
+          catch: (err) => err,
+        }),
+      }),
+      Effect.flatMap(({ userId, pagination }) =>
+        this.projectService.listProjects(
+          userId,
+          pagination as ListProjectsInput,
+        ),
+      ),
       Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
       Effect.map((projects) => buildResponse(projects)),
       Effect.runPromise,
