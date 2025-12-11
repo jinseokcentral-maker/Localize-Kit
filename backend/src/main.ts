@@ -20,10 +20,14 @@ async function bootstrap(): Promise<void> {
     AppModule,
     new FastifyAdapter(),
   );
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
   const configService = app.get(ConfigService);
   setupSwagger(app);
   const port = resolvePort(configService.get<string>(PORT_KEY));
-  await app.listen({ port });
+  await app.listen({ port, host: '0.0.0.0' });
 }
 
 function resolvePort(portValue?: string): number {
