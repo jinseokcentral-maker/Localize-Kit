@@ -9,6 +9,4 @@
   - Keep functions pure; no hidden side effects. Side effects live in Effect pipelines.
   - Validate external responses (e.g., `effect/Schema` or `zod`) before use.
   - Batch and dedupe external calls when possible (see batching guidance).
-
-
-
+- Prefer Suspensive for data fetching/UI async flows: use SuspenseQuery / SuspenseQueries / SuspenseInfiniteQuery (and matching hooks) with Suspense + ErrorBoundary wrappers; keep components in happy-path mode and push loading/error handling to boundaries.

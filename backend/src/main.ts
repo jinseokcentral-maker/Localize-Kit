@@ -7,6 +7,9 @@ import {
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Data, Effect } from 'effect';
 import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './common/errors/global-exception.filter';
+import { LoggingInterceptor } from './common/logging/logging.interceptor';
+import { createLoggerOptions } from './common/logging/logger.options';
 
 const DEFAULT_PORT = 3000;
 const PORT_KEY = 'PORT';
@@ -18,12 +21,15 @@ class InvalidPortError extends Data.TaggedError('InvalidPortError')<{
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter(),
+    new FastifyAdapter({ logger: createLoggerOptions() }),
   );
   app.enableCors({
     origin: true,
     credentials: true,
   });
+  const fastifyInstance = app.getHttpAdapter().getInstance();
+  app.useGlobalInterceptors(new LoggingInterceptor(fastifyInstance.log));
+  app.useGlobalFilters(new GlobalExceptionFilter(fastifyInstance.log));
   const configService = app.get(ConfigService);
   setupSwagger(app);
   const port = resolvePort(configService.get<string>(PORT_KEY));

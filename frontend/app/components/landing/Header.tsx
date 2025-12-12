@@ -4,9 +4,12 @@ import { Button } from "~/components/ui/button";
 import { useTheme } from "~/hooks/useTheme";
 import { GithubIcon } from "~/components/icons/GithubIcon";
 import { TypoP } from "~/components/typo";
+import { useTokenStore } from "~/stores/tokenStore";
 
 export function Header() {
   const { theme, toggleTheme, isDark } = useTheme();
+  const { accessToken } = useTokenStore();
+  const isAuthenticated = Boolean(accessToken);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm">
@@ -74,9 +77,11 @@ export function Header() {
             Docs
           </Link>
 
-          {/* Login Button */}
+          {/* Auth Button */}
           <Button size="md" asChild>
-            <Link to="/login">Login</Link>
+            <Link to={isAuthenticated ? "/dashboard" : "/login"}>
+              {isAuthenticated ? "Go to dashboard" : "Login"}
+            </Link>
           </Button>
         </nav>
       </div>
