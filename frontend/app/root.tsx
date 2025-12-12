@@ -1,18 +1,14 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
 import {
   isRouteErrorResponse,
   Links,
   Meta,
-  Navigate,
   Outlet,
   Scripts,
   ScrollRestoration,
-  useLocation,
 } from "react-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
 import { useLoadWasmParser } from "~/hooks/useLoadWasmParser";
-
-import { NOT_AUTH_PATH, EXTERNAL_LINK_PATH } from "~/constants/config";
 
 import type { Route } from "./+types/root";
 import "./app.css";
