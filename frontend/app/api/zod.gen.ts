@@ -2,6 +2,17 @@
 
 import { z } from 'zod';
 
+export const zResponseEnvelopeDto = z.object({
+    data: z.unknown(),
+    timestamp: z.string(),
+    requestId: z.optional(z.string()),
+    path: z.optional(z.string())
+});
+
+export const zRefreshTokensDto = z.object({
+    refreshToken: z.string()
+});
+
 export const zCreateProjectDto = z.object({
     name: z.string().min(1).max(200),
     description: z.optional(z.string().max(1000)),
@@ -54,11 +65,68 @@ export const zProjectDto = z.object({
     ])
 });
 
+export const zListProjectsResponseDto = z.object({
+    items: z.array(z.object({
+        id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/),
+        name: z.string(),
+        description: z.union([
+            z.string(),
+            z.unknown()
+        ]),
+        languages: z.union([
+            z.array(z.string()),
+            z.unknown()
+        ]),
+        defaultLanguage: z.union([
+            z.string(),
+            z.unknown()
+        ]),
+        slug: z.string(),
+        ownerId: z.string(),
+        createdAt: z.union([
+            z.string(),
+            z.unknown()
+        ]),
+        updatedAt: z.union([
+            z.string(),
+            z.unknown()
+        ])
+    })),
+    meta: z.object({
+        index: z.int().gte(0).lte(9007199254740991),
+        pageSize: z.int().lte(9007199254740991),
+        hasNext: z.boolean()
+    })
+});
+
 export const zAppControllerGetHelloData = z.object({
     body: z.optional(z.never()),
     path: z.optional(z.never()),
     query: z.optional(z.never())
 });
+
+/**
+ * Returns a greeting string
+ */
+export const zAppControllerGetHelloResponse = zResponseEnvelopeDto.and(z.object({
+    data: z.optional(z.string())
+}));
+
+export const zAuthControllerRefreshTokensData = z.object({
+    body: zRefreshTokensDto,
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+/**
+ * New token pair
+ */
+export const zAuthControllerRefreshTokensResponse = zResponseEnvelopeDto.and(z.object({
+    data: z.optional(z.object({
+        accessToken: z.string(),
+        refreshToken: z.string()
+    }))
+}));
 
 export const zUserControllerRegisterData = z.object({
     body: z.object({
@@ -75,8 +143,51 @@ export const zUserControllerRegisterData = z.object({
 /**
  * Created user and JWT token
  */
-export const zUserControllerRegisterResponse = z.object({
-    user: z.optional(z.object({
+export const zUserControllerRegisterResponse = zResponseEnvelopeDto.and(z.object({
+    data: z.optional(z.object({
+        user: z.optional(z.object({
+            id: z.uuid(),
+            email: z.optional(z.union([
+                z.email(),
+                z.unknown()
+            ])),
+            fullName: z.optional(z.union([
+                z.string(),
+                z.unknown()
+            ])),
+            avatarUrl: z.optional(z.union([
+                z.url(),
+                z.unknown()
+            ])),
+            plan: z.optional(z.union([
+                z.string(),
+                z.unknown()
+            ])),
+            createdAt: z.optional(z.union([
+                z.iso.datetime(),
+                z.unknown()
+            ])),
+            updatedAt: z.optional(z.union([
+                z.iso.datetime(),
+                z.unknown()
+            ]))
+        })),
+        accessToken: z.optional(z.string()),
+        refreshToken: z.optional(z.string())
+    }))
+}));
+
+export const zUserControllerGetMeData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+/**
+ * Current user
+ */
+export const zUserControllerGetMeResponse = zResponseEnvelopeDto.and(z.object({
+    data: z.optional(z.object({
         id: z.uuid(),
         email: z.optional(z.union([
             z.email(),
@@ -102,47 +213,8 @@ export const zUserControllerRegisterResponse = z.object({
             z.iso.datetime(),
             z.unknown()
         ]))
-    })),
-    accessToken: z.optional(z.string()),
-    refreshToken: z.optional(z.string())
-});
-
-export const zUserControllerGetMeData = z.object({
-    body: z.optional(z.never()),
-    path: z.optional(z.never()),
-    query: z.optional(z.never())
-});
-
-/**
- * Current user
- */
-export const zUserControllerGetMeResponse = z.object({
-    id: z.uuid(),
-    email: z.optional(z.union([
-        z.email(),
-        z.unknown()
-    ])),
-    fullName: z.optional(z.union([
-        z.string(),
-        z.unknown()
-    ])),
-    avatarUrl: z.optional(z.union([
-        z.url(),
-        z.unknown()
-    ])),
-    plan: z.optional(z.union([
-        z.string(),
-        z.unknown()
-    ])),
-    createdAt: z.optional(z.union([
-        z.iso.datetime(),
-        z.unknown()
-    ])),
-    updatedAt: z.optional(z.union([
-        z.iso.datetime(),
-        z.unknown()
-    ]))
-});
+    }))
+}));
 
 export const zUserControllerUpdateMeData = z.object({
     body: z.object({
@@ -157,44 +229,51 @@ export const zUserControllerUpdateMeData = z.object({
 /**
  * Updated user
  */
-export const zUserControllerUpdateMeResponse = z.object({
-    id: z.uuid(),
-    email: z.optional(z.union([
-        z.email(),
-        z.unknown()
-    ])),
-    fullName: z.optional(z.union([
-        z.string(),
-        z.unknown()
-    ])),
-    avatarUrl: z.optional(z.union([
-        z.url(),
-        z.unknown()
-    ])),
-    plan: z.optional(z.union([
-        z.string(),
-        z.unknown()
-    ])),
-    createdAt: z.optional(z.union([
-        z.iso.datetime(),
-        z.unknown()
-    ])),
-    updatedAt: z.optional(z.union([
-        z.iso.datetime(),
-        z.unknown()
-    ]))
-});
+export const zUserControllerUpdateMeResponse = zResponseEnvelopeDto.and(z.object({
+    data: z.optional(z.object({
+        id: z.uuid(),
+        email: z.optional(z.union([
+            z.email(),
+            z.unknown()
+        ])),
+        fullName: z.optional(z.union([
+            z.string(),
+            z.unknown()
+        ])),
+        avatarUrl: z.optional(z.union([
+            z.url(),
+            z.unknown()
+        ])),
+        plan: z.optional(z.union([
+            z.string(),
+            z.unknown()
+        ])),
+        createdAt: z.optional(z.union([
+            z.iso.datetime(),
+            z.unknown()
+        ])),
+        updatedAt: z.optional(z.union([
+            z.iso.datetime(),
+            z.unknown()
+        ]))
+    }))
+}));
 
 export const zProjectControllerListProjectsData = z.object({
     body: z.optional(z.never()),
     path: z.optional(z.never()),
-    query: z.optional(z.never())
+    query: z.optional(z.object({
+        index: z.optional(z.int().gte(0)).default(0),
+        pageSize: z.optional(z.int().gte(1)).default(15)
+    }))
 });
 
 /**
  * Projects list
  */
-export const zProjectControllerListProjectsResponse = z.array(zProjectDto);
+export const zProjectControllerListProjectsResponse = zResponseEnvelopeDto.and(z.object({
+    data: z.optional(zListProjectsResponseDto)
+}));
 
 export const zProjectControllerCreateProjectData = z.object({
     body: zCreateProjectDto,
@@ -205,7 +284,9 @@ export const zProjectControllerCreateProjectData = z.object({
 /**
  * Created project
  */
-export const zProjectControllerCreateProjectResponse = zProjectDto;
+export const zProjectControllerCreateProjectResponse = zResponseEnvelopeDto.and(z.object({
+    data: z.optional(zProjectDto)
+}));
 
 export const zProjectControllerUpdateProjectData = z.object({
     body: zUpdateProjectDto,
@@ -218,7 +299,9 @@ export const zProjectControllerUpdateProjectData = z.object({
 /**
  * Updated project
  */
-export const zProjectControllerUpdateProjectResponse = zProjectDto;
+export const zProjectControllerUpdateProjectResponse = zResponseEnvelopeDto.and(z.object({
+    data: z.optional(zProjectDto)
+}));
 
 export const zProjectControllerAddMemberData = z.object({
     body: zAddMemberDto,
@@ -227,6 +310,13 @@ export const zProjectControllerAddMemberData = z.object({
     }),
     query: z.optional(z.never())
 });
+
+/**
+ * Member added
+ */
+export const zProjectControllerAddMemberResponse = zResponseEnvelopeDto.and(z.object({
+    data: z.optional(z.unknown())
+}));
 
 export const zProjectControllerRemoveMemberData = z.object({
     body: z.object({
@@ -237,3 +327,10 @@ export const zProjectControllerRemoveMemberData = z.object({
     }),
     query: z.optional(z.never())
 });
+
+/**
+ * Member removed
+ */
+export const zProjectControllerRemoveMemberResponse = zResponseEnvelopeDto.and(z.object({
+    data: z.optional(z.unknown())
+}));

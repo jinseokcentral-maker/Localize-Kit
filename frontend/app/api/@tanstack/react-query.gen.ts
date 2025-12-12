@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { appControllerGetHello, type Options, projectControllerAddMember, projectControllerCreateProject, projectControllerListProjects, projectControllerRemoveMember, projectControllerUpdateProject, userControllerGetMe, userControllerRegister, userControllerUpdateMe } from '../sdk.gen';
-import type { AppControllerGetHelloData, ProjectControllerAddMemberData, ProjectControllerAddMemberError, ProjectControllerCreateProjectData, ProjectControllerCreateProjectError, ProjectControllerCreateProjectResponse, ProjectControllerListProjectsData, ProjectControllerListProjectsResponse, ProjectControllerRemoveMemberData, ProjectControllerRemoveMemberError, ProjectControllerUpdateProjectData, ProjectControllerUpdateProjectError, ProjectControllerUpdateProjectResponse, UserControllerGetMeData, UserControllerGetMeResponse, UserControllerRegisterData, UserControllerRegisterError, UserControllerRegisterResponse, UserControllerUpdateMeData, UserControllerUpdateMeError, UserControllerUpdateMeResponse } from '../types.gen';
+import { appControllerGetHello, authControllerRefreshTokens, type Options, projectControllerAddMember, projectControllerCreateProject, projectControllerListProjects, projectControllerRemoveMember, projectControllerUpdateProject, userControllerGetMe, userControllerRegister, userControllerUpdateMe } from '../sdk.gen';
+import type { AppControllerGetHelloData, AppControllerGetHelloResponse, AuthControllerRefreshTokensData, AuthControllerRefreshTokensError, AuthControllerRefreshTokensResponse, ProjectControllerAddMemberData, ProjectControllerAddMemberError, ProjectControllerAddMemberResponse, ProjectControllerCreateProjectData, ProjectControllerCreateProjectError, ProjectControllerCreateProjectResponse, ProjectControllerListProjectsData, ProjectControllerListProjectsResponse, ProjectControllerRemoveMemberData, ProjectControllerRemoveMemberError, ProjectControllerRemoveMemberResponse, ProjectControllerUpdateProjectData, ProjectControllerUpdateProjectError, ProjectControllerUpdateProjectResponse, UserControllerGetMeData, UserControllerGetMeResponse, UserControllerRegisterData, UserControllerRegisterError, UserControllerRegisterResponse, UserControllerUpdateMeData, UserControllerUpdateMeError, UserControllerUpdateMeResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -44,7 +44,7 @@ export const appControllerGetHelloQueryKey = (options?: Options<AppControllerGet
 /**
  * Health check
  */
-export const appControllerGetHelloOptions = (options?: Options<AppControllerGetHelloData>) => queryOptions<unknown, DefaultError, unknown, ReturnType<typeof appControllerGetHelloQueryKey>>({
+export const appControllerGetHelloOptions = (options?: Options<AppControllerGetHelloData>) => queryOptions<AppControllerGetHelloResponse, DefaultError, AppControllerGetHelloResponse, ReturnType<typeof appControllerGetHelloQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
         const { data } = await appControllerGetHello({
             ...options,
@@ -56,6 +56,23 @@ export const appControllerGetHelloOptions = (options?: Options<AppControllerGetH
     },
     queryKey: appControllerGetHelloQueryKey(options)
 });
+
+/**
+ * Refresh access/refresh tokens
+ */
+export const authControllerRefreshTokensMutation = (options?: Partial<Options<AuthControllerRefreshTokensData>>): UseMutationOptions<AuthControllerRefreshTokensResponse, AuthControllerRefreshTokensError, Options<AuthControllerRefreshTokensData>> => {
+    const mutationOptions: UseMutationOptions<AuthControllerRefreshTokensResponse, AuthControllerRefreshTokensError, Options<AuthControllerRefreshTokensData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await authControllerRefreshTokens({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 /**
  * Register a new user
@@ -164,8 +181,8 @@ export const projectControllerUpdateProjectMutation = (options?: Partial<Options
 /**
  * Add project member (owner only)
  */
-export const projectControllerAddMemberMutation = (options?: Partial<Options<ProjectControllerAddMemberData>>): UseMutationOptions<unknown, ProjectControllerAddMemberError, Options<ProjectControllerAddMemberData>> => {
-    const mutationOptions: UseMutationOptions<unknown, ProjectControllerAddMemberError, Options<ProjectControllerAddMemberData>> = {
+export const projectControllerAddMemberMutation = (options?: Partial<Options<ProjectControllerAddMemberData>>): UseMutationOptions<ProjectControllerAddMemberResponse, ProjectControllerAddMemberError, Options<ProjectControllerAddMemberData>> => {
+    const mutationOptions: UseMutationOptions<ProjectControllerAddMemberResponse, ProjectControllerAddMemberError, Options<ProjectControllerAddMemberData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await projectControllerAddMember({
                 ...options,
@@ -181,8 +198,8 @@ export const projectControllerAddMemberMutation = (options?: Partial<Options<Pro
 /**
  * Remove project member (owner only)
  */
-export const projectControllerRemoveMemberMutation = (options?: Partial<Options<ProjectControllerRemoveMemberData>>): UseMutationOptions<unknown, ProjectControllerRemoveMemberError, Options<ProjectControllerRemoveMemberData>> => {
-    const mutationOptions: UseMutationOptions<unknown, ProjectControllerRemoveMemberError, Options<ProjectControllerRemoveMemberData>> = {
+export const projectControllerRemoveMemberMutation = (options?: Partial<Options<ProjectControllerRemoveMemberData>>): UseMutationOptions<ProjectControllerRemoveMemberResponse, ProjectControllerRemoveMemberError, Options<ProjectControllerRemoveMemberData>> => {
+    const mutationOptions: UseMutationOptions<ProjectControllerRemoveMemberResponse, ProjectControllerRemoveMemberError, Options<ProjectControllerRemoveMemberData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await projectControllerRemoveMember({
                 ...options,

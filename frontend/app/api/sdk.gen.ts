@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AppControllerGetHelloData, AppControllerGetHelloResponses, ProjectControllerAddMemberData, ProjectControllerAddMemberErrors, ProjectControllerAddMemberResponses, ProjectControllerCreateProjectData, ProjectControllerCreateProjectErrors, ProjectControllerCreateProjectResponses, ProjectControllerListProjectsData, ProjectControllerListProjectsResponses, ProjectControllerRemoveMemberData, ProjectControllerRemoveMemberErrors, ProjectControllerRemoveMemberResponses, ProjectControllerUpdateProjectData, ProjectControllerUpdateProjectErrors, ProjectControllerUpdateProjectResponses, UserControllerGetMeData, UserControllerGetMeErrors, UserControllerGetMeResponses, UserControllerRegisterData, UserControllerRegisterErrors, UserControllerRegisterResponses, UserControllerUpdateMeData, UserControllerUpdateMeErrors, UserControllerUpdateMeResponses } from './types.gen';
+import type { AppControllerGetHelloData, AppControllerGetHelloResponses, AuthControllerRefreshTokensData, AuthControllerRefreshTokensErrors, AuthControllerRefreshTokensResponses, ProjectControllerAddMemberData, ProjectControllerAddMemberErrors, ProjectControllerAddMemberResponses, ProjectControllerCreateProjectData, ProjectControllerCreateProjectErrors, ProjectControllerCreateProjectResponses, ProjectControllerListProjectsData, ProjectControllerListProjectsResponses, ProjectControllerRemoveMemberData, ProjectControllerRemoveMemberErrors, ProjectControllerRemoveMemberResponses, ProjectControllerUpdateProjectData, ProjectControllerUpdateProjectErrors, ProjectControllerUpdateProjectResponses, UserControllerGetMeData, UserControllerGetMeErrors, UserControllerGetMeResponses, UserControllerRegisterData, UserControllerRegisterErrors, UserControllerRegisterResponses, UserControllerUpdateMeData, UserControllerUpdateMeErrors, UserControllerUpdateMeResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -24,9 +24,22 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 export const appControllerGetHello = <ThrowOnError extends boolean = false>(options?: Options<AppControllerGetHelloData, ThrowOnError>) => (options?.client ?? client).get<AppControllerGetHelloResponses, unknown, ThrowOnError>({ url: '/', ...options });
 
 /**
+ * Refresh access/refresh tokens
+ */
+export const authControllerRefreshTokens = <ThrowOnError extends boolean = false>(options: Options<AuthControllerRefreshTokensData, ThrowOnError>) => (options.client ?? client).post<AuthControllerRefreshTokensResponses, AuthControllerRefreshTokensErrors, ThrowOnError>({
+    url: '/auth/refresh',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
  * Register a new user
  */
 export const userControllerRegister = <ThrowOnError extends boolean = false>(options: Options<UserControllerRegisterData, ThrowOnError>) => (options.client ?? client).post<UserControllerRegisterResponses, UserControllerRegisterErrors, ThrowOnError>({
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/users/register',
     ...options,
     headers: {

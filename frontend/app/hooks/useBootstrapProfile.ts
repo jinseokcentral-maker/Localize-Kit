@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useUserStore } from "~/stores/useUserStore";
 import { useAuth } from "./useAuth";
+import { client } from "~/api/client.gen";
+import { userControllerGetMe } from "~/api";
 
 type BootstrapStatus = "idle" | "ready";
 
@@ -20,8 +22,9 @@ export function useBootstrapProfile() {
       return;
     }
 
-    // DB work is handled by backend; mark ready once auth is ready.
     setStatus("ready");
+
+
   }, [isInitialized, isSupabaseReady, isAuthenticated, setProfile]);
 
   return { status };

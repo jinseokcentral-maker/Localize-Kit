@@ -4,6 +4,17 @@ export type ClientOptions = {
     baseUrl: string;
 };
 
+export type ResponseEnvelopeDto = {
+    data: unknown;
+    timestamp: string;
+    requestId?: string;
+    path?: string;
+};
+
+export type RefreshTokensDto = {
+    refreshToken: string;
+};
+
 export type CreateProjectDto = {
     name: string;
     description?: string;
@@ -37,6 +48,25 @@ export type ProjectDto = {
     updatedAt: string | unknown;
 };
 
+export type ListProjectsResponseDto = {
+    items: Array<{
+        id: string;
+        name: string;
+        description: string | unknown;
+        languages: Array<string> | unknown;
+        defaultLanguage: string | unknown;
+        slug: string;
+        ownerId: string;
+        createdAt: string | unknown;
+        updatedAt: string | unknown;
+    }>;
+    meta: {
+        index: number;
+        pageSize: number;
+        hasNext: boolean;
+    };
+};
+
 export type AppControllerGetHelloData = {
     body?: never;
     path?: never;
@@ -48,8 +78,49 @@ export type AppControllerGetHelloResponses = {
     /**
      * Returns a greeting string
      */
-    200: unknown;
+    200: ResponseEnvelopeDto & {
+        data?: string;
+    };
 };
+
+export type AppControllerGetHelloResponse = AppControllerGetHelloResponses[keyof AppControllerGetHelloResponses];
+
+export type AuthControllerRefreshTokensData = {
+    /**
+     * Refresh token payload
+     */
+    body: RefreshTokensDto;
+    path?: never;
+    query?: never;
+    url: '/auth/refresh';
+};
+
+export type AuthControllerRefreshTokensErrors = {
+    /**
+     * Invalid payload
+     */
+    400: {
+        statusCode: number;
+        message: string;
+        error?: string;
+    };
+};
+
+export type AuthControllerRefreshTokensError = AuthControllerRefreshTokensErrors[keyof AuthControllerRefreshTokensErrors];
+
+export type AuthControllerRefreshTokensResponses = {
+    /**
+     * New token pair
+     */
+    200: ResponseEnvelopeDto & {
+        data?: {
+            accessToken: string;
+            refreshToken: string;
+        };
+    };
+};
+
+export type AuthControllerRefreshTokensResponse = AuthControllerRefreshTokensResponses[keyof AuthControllerRefreshTokensResponses];
 
 export type UserControllerRegisterData = {
     /**
@@ -88,18 +159,20 @@ export type UserControllerRegisterResponses = {
     /**
      * Created user and JWT token
      */
-    200: {
-        user?: {
-            id: string;
-            email?: string | unknown;
-            fullName?: string | unknown;
-            avatarUrl?: string | unknown;
-            plan?: string | unknown;
-            createdAt?: string | unknown;
-            updatedAt?: string | unknown;
+    200: ResponseEnvelopeDto & {
+        data?: {
+            user?: {
+                id: string;
+                email?: string | unknown;
+                fullName?: string | unknown;
+                avatarUrl?: string | unknown;
+                plan?: string | unknown;
+                createdAt?: string | unknown;
+                updatedAt?: string | unknown;
+            };
+            accessToken?: string;
+            refreshToken?: string;
         };
-        accessToken?: string;
-        refreshToken?: string;
     };
 };
 
@@ -123,14 +196,16 @@ export type UserControllerGetMeResponses = {
     /**
      * Current user
      */
-    200: {
-        id: string;
-        email?: string | unknown;
-        fullName?: string | unknown;
-        avatarUrl?: string | unknown;
-        plan?: string | unknown;
-        createdAt?: string | unknown;
-        updatedAt?: string | unknown;
+    200: ResponseEnvelopeDto & {
+        data?: {
+            id: string;
+            email?: string | unknown;
+            fullName?: string | unknown;
+            avatarUrl?: string | unknown;
+            plan?: string | unknown;
+            createdAt?: string | unknown;
+            updatedAt?: string | unknown;
+        };
     };
 };
 
@@ -171,14 +246,16 @@ export type UserControllerUpdateMeResponses = {
     /**
      * Updated user
      */
-    200: {
-        id: string;
-        email?: string | unknown;
-        fullName?: string | unknown;
-        avatarUrl?: string | unknown;
-        plan?: string | unknown;
-        createdAt?: string | unknown;
-        updatedAt?: string | unknown;
+    200: ResponseEnvelopeDto & {
+        data?: {
+            id: string;
+            email?: string | unknown;
+            fullName?: string | unknown;
+            avatarUrl?: string | unknown;
+            plan?: string | unknown;
+            createdAt?: string | unknown;
+            updatedAt?: string | unknown;
+        };
     };
 };
 
@@ -187,7 +264,16 @@ export type UserControllerUpdateMeResponse = UserControllerUpdateMeResponses[key
 export type ProjectControllerListProjectsData = {
     body?: never;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Zero-based page index
+         */
+        index?: number;
+        /**
+         * Number of projects per page
+         */
+        pageSize?: number;
+    };
     url: '/projects';
 };
 
@@ -195,7 +281,9 @@ export type ProjectControllerListProjectsResponses = {
     /**
      * Projects list
      */
-    200: Array<ProjectDto>;
+    200: ResponseEnvelopeDto & {
+        data?: ListProjectsResponseDto;
+    };
 };
 
 export type ProjectControllerListProjectsResponse = ProjectControllerListProjectsResponses[keyof ProjectControllerListProjectsResponses];
@@ -235,7 +323,9 @@ export type ProjectControllerCreateProjectResponses = {
     /**
      * Created project
      */
-    200: ProjectDto;
+    200: ResponseEnvelopeDto & {
+        data?: ProjectDto;
+    };
 };
 
 export type ProjectControllerCreateProjectResponse = ProjectControllerCreateProjectResponses[keyof ProjectControllerCreateProjectResponses];
@@ -277,7 +367,9 @@ export type ProjectControllerUpdateProjectResponses = {
     /**
      * Updated project
      */
-    200: ProjectDto;
+    200: ResponseEnvelopeDto & {
+        data?: ProjectDto;
+    };
 };
 
 export type ProjectControllerUpdateProjectResponse = ProjectControllerUpdateProjectResponses[keyof ProjectControllerUpdateProjectResponses];
@@ -311,8 +403,12 @@ export type ProjectControllerAddMemberResponses = {
     /**
      * Member added
      */
-    200: unknown;
+    200: ResponseEnvelopeDto & {
+        data?: unknown;
+    };
 };
+
+export type ProjectControllerAddMemberResponse = ProjectControllerAddMemberResponses[keyof ProjectControllerAddMemberResponses];
 
 export type ProjectControllerRemoveMemberData = {
     /**
@@ -345,5 +441,9 @@ export type ProjectControllerRemoveMemberResponses = {
     /**
      * Member removed
      */
-    200: unknown;
+    200: ResponseEnvelopeDto & {
+        data?: unknown;
+    };
 };
+
+export type ProjectControllerRemoveMemberResponse = ProjectControllerRemoveMemberResponses[keyof ProjectControllerRemoveMemberResponses];
