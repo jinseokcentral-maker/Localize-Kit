@@ -8,7 +8,6 @@ import {
   Users,
   CreditCard,
   BookOpen,
-  Plus,
   ChevronsUpDown,
   Sparkles,
   LogOut,
@@ -114,49 +113,39 @@ export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:mb-2"
+            <SidebarMenuButton
+              size="lg"
+              className="group-data-[collapsible=icon]:mb-2"
+            >
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-sidebar-primary-foreground">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="size-5 text-white"
                 >
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-sidebar-primary-foreground">
-                    <Globe className="size-4 text-white" />
-                  </div>
-                  <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                    <span className="truncate font-semibold">LocalizeKit</span>
-                    <span className="truncate text-xs">Free</span>
-                  </div>
-                  <ChevronsUpDown className="ml-auto group-data-[collapsible=icon]:hidden" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                align="start"
-                side="bottom"
-                sideOffset={4}
-              >
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  Teams
-                </DropdownMenuLabel>
-                <DropdownMenuItem className="gap-2 p-2">
-                  <div className="flex size-6 items-center justify-center rounded-sm border">
-                    <Globe className="size-4 shrink-0" />
-                  </div>
-                  LocalizeKit
-                  <DropdownMenuShortcut>⌘1</DropdownMenuShortcut>
-                </DropdownMenuItem>
-                <SidebarSeparator />
-                <DropdownMenuItem className="gap-2 p-2">
-                  <div className="flex size-6 items-center justify-center rounded-sm border bg-background">
-                    <Plus className="size-4" />
-                  </div>
-                  <div className="font-medium text-muted-foreground">
-                    Add team
-                  </div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M3 10h18" />
+                  <path d="M12 10v10" />
+                  <path d="M7 7h.01" />
+                  <path d="M11 7h.01" />
+                  <path d="M6 14h3" />
+                  <path d="M6 17h2" />
+                  <path d="M15 14h2" />
+                  <path d="M15 17h3" />
+                </svg>
+              </div>
+              <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                <span className="truncate font-semibold">LocalizeKit</span>
+                <span className="truncate text-xs">Free</span>
+              </div>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
