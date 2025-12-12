@@ -21,7 +21,7 @@ export default function LoginPage() {
     supabase.auth
       .signInWithOAuth({
         provider: "google",
-        // options: { redirectTo },
+        options: { redirectTo },
       })
       .catch((error) => {
         toast.error(error.message);
