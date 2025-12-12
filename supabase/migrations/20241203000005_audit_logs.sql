@@ -46,3 +46,5 @@ ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 
 
+
+

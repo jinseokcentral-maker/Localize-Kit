@@ -55,6 +55,11 @@ describe('ProjectService', () => {
       () =>
         ({
           from: jest.fn(() => ({
+            select: jest.fn(() => ({
+              eq: jest.fn(() =>
+                Promise.resolve({ count: 0, error: null }),
+              ),
+            })),
             insert: jest.fn(() => ({
               select: jest.fn(() => ({
                 single: jest
@@ -79,6 +84,11 @@ describe('ProjectService', () => {
       () =>
         ({
           from: jest.fn(() => ({
+            select: jest.fn(() => ({
+              eq: jest.fn(() =>
+                Promise.resolve({ count: 0, error: null }),
+              ),
+            })),
             insert: jest.fn(() => ({
               select: jest.fn(() => ({
                 single: jest.fn().mockResolvedValue({
@@ -109,8 +119,16 @@ describe('ProjectService', () => {
             if (table === 'projects') {
               return {
                 select: jest.fn(() => ({
-                  eq: jest.fn(() => ({ data: [projectRow], error: null })),
-                  in: jest.fn(() => ({ data: [projectRow], error: null })),
+                  or: jest.fn(() => ({
+                    order: jest.fn(() => ({
+                      range: jest.fn(() =>
+                        Promise.resolve({
+                          data: [projectRow],
+                          error: null,
+                        }),
+                      ),
+                    })),
+                  })),
                 })),
               };
             }
@@ -126,8 +144,11 @@ describe('ProjectService', () => {
         }) as unknown as SupabaseClient<Database>,
     );
 
-    const projects = await Effect.runPromise(service.listProjects('user-1'));
-    expect(projects.length).toBeGreaterThan(0);
+    const projects = await Effect.runPromise(
+      service.listProjects('user-1', { pageSize: 10, index: 0 }),
+    );
+    expect(projects.items.length).toBeGreaterThan(0);
+    expect(projects.meta.hasNext).toBe(false);
   });
 
   it('updates project', async () => {
