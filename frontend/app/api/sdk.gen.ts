@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AppControllerGetHelloData, AppControllerGetHelloResponses, AuthControllerRefreshTokensData, AuthControllerRefreshTokensErrors, AuthControllerRefreshTokensResponses, ProjectControllerAddMemberData, ProjectControllerAddMemberErrors, ProjectControllerAddMemberResponses, ProjectControllerCreateProjectData, ProjectControllerCreateProjectErrors, ProjectControllerCreateProjectResponses, ProjectControllerListProjectsData, ProjectControllerListProjectsResponses, ProjectControllerRemoveMemberData, ProjectControllerRemoveMemberErrors, ProjectControllerRemoveMemberResponses, ProjectControllerUpdateProjectData, ProjectControllerUpdateProjectErrors, ProjectControllerUpdateProjectResponses, UserControllerGetMeData, UserControllerGetMeErrors, UserControllerGetMeResponses, UserControllerRegisterData, UserControllerRegisterErrors, UserControllerRegisterResponses, UserControllerUpdateMeData, UserControllerUpdateMeErrors, UserControllerUpdateMeResponses } from './types.gen';
+import type { AppControllerGetHelloData, AppControllerGetHelloResponses, AuthControllerLoginWithProviderData, AuthControllerLoginWithProviderErrors, AuthControllerLoginWithProviderResponses, AuthControllerRefreshTokensData, AuthControllerRefreshTokensErrors, AuthControllerRefreshTokensResponses, ProjectControllerAddMemberData, ProjectControllerAddMemberErrors, ProjectControllerAddMemberResponses, ProjectControllerCreateProjectData, ProjectControllerCreateProjectErrors, ProjectControllerCreateProjectResponses, ProjectControllerListProjectsData, ProjectControllerListProjectsResponses, ProjectControllerRemoveMemberData, ProjectControllerRemoveMemberErrors, ProjectControllerRemoveMemberResponses, ProjectControllerUpdateProjectData, ProjectControllerUpdateProjectErrors, ProjectControllerUpdateProjectResponses, UserControllerGetMeData, UserControllerGetMeErrors, UserControllerGetMeResponses, UserControllerRegisterData, UserControllerRegisterErrors, UserControllerRegisterResponses, UserControllerUpdateMeData, UserControllerUpdateMeErrors, UserControllerUpdateMeResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -22,6 +22,18 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
  * Health check
  */
 export const appControllerGetHello = <ThrowOnError extends boolean = false>(options?: Options<AppControllerGetHelloData, ThrowOnError>) => (options?.client ?? client).get<AppControllerGetHelloResponses, unknown, ThrowOnError>({ url: '/', ...options });
+
+/**
+ * Login with Google access token
+ */
+export const authControllerLoginWithProvider = <ThrowOnError extends boolean = false>(options: Options<AuthControllerLoginWithProviderData, ThrowOnError>) => (options.client ?? client).post<AuthControllerLoginWithProviderResponses, AuthControllerLoginWithProviderErrors, ThrowOnError>({
+    url: '/auth/login',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
 
 /**
  * Refresh access/refresh tokens

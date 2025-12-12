@@ -15,6 +15,10 @@ export type RefreshTokensDto = {
     refreshToken: string;
 };
 
+export type ProviderLoginDto = {
+    accessToken: string;
+};
+
 export type CreateProjectDto = {
     name: string;
     description?: string;
@@ -84,6 +88,43 @@ export type AppControllerGetHelloResponses = {
 };
 
 export type AppControllerGetHelloResponse = AppControllerGetHelloResponses[keyof AppControllerGetHelloResponses];
+
+export type AuthControllerLoginWithProviderData = {
+    /**
+     * Provider access token payload
+     */
+    body: ProviderLoginDto;
+    path?: never;
+    query?: never;
+    url: '/auth/login';
+};
+
+export type AuthControllerLoginWithProviderErrors = {
+    /**
+     * Invalid payload
+     */
+    400: {
+        statusCode: number;
+        message: string;
+        error?: string;
+    };
+};
+
+export type AuthControllerLoginWithProviderError = AuthControllerLoginWithProviderErrors[keyof AuthControllerLoginWithProviderErrors];
+
+export type AuthControllerLoginWithProviderResponses = {
+    /**
+     * Issued token pair
+     */
+    200: ResponseEnvelopeDto & {
+        data?: {
+            accessToken: string;
+            refreshToken: string;
+        };
+    };
+};
+
+export type AuthControllerLoginWithProviderResponse = AuthControllerLoginWithProviderResponses[keyof AuthControllerLoginWithProviderResponses];
 
 export type AuthControllerRefreshTokensData = {
     /**

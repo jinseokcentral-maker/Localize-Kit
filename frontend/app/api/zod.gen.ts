@@ -13,6 +13,10 @@ export const zRefreshTokensDto = z.object({
     refreshToken: z.string()
 });
 
+export const zProviderLoginDto = z.object({
+    accessToken: z.string().min(1)
+});
+
 export const zCreateProjectDto = z.object({
     name: z.string().min(1).max(200),
     description: z.optional(z.string().max(1000)),
@@ -110,6 +114,22 @@ export const zAppControllerGetHelloData = z.object({
  */
 export const zAppControllerGetHelloResponse = zResponseEnvelopeDto.and(z.object({
     data: z.optional(z.string())
+}));
+
+export const zAuthControllerLoginWithProviderData = z.object({
+    body: zProviderLoginDto,
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+/**
+ * Issued token pair
+ */
+export const zAuthControllerLoginWithProviderResponse = zResponseEnvelopeDto.and(z.object({
+    data: z.optional(z.object({
+        accessToken: z.string(),
+        refreshToken: z.string()
+    }))
 }));
 
 export const zAuthControllerRefreshTokensData = z.object({

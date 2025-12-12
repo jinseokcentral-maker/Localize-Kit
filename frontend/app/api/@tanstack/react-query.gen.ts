@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { appControllerGetHello, authControllerRefreshTokens, type Options, projectControllerAddMember, projectControllerCreateProject, projectControllerListProjects, projectControllerRemoveMember, projectControllerUpdateProject, userControllerGetMe, userControllerRegister, userControllerUpdateMe } from '../sdk.gen';
-import type { AppControllerGetHelloData, AppControllerGetHelloResponse, AuthControllerRefreshTokensData, AuthControllerRefreshTokensError, AuthControllerRefreshTokensResponse, ProjectControllerAddMemberData, ProjectControllerAddMemberError, ProjectControllerAddMemberResponse, ProjectControllerCreateProjectData, ProjectControllerCreateProjectError, ProjectControllerCreateProjectResponse, ProjectControllerListProjectsData, ProjectControllerListProjectsResponse, ProjectControllerRemoveMemberData, ProjectControllerRemoveMemberError, ProjectControllerRemoveMemberResponse, ProjectControllerUpdateProjectData, ProjectControllerUpdateProjectError, ProjectControllerUpdateProjectResponse, UserControllerGetMeData, UserControllerGetMeResponse, UserControllerRegisterData, UserControllerRegisterError, UserControllerRegisterResponse, UserControllerUpdateMeData, UserControllerUpdateMeError, UserControllerUpdateMeResponse } from '../types.gen';
+import { appControllerGetHello, authControllerLoginWithProvider, authControllerRefreshTokens, type Options, projectControllerAddMember, projectControllerCreateProject, projectControllerListProjects, projectControllerRemoveMember, projectControllerUpdateProject, userControllerGetMe, userControllerRegister, userControllerUpdateMe } from '../sdk.gen';
+import type { AppControllerGetHelloData, AppControllerGetHelloResponse, AuthControllerLoginWithProviderData, AuthControllerLoginWithProviderError, AuthControllerLoginWithProviderResponse, AuthControllerRefreshTokensData, AuthControllerRefreshTokensError, AuthControllerRefreshTokensResponse, ProjectControllerAddMemberData, ProjectControllerAddMemberError, ProjectControllerAddMemberResponse, ProjectControllerCreateProjectData, ProjectControllerCreateProjectError, ProjectControllerCreateProjectResponse, ProjectControllerListProjectsData, ProjectControllerListProjectsResponse, ProjectControllerRemoveMemberData, ProjectControllerRemoveMemberError, ProjectControllerRemoveMemberResponse, ProjectControllerUpdateProjectData, ProjectControllerUpdateProjectError, ProjectControllerUpdateProjectResponse, UserControllerGetMeData, UserControllerGetMeResponse, UserControllerRegisterData, UserControllerRegisterError, UserControllerRegisterResponse, UserControllerUpdateMeData, UserControllerUpdateMeError, UserControllerUpdateMeResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -56,6 +56,23 @@ export const appControllerGetHelloOptions = (options?: Options<AppControllerGetH
     },
     queryKey: appControllerGetHelloQueryKey(options)
 });
+
+/**
+ * Login with Google access token
+ */
+export const authControllerLoginWithProviderMutation = (options?: Partial<Options<AuthControllerLoginWithProviderData>>): UseMutationOptions<AuthControllerLoginWithProviderResponse, AuthControllerLoginWithProviderError, Options<AuthControllerLoginWithProviderData>> => {
+    const mutationOptions: UseMutationOptions<AuthControllerLoginWithProviderResponse, AuthControllerLoginWithProviderError, Options<AuthControllerLoginWithProviderData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await authControllerLoginWithProvider({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
 
 /**
  * Refresh access/refresh tokens
