@@ -15,7 +15,7 @@ describe('AuthService', () => {
     get: jest.fn(),
   } as unknown as ConfigService;
 
-  const payload: JwtPayload = { sub: 'user-1', email: 'a@b.com' };
+  const payload: JwtPayload = { sub: 'user-1', email: 'a@b.com', plan: null };
 
   beforeEach(() => {
     jest.resetAllMocks();

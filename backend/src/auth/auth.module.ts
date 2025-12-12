@@ -11,6 +11,7 @@ import { JWT_EXPIRES_IN_KEY, JWT_SECRET_KEY } from './constants/auth.constants';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { SupabaseModule } from '../supabase/supabase.module';
 
 class MissingJwtEnvError extends Data.TaggedError('MissingJwtEnvError')<{
   readonly key: string;
@@ -19,6 +20,7 @@ class MissingJwtEnvError extends Data.TaggedError('MissingJwtEnvError')<{
 @Module({
   imports: [
     ConfigModule,
+    SupabaseModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {

@@ -11,8 +11,13 @@ import {
 import { Effect, pipe } from 'effect';
 import { Public } from './decorators/auth-access.decorator';
 import { AuthService } from './auth.service';
-import { RefreshTokensDto, refreshTokensSchema } from './auth.schemas';
-import { InvalidTokenError } from './errors/auth.errors';
+import {
+  ProviderLoginDto,
+  RefreshTokensDto,
+  providerLoginSchema,
+  refreshTokensSchema,
+} from './auth.schemas';
+import { InvalidTokenError, ProviderAuthError } from './errors/auth.errors';
 import { toUnauthorizedException } from '../common/errors/unauthorized-error';
 import { ResponseEnvelopeDto } from '../common/response/response.schema';
 import { buildResponse } from '../common/response/response.util';
@@ -29,10 +34,58 @@ const errorSchema = {
 };
 
 @ApiTags('auth')
-@ApiExtraModels(RefreshTokensDto, ResponseEnvelopeDto)
+@ApiExtraModels(RefreshTokensDto, ProviderLoginDto, ResponseEnvelopeDto)
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Public()
+  @Post('login')
+  @ApiOperation({ summary: 'Login with Google access token' })
+  @ApiOkResponse({
+    description: 'Issued token pair',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ResponseEnvelopeDto) },
+        {
+          properties: {
+            data: {
+              type: 'object',
+              properties: {
+                accessToken: { type: 'string' },
+                refreshToken: { type: 'string' },
+              },
+              required: ['accessToken', 'refreshToken'],
+            },
+          },
+        },
+      ],
+    },
+  })
+  @ApiBody({
+    description: 'Provider access token payload',
+    schema: { $ref: getSchemaPath(ProviderLoginDto) },
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid payload',
+    schema: errorSchema,
+  })
+  async loginWithProvider(
+    @Body() body: unknown,
+  ): Promise<ResponseEnvelope<{ accessToken: string; refreshToken: string }>> {
+    return pipe(
+      Effect.try({
+        try: () => providerLoginSchema.parse(body),
+        catch: (err) => err,
+      }),
+      Effect.flatMap((parsed) =>
+        this.authService.loginWithGoogleAccessToken(parsed.accessToken),
+      ),
+      Effect.catchAll((err) => Effect.fail(mapAuthError(err))),
+      Effect.map((tokens) => buildResponse(tokens)),
+      Effect.runPromise,
+    );
+  }
 
   @Public()
   @Post('refresh')
@@ -85,6 +138,9 @@ export class AuthController {
 
 function mapAuthError(err: unknown): Error {
   if (err instanceof InvalidTokenError) {
+    return toUnauthorizedException(err);
+  }
+  if (err instanceof ProviderAuthError) {
     return toUnauthorizedException(err);
   }
   if (err instanceof Error) {

@@ -10,3 +10,9 @@ export class InvalidAuthSchemeError extends Data.TaggedError(
 ) {}
 
 export class InvalidTokenError extends UnauthorizedError {}
+
+export class ProviderAuthError extends UnauthorizedError {
+  constructor(reason: string = 'Provider authentication failed') {
+    super({ reason });
+  }
+}

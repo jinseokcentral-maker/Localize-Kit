@@ -25,6 +25,7 @@ type RequestWithUser = {
 export const jwtPayloadSchema = z.object({
   sub: z.string(),
   email: z.string().email().nullish(),
+  plan: z.string().nullish(),
   exp: z.number().optional(),
   iat: z.number().optional(),
 });
