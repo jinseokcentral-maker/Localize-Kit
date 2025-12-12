@@ -1,31 +1,80 @@
-import { useEffect, useState } from "react";
-import { useUserStore } from "~/stores/useUserStore";
-import { useAuth } from "./useAuth";
-import { client } from "~/api/client.gen";
-import { userControllerGetMe } from "~/api";
-
-type BootstrapStatus = "idle" | "ready";
+import { useEffect, useRef } from "react";
+import { Effect } from "effect";
+import { supabase } from "~/lib/supabaseClient";
+import { apiClient } from "../api/authClient";
+import { authControllerLoginWithProvider } from "../api";
+import { useTokenStore } from "../stores/tokenStore";
+import { useSupabase } from "./useAuth";
 
 export function useBootstrapProfile() {
-  const { isInitialized, isSupabaseReady, isAuthenticated } = useAuth();
-  const { setProfile } = useUserStore();
-  const [status, setStatus] = useState<BootstrapStatus>("idle");
+  const { isInitialized, isSupabaseReady, isAuthenticated } = useSupabase();
+  const { setAccessToken, setRefreshToken, clear } = useTokenStore();
+  const bootstrappedRef = useRef(false);
 
   useEffect(() => {
     if (!isInitialized || !isSupabaseReady) {
-      setStatus("idle");
       return;
     }
     if (!isAuthenticated) {
-      setProfile(null);
-      setStatus("idle");
+      clear();
       return;
     }
+    if (bootstrappedRef.current) return;
+    bootstrappedRef.current = true;
 
-    setStatus("ready");
+    const syncEffect = Effect.gen(function* (_) {
+      const sessionRes = yield* _(
+        Effect.tryPromise({
+          try: () => supabase.auth.getSession(),
+          catch: (err) => err,
+        })
+      );
 
+      const supabaseAccess = sessionRes.data.session?.access_token;
+      if (!supabaseAccess) {
+        yield* _(Effect.sync(() => clear()));
+        return;
+      }
 
-  }, [isInitialized, isSupabaseReady, isAuthenticated, setProfile]);
+      const loginRes = yield* _(
+        Effect.tryPromise({
+          try: () =>
+            authControllerLoginWithProvider({
+              client: apiClient,
+              body: { accessToken: supabaseAccess },
+              throwOnError: true,
+            }),
+          catch: (err) => err,
+        })
+      );
 
-  return { status };
+      const accessToken = loginRes.data?.data?.accessToken;
+      const refreshToken = loginRes.data?.data?.refreshToken;
+
+      if (!accessToken) {
+        yield* _(Effect.sync(() => clear()));
+        return;
+      }
+
+      yield* _(
+        Effect.sync(() => {
+          setAccessToken(accessToken  ?? null);
+          setRefreshToken(refreshToken ?? null);
+        })
+      );
+    });
+
+    Effect.runPromise(syncEffect).catch((err) => {
+      console.error("Bootstrap auth sync failed", err);
+      clear();
+    });
+  }, [
+    isInitialized,
+    isSupabaseReady,
+    isAuthenticated,
+    setAccessToken,
+    setRefreshToken,
+    clear,
+  ]);
+
 }

@@ -8,15 +8,18 @@ import {
   ScrollRestoration,
   useLocation,
 } from "react-router";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
 import { useLoadWasmParser } from "~/hooks/useLoadWasmParser";
-import { useAuth } from "~/hooks/useAuth";
+
 import { NOT_AUTH_PATH, EXTERNAL_LINK_PATH } from "~/constants/config";
 
 import type { Route } from "./+types/root";
 import "./app.css";
 import { Toaster } from "./components/ui/sonner";
 import { useBootstrapProfile } from "./hooks/useBootstrapProfile";
+
+const queryClient = new QueryClient();
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -62,13 +65,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   useLoadWasmParser();
-
   useBootstrapProfile();
 
   return (
     <NuqsAdapter>
-      <Outlet />
-      <Toaster />
+      <QueryClientProvider client={queryClient}>
+        <Outlet />
+        <Toaster />
+      </QueryClientProvider>
     </NuqsAdapter>
   );
 }

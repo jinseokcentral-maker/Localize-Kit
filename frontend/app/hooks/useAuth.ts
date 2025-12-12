@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { supabase, isSupabaseConfigured } from "~/lib/supabaseClient";
 
-export function useAuth() {
+export function useSupabase() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSupabaseReady, setIsSupabaseReady] = useState(false);
 
