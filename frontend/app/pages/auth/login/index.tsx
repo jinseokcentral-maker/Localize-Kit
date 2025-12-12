@@ -10,7 +10,8 @@ export default function LoginPage() {
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
 
   const redirectTo = `${window.location.origin}${"/verify"}`;
-
+  console.log(redirectTo, "redirectTo");
+  console.log(window.location.origin, "window.location.origin");
   const handleGoogleLogin = () => {
     if (!isSupabaseConfigured) {
       toast.error(
