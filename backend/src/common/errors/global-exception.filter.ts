@@ -49,15 +49,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private resolveStatus(exception: unknown): number {
+    if (this.isProviderAuthError(exception)) {
+      return HttpStatus.INTERNAL_SERVER_ERROR;
+    }
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
-      if (this.isJwtRelatedException(exception)) {
+      if (
+        status === HttpStatus.UNAUTHORIZED ||
+        this.isJwtRelatedException(exception)
+      ) {
         return HttpStatus.UNAUTHORIZED;
       }
       return status;
-    }
-    if (this.isProviderAuthError(exception)) {
-      return HttpStatus.INTERNAL_SERVER_ERROR;
     }
     if (exception instanceof UnauthorizedError) {
       return HttpStatus.UNAUTHORIZED;
