@@ -23,7 +23,7 @@ export class ProjectEntity implements ProjectRow {
   @Property({ nullable: true, columnType: 'text' })
   default_language!: string | null;
 
-  @Property({ type: 'json', nullable: true })
+  @Property({ type: 'json', columnType: 'jsonb', nullable: true })
   languages!: string[] | null;
 
   @Property({ nullable: true, columnType: 'timestamp' })
