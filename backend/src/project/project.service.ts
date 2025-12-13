@@ -118,9 +118,7 @@ export class ProjectService {
       ]);
 
       const memberProjectIds =
-        memberRows.length > 0
-          ? memberRows.map((m) => m.project_id)
-          : [];
+        memberRows.length > 0 ? memberRows.map((m) => m.project_id) : [];
 
       const memberProjects =
         memberProjectIds.length > 0

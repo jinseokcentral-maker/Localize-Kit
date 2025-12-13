@@ -6,12 +6,14 @@ import {
   type JwtModuleOptions,
   type JwtSignOptions,
 } from '@nestjs/jwt';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Data, Effect } from 'effect';
+import { ProfileEntity } from '../database/entities/profile.entity';
+import { SupabaseModule } from '../supabase/supabase.module';
 import { JWT_EXPIRES_IN_KEY, JWT_SECRET_KEY } from './constants/auth.constants';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { SupabaseModule } from '../supabase/supabase.module';
 
 class MissingJwtEnvError extends Data.TaggedError('MissingJwtEnvError')<{
   readonly key: string;
@@ -36,6 +38,7 @@ class MissingJwtEnvError extends Data.TaggedError('MissingJwtEnvError')<{
         return options;
       },
     }),
+    MikroOrmModule.forFeature([ProfileEntity]),
   ],
   controllers: [AuthController],
   providers: [

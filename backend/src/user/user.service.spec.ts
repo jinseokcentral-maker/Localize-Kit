@@ -1,16 +1,14 @@
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Effect } from 'effect';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { Either } from 'effect';
-import { SupabaseService } from '../supabase/supabase.service';
-import type { Database } from '../type/supabse';
+import { EntityManager } from '@mikro-orm/postgresql';
+import { Effect, Either } from 'effect';
+import { ProfileEntity } from '../database/entities/profile.entity';
+import { ProjectEntity } from '../database/entities/project.entity';
 import { UserConflictError, UserNotFoundError } from './errors/user.errors';
 import { UserService } from './user.service';
 import type { RegisterUserInput, UpdateUserInput } from './user.schemas';
-import type { UserProfileRow } from './user.types';
 
-const mockProfileRow: UserProfileRow = {
+const mockProfile: ProfileEntity = Object.assign(new ProfileEntity(), {
   id: 'user-1',
   email: 'a@b.com',
   full_name: 'Alice',
@@ -19,7 +17,7 @@ const mockProfileRow: UserProfileRow = {
   stripe_customer_id: null,
   created_at: '2024-01-01T00:00:00.000Z',
   updated_at: '2024-01-01T00:00:00.000Z',
-};
+});
 
 const registerInput: RegisterUserInput = {
   id: 'user-1',
@@ -37,9 +35,13 @@ const updateInput: UpdateUserInput = {
 
 describe('UserService', () => {
   let userService: UserService;
-  const supabaseService = {
-    getClient: jest.fn(),
-  } as unknown as SupabaseService;
+  const em = {
+    findOne: jest.fn(),
+    create: jest.fn(),
+    persistAndFlush: jest.fn(),
+    flush: jest.fn(),
+    count: jest.fn(),
+  } as unknown as EntityManager;
   const jwtService = {
     sign: jest.fn().mockReturnValue('access'),
   } as unknown as JwtService;
@@ -49,26 +51,14 @@ describe('UserService', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    supabaseService.getClient = jest.fn();
     (configService.get as jest.Mock).mockReturnValue('7d');
-    userService = new UserService(configService, supabaseService, jwtService);
+    userService = new UserService(configService, jwtService, em);
   });
 
   it('registers a user and returns tokens', async () => {
-    supabaseService.getClient = jest.fn(
-      () =>
-        ({
-          from: jest.fn(() => ({
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest
-                  .fn()
-                  .mockResolvedValue({ data: mockProfileRow, error: null }),
-              })),
-            })),
-          })),
-        }) as unknown as SupabaseClient<Database>,
-    );
+    (em.findOne as jest.Mock).mockResolvedValue(null);
+    (em.create as jest.Mock).mockReturnValue(mockProfile);
+    (em.persistAndFlush as jest.Mock).mockResolvedValue(undefined);
     jwtService.sign = jest
       .fn()
       .mockReturnValueOnce('access-token')
@@ -84,20 +74,10 @@ describe('UserService', () => {
   });
 
   it('fails to register on conflict', async () => {
-    supabaseService.getClient = jest.fn(
-      () =>
-        ({
-          from: jest.fn(() => ({
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn().mockResolvedValue({
-                  data: null,
-                  error: { code: '23505', message: 'conflict' },
-                }),
-              })),
-            })),
-          })),
-        }) as unknown as SupabaseClient<Database>,
+    (em.findOne as jest.Mock).mockResolvedValue(null);
+    (em.create as jest.Mock).mockReturnValue(mockProfile);
+    (em.persistAndFlush as jest.Mock).mockRejectedValue(
+      new Error('duplicate key value violates unique constraint'),
     );
 
     const result = await Effect.runPromise(
@@ -111,20 +91,8 @@ describe('UserService', () => {
   });
 
   it('gets user by id', async () => {
-    supabaseService.getClient = jest.fn(
-      () =>
-        ({
-          from: jest.fn(() => ({
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: jest
-                  .fn()
-                  .mockResolvedValue({ data: mockProfileRow, error: null }),
-              })),
-            })),
-          })),
-        }) as unknown as SupabaseClient<Database>,
-    );
+    (em.findOne as jest.Mock).mockResolvedValue(mockProfile);
+    (em.count as jest.Mock).mockResolvedValue(0);
 
     const user = await Effect.runPromise(userService.getUserById('user-1'));
 
@@ -132,21 +100,7 @@ describe('UserService', () => {
   });
 
   it('fails when user not found', async () => {
-    supabaseService.getClient = jest.fn(
-      () =>
-        ({
-          from: jest.fn(() => ({
-            select: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                single: jest.fn().mockResolvedValue({
-                  data: null,
-                  error: { message: 'not found' },
-                }),
-              })),
-            })),
-          })),
-        }) as unknown as SupabaseClient<Database>,
-    );
+    (em.findOne as jest.Mock).mockResolvedValue(null);
 
     const result = await Effect.runPromise(
       Effect.either(userService.getUserById('missing')),
@@ -159,28 +113,17 @@ describe('UserService', () => {
   });
 
   it('updates user profile', async () => {
-    supabaseService.getClient = jest.fn(
-      () =>
-        ({
-          from: jest.fn(() => ({
-            update: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                select: jest.fn(() => ({
-                  single: jest.fn().mockResolvedValue({
-                    data: { ...mockProfileRow, full_name: 'New' },
-                    error: null,
-                  }),
-                })),
-              })),
-            })),
-          })),
-        }) as unknown as SupabaseClient<Database>,
-    );
+    const updatedProfile = Object.assign(new ProfileEntity(), {
+      ...mockProfile,
+      full_name: 'Alice Updated',
+    });
+    (em.findOne as jest.Mock).mockResolvedValue(mockProfile);
+    (em.flush as jest.Mock).mockResolvedValue(undefined);
 
     const user = await Effect.runPromise(
       userService.updateUser('user-1', updateInput),
     );
 
-    expect(user.fullName).toBe('New');
+    expect(user.fullName).toBe('Alice Updated');
   });
 });

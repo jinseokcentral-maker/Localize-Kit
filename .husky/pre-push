@@ -9,7 +9,9 @@ echo ""
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT" || exit 1
 
-# Create temporary log files
+# Create temporary files for exit codes and logs
+FRONTEND_EXIT_FILE="/tmp/frontend-exit-$$.tmp"
+BACKEND_EXIT_FILE="/tmp/backend-exit-$$.tmp"
 FRONTEND_LOG="/tmp/frontend-test-$$.log"
 BACKEND_LOG="/tmp/backend-test-$$.log"
 
@@ -32,33 +34,46 @@ echo "📦 Starting frontend and backend tests..."
 echo ""
 
 # Frontend test with blue prefixed output
-(cd "$REPO_ROOT/frontend" && pnpm run test -- --run 2>&1 | prefix_output "Frontend" "$BLUE" | tee "$FRONTEND_LOG") &
+(
+  cd "$REPO_ROOT/frontend" && \
+  pnpm run test -- --run > "$FRONTEND_LOG" 2>&1
+  TEST_EXIT=$?
+  prefix_output "Frontend" "$BLUE" < "$FRONTEND_LOG"
+  echo $TEST_EXIT > "$FRONTEND_EXIT_FILE"
+) &
 FRONTEND_PID=$!
 
 # Backend test with green prefixed output
-(cd "$REPO_ROOT/backend" && pnpm run test 2>&1 | prefix_output "Backend" "$GREEN" | tee "$BACKEND_LOG") &
+(
+  cd "$REPO_ROOT/backend" && \
+  pnpm run test > "$BACKEND_LOG" 2>&1
+  TEST_EXIT=$?
+  prefix_output "Backend" "$GREEN" < "$BACKEND_LOG"
+  echo $TEST_EXIT > "$BACKEND_EXIT_FILE"
+) &
 BACKEND_PID=$!
 
 # Wait for both tests to complete
 wait $FRONTEND_PID
-FRONTEND_EXIT=$?
-
 wait $BACKEND_PID
-BACKEND_EXIT=$?
 
-# Cleanup log files
-rm -f "$FRONTEND_LOG" "$BACKEND_LOG"
+# Read exit codes from files
+FRONTEND_EXIT=$(cat "$FRONTEND_EXIT_FILE" 2>/dev/null || echo "1")
+BACKEND_EXIT=$(cat "$BACKEND_EXIT_FILE" 2>/dev/null || echo "1")
+
+# Cleanup temporary files
+rm -f "$FRONTEND_EXIT_FILE" "$BACKEND_EXIT_FILE" "$FRONTEND_LOG" "$BACKEND_LOG"
 
 # Check results
 FAILED=false
 
-if [ $FRONTEND_EXIT -ne 0 ]; then
+if [ "$FRONTEND_EXIT" -ne 0 ]; then
   echo ""
   echo "❌ Frontend tests failed (exit code: $FRONTEND_EXIT)"
   FAILED=true
 fi
 
-if [ $BACKEND_EXIT -ne 0 ]; then
+if [ "$BACKEND_EXIT" -ne 0 ]; then
   echo ""
   echo "❌ Backend tests failed (exit code: $BACKEND_EXIT)"
   FAILED=true
