@@ -24,8 +24,8 @@ export class ProjectEntity implements ProjectRow {
   default_language!: string | null;
 
   @Property({
-    type: 'json',
-    columnType: 'jsonb',
+    type: 'array',
+    columnType: 'text[]',
     nullable: true,
   })
   languages!: string[] | null;
