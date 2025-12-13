@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
+import { EntityManager } from '@mikro-orm/postgresql';
 import { Effect, pipe } from 'effect';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '../type/supabse';
 import { JWT_REFRESH_EXPIRES_IN_KEY } from '../auth/constants/auth.constants';
-import { SupabaseService } from '../supabase/supabase.service';
+import { ProfileEntity } from '../database/entities/profile.entity';
+import { ProjectEntity } from '../database/entities/project.entity';
 import { canCreateProject, type PlanName } from '../project/plan/plan.util';
 import { UserConflictError, UserNotFoundError } from './errors/user.errors';
 import type { RegisterUserInput, UpdateUserInput } from './user.schemas';
@@ -17,8 +17,9 @@ const USER_CONFLICT_CODE = '23505';
 export class UserService {
   constructor(
     private readonly configService: ConfigService,
-    private readonly supabaseService: SupabaseService,
+
     private readonly jwtService: JwtService,
+    private readonly em: EntityManager,
   ) {}
 
   registerUser(
@@ -63,52 +64,46 @@ export class UserService {
   private insertProfile(
     input: RegisterUserInput,
   ): Effect.Effect<User, UserConflictError> {
-    const client = this.supabaseService.getClient();
     return Effect.tryPromise({
       try: async () => {
-        const { data, error } = await client
-          .from('profiles')
-          .insert({
-            id: input.id,
-            email: input.email,
-            full_name: input.fullName,
-            avatar_url: input.avatarUrl,
-            plan: input.plan,
-          })
-          .select('*')
-          .single<UserProfileRow>();
-        if (error !== null) {
-          if (error.code === USER_CONFLICT_CODE) {
-            throw new UserConflictError({ reason: error.message });
-          }
-          throw new Error(error.message);
-        }
-        return mapProfileToUser(data);
+        const profile = this.em.create(ProfileEntity, {
+          id: input.id,
+          email: input.email,
+          full_name: input.fullName,
+          avatar_url: input.avatarUrl,
+          plan: input.plan,
+        });
+        await this.em.persistAndFlush(profile);
+        return mapProfileToUser(profile);
       },
-      catch: (err) =>
-        err instanceof UserConflictError
-          ? err
-          : new UserConflictError({
-              reason: err instanceof Error ? err.message : 'Conflict',
-            }),
+      catch: (err) => {
+        if (
+          err instanceof Error &&
+          (err.message.includes('duplicate') ||
+            err.message.includes('unique') ||
+            err.message.includes('23505'))
+        ) {
+          return new UserConflictError({
+            reason: err.message,
+          });
+        }
+        return new UserConflictError({
+          reason: err instanceof Error ? err.message : 'Conflict',
+        });
+      },
     });
   }
 
   private fetchProfileById(
     userId: string,
   ): Effect.Effect<User, UserNotFoundError> {
-    const client = this.supabaseService.getClient();
     return Effect.tryPromise({
       try: async () => {
-        const { data, error } = await client
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single<UserProfileRow>();
-        if (error !== null || data === null) {
+        const profile = await this.em.findOne(ProfileEntity, { id: userId });
+        if (profile === null) {
           throw new UserNotFoundError();
         }
-        return mapProfileToUser(data);
+        return mapProfileToUser(profile);
       },
       catch: () => new UserNotFoundError(),
     });
@@ -118,23 +113,23 @@ export class UserService {
     userId: string,
     input: UpdateUserInput,
   ): Effect.Effect<User, UserNotFoundError> {
-    const client = this.supabaseService.getClient();
     return Effect.tryPromise({
       try: async () => {
-        const { data, error } = await client
-          .from('profiles')
-          .update({
-            full_name: input.fullName,
-            avatar_url: input.avatarUrl,
-            plan: input.plan,
-          })
-          .eq('id', userId)
-          .select('*')
-          .single<UserProfileRow>();
-        if (error !== null || data === null) {
+        const profile = await this.em.findOne(ProfileEntity, { id: userId });
+        if (profile === null) {
           throw new UserNotFoundError();
         }
-        return mapProfileToUser(data);
+        if (input.fullName !== undefined) {
+          profile.full_name = input.fullName;
+        }
+        if (input.avatarUrl !== undefined) {
+          profile.avatar_url = input.avatarUrl;
+        }
+        if (input.plan !== undefined) {
+          profile.plan = input.plan;
+        }
+        await this.em.flush();
+        return mapProfileToUser(profile);
       },
       catch: () => new UserNotFoundError(),
     });
@@ -173,20 +168,17 @@ export class UserService {
   }
 
   private fetchTeamInfo(userId: string): Effect.Effect<TeamInfo, never> {
-    const client = this.supabaseService.getClient();
     return Effect.tryPromise({
       try: async () => {
-        const projectCount = await this.countProjects(client, userId);
-        const { data } = await client
-          .from('profiles')
-          .select('plan')
-          .eq('id', userId)
-          .single<{ plan: string | null }>();
-        const plan = (data?.plan ?? 'free') as PlanName;
+        const [projectCount, profile] = await Promise.all([
+          this.countProjects(userId),
+          this.em.findOne(ProfileEntity, { id: userId }),
+        ]);
+        const plan = (profile?.plan ?? 'free') as PlanName;
         const canCreate = canCreateProject(plan, projectCount);
         return {
           projectCount,
-          plan: data?.plan ?? null,
+          plan: profile?.plan ?? 'free',
           canCreateProject: canCreate,
         };
       },
@@ -195,37 +187,40 @@ export class UserService {
       Effect.catchAll(() =>
         Effect.succeed({
           projectCount: 0,
-          plan: null,
+          plan: 'free',
           canCreateProject: false,
         }),
       ),
     );
   }
 
-  private async countProjects(
-    client: SupabaseClient<Database>,
-    userId: string,
-  ): Promise<number> {
-    const { count, error } = await client
-      .from('team_members')
-      .select('project_id', { count: 'exact', head: true })
-      .eq('user_id', userId);
-    if (error !== null || count === null) {
-      return 0;
-    }
+  private async countProjects(userId: string): Promise<number> {
+    const count = await this.em.count(ProjectEntity, { owner_id: userId });
     return count;
   }
 }
 
-function mapProfileToUser(row: UserProfileRow): User {
+function mapProfileToUser(row: UserProfileRow | ProfileEntity): User {
+  const profileRow =
+    row instanceof ProfileEntity
+      ? {
+          id: row.id,
+          email: row.email,
+          full_name: row.full_name,
+          avatar_url: row.avatar_url,
+          plan: row.plan,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+        }
+      : row;
   return {
-    id: row.id,
-    email: row.email,
-    fullName: row.full_name,
-    avatarUrl: row.avatar_url,
-    plan: row.plan,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    id: profileRow.id,
+    email: profileRow.email,
+    fullName: profileRow.full_name,
+    avatarUrl: profileRow.avatar_url,
+    plan: profileRow.plan,
+    createdAt: profileRow.created_at,
+    updatedAt: profileRow.updated_at,
   };
 }
 

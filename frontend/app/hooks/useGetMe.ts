@@ -12,6 +12,11 @@ type UserData = {
     plan?: string | unknown;
     createdAt?: string | unknown;
     updatedAt?: string | unknown;
+    team?: {
+        projectCount: number;
+        plan?: string | unknown;
+        canCreateProject: boolean;
+    };
 };
 
 /**

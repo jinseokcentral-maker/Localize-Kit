@@ -212,6 +212,11 @@ export type UserControllerRegisterResponses = {
                 plan?: string | unknown;
                 createdAt?: string | unknown;
                 updatedAt?: string | unknown;
+                team?: {
+                    projectCount: number;
+                    plan?: string | unknown;
+                    canCreateProject: boolean;
+                };
             };
             accessToken?: string;
             refreshToken?: string;
@@ -248,6 +253,11 @@ export type UserControllerGetMeResponses = {
             plan?: string | unknown;
             createdAt?: string | unknown;
             updatedAt?: string | unknown;
+            team?: {
+                projectCount: number;
+                plan?: string | unknown;
+                canCreateProject: boolean;
+            };
         };
     };
 };
@@ -298,6 +308,11 @@ export type UserControllerUpdateMeResponses = {
             plan?: string | unknown;
             createdAt?: string | unknown;
             updatedAt?: string | unknown;
+            team?: {
+                projectCount: number;
+                plan?: string | unknown;
+                canCreateProject: boolean;
+            };
         };
     };
 };

@@ -192,7 +192,15 @@ export const zUserControllerRegisterResponse = zResponseEnvelopeDto.and(z.object
             updatedAt: z.optional(z.union([
                 z.iso.datetime(),
                 z.unknown()
-            ]))
+            ])),
+            team: z.optional(z.object({
+                projectCount: z.number(),
+                plan: z.optional(z.union([
+                    z.string(),
+                    z.unknown()
+                ])),
+                canCreateProject: z.boolean()
+            }))
         })),
         accessToken: z.optional(z.string()),
         refreshToken: z.optional(z.string())
@@ -234,7 +242,15 @@ export const zUserControllerGetMeResponse = zResponseEnvelopeDto.and(z.object({
         updatedAt: z.optional(z.union([
             z.iso.datetime(),
             z.unknown()
-        ]))
+        ])),
+        team: z.optional(z.object({
+            projectCount: z.number(),
+            plan: z.optional(z.union([
+                z.string(),
+                z.unknown()
+            ])),
+            canCreateProject: z.boolean()
+        }))
     }))
 }));
 
@@ -277,7 +293,15 @@ export const zUserControllerUpdateMeResponse = zResponseEnvelopeDto.and(z.object
         updatedAt: z.optional(z.union([
             z.iso.datetime(),
             z.unknown()
-        ]))
+        ])),
+        team: z.optional(z.object({
+            projectCount: z.number(),
+            plan: z.optional(z.union([
+                z.string(),
+                z.unknown()
+            ])),
+            canCreateProject: z.boolean()
+        }))
     }))
 }));
 

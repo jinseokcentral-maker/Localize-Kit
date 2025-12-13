@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
+import { EntityManager } from '@mikro-orm/postgresql';
 import { randomUUID } from 'crypto';
 import { Effect, pipe } from 'effect';
 import { SupabaseService } from '../supabase/supabase.service';
+import { ProfileEntity } from '../database/entities/profile.entity';
 import type { User, UserProfileRow } from '../user/user.types';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { JWT_REFRESH_EXPIRES_IN_KEY } from './constants/auth.constants';
@@ -21,6 +23,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
     private readonly supabaseService: SupabaseService,
+    private readonly em: EntityManager,
   ) {}
 
   issueTokens(payload: JwtPayload): TokenPair {
@@ -120,48 +123,37 @@ export class AuthService {
   private findOrCreateUser(
     authUser: SupabaseAuthUser,
   ): Effect.Effect<User, ProviderAuthError> {
-    const client = this.supabaseService.getClient();
     return Effect.tryPromise({
       try: async () => {
-        const { data, error } = await client
-          .from('profiles')
-          .select('*')
-          .eq('id', authUser.id)
-          .maybeSingle<UserProfileRow>();
-        if (error !== null) {
-          throw new ProviderAuthError(error.message);
-        }
-        if (data !== null) {
-          return mapProfileToUser(data);
+        const existing = await this.em.findOne(ProfileEntity, {
+          id: authUser.id,
+        });
+        if (existing !== null) {
+          return mapProfileToUser(existing);
         }
 
-        const { data: created, error: insertError } = await client
-          .from('profiles')
-          .insert({
-            id: authUser.id ?? randomUUID(),
-            email: authUser.email,
-            full_name:
-              typeof authUser.user_metadata?.full_name === 'string'
-                ? authUser.user_metadata.full_name
-                : typeof authUser.user_metadata?.name === 'string'
-                  ? authUser.user_metadata.name
-                  : null,
-            avatar_url:
-              typeof authUser.user_metadata?.avatar_url === 'string'
-                ? authUser.user_metadata.avatar_url
-                : typeof authUser.user_metadata?.picture === 'string'
-                  ? authUser.user_metadata.picture
-                  : null,
-            plan: 'free',
-          })
-          .select('*')
-          .single<UserProfileRow>();
-        if (insertError !== null || created === null) {
-          throw new ProviderAuthError(
-            insertError?.message ?? 'Failed to create user',
-          );
-        }
-        return mapProfileToUser(created);
+        const now = new Date().toISOString();
+        const profile = this.em.create(ProfileEntity, {
+          id: authUser.id ?? randomUUID(),
+          email: authUser.email,
+          full_name:
+            typeof authUser.user_metadata?.full_name === 'string'
+              ? authUser.user_metadata.full_name
+              : typeof authUser.user_metadata?.name === 'string'
+                ? authUser.user_metadata.name
+                : null,
+          avatar_url:
+            typeof authUser.user_metadata?.avatar_url === 'string'
+              ? authUser.user_metadata.avatar_url
+              : typeof authUser.user_metadata?.picture === 'string'
+                ? authUser.user_metadata.picture
+                : null,
+          plan: 'free',
+          created_at: now,
+          updated_at: now,
+        });
+        await this.em.persistAndFlush(profile);
+        return mapProfileToUser(profile);
       },
       catch: (err) =>
         new ProviderAuthError(
@@ -192,14 +184,26 @@ export class AuthService {
   }
 }
 
-function mapProfileToUser(row: UserProfileRow): User {
+function mapProfileToUser(row: UserProfileRow | ProfileEntity): User {
+  const profileRow =
+    row instanceof ProfileEntity
+      ? {
+          id: row.id,
+          email: row.email,
+          full_name: row.full_name,
+          avatar_url: row.avatar_url,
+          plan: row.plan,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+        }
+      : row;
   return {
-    id: row.id,
-    email: row.email,
-    fullName: row.full_name,
-    avatarUrl: row.avatar_url,
-    plan: row.plan,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    id: profileRow.id,
+    email: profileRow.email,
+    fullName: profileRow.full_name,
+    avatarUrl: profileRow.avatar_url,
+    plan: profileRow.plan,
+    createdAt: profileRow.created_at,
+    updatedAt: profileRow.updated_at,
   };
 }

@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { SupabaseModule } from './supabase/supabase.module';
 import { UserModule } from './user/user.module';
 import { ProjectModule } from './project/project.module';
+import { DatabaseModule } from './database/database.module';
 
 const PRODUCTION_ENV = 'production';
 
@@ -17,6 +18,7 @@ const PRODUCTION_ENV = 'production';
       ignoreEnvFile: process.env.NODE_ENV === PRODUCTION_ENV,
       isGlobal: true,
     }),
+    DatabaseModule,
     AuthModule,
     SupabaseModule,
     UserModule,

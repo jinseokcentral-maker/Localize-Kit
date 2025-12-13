@@ -41,15 +41,51 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Link, useNavigate } from "react-router";
 import { useSupabase } from "~/hooks/useAuth";
 import { useTokenStore } from "~/stores/tokenStore";
+import { useGetMe } from "~/hooks/useGetMe";
+import { getPlanDisplayName } from "~/pages/dashboard/utils/planUtils";
 
 interface DashboardSidebarProps {
   currentPath: string;
+}
+
+/**
+ * Get user initials from name or email
+ */
+function getUserInitials(
+  fullName: string | unknown,
+  email: string | unknown
+): string {
+  if (typeof fullName === "string" && fullName.trim()) {
+    const parts = fullName.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return fullName.substring(0, 2).toUpperCase();
+  }
+  if (typeof email === "string" && email.trim()) {
+    return email.substring(0, 2).toUpperCase();
+  }
+  return "U";
 }
 
 export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
   const navigate = useNavigate();
   const { accessToken } = useTokenStore();
   const { clear } = useTokenStore();
+  const { data: userData } = useGetMe();
+
+  // Extract user info with fallbacks
+  const fullName =
+    typeof userData?.fullName === "string" ? userData.fullName : null;
+  const email =
+    typeof userData?.email === "string"
+      ? userData.email
+      : "user@localizekit.com";
+  const avatarUrl =
+    typeof userData?.avatarUrl === "string" ? userData.avatarUrl : undefined;
+  const plan = typeof userData?.plan === "string" ? userData.plan : "free";
+  const planDisplayName = getPlanDisplayName(plan);
+  const userInitials = getUserInitials(fullName, email);
 
   const handleLogout = async () => {
     clear();
@@ -106,8 +142,6 @@ export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
     },
   ];
 
-  const userInitials = "JD";
-
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -143,7 +177,7 @@ export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="truncate font-semibold">LocalizeKit</span>
-                <span className="truncate text-xs">Free</span>
+                <span className="truncate text-xs">{planDisplayName}</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -232,16 +266,16 @@ export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:mb-2"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarImage src="" alt={userInitials} />
+                    <AvatarImage src={avatarUrl} alt={userInitials} />
                     <AvatarFallback className="rounded-lg bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300">
                       {userInitials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                    <span className="truncate font-semibold">{"User"}</span>
-                    <span className="truncate text-xs">
-                      {"user@localizekit.com"}
+                    <span className="truncate font-semibold">
+                      {fullName || "User"}
                     </span>
+                    <span className="truncate text-xs">{email}</span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
                 </SidebarMenuButton>
@@ -255,16 +289,16 @@ export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarImage src="" alt={userInitials} />
+                      <AvatarImage src={avatarUrl} alt={userInitials} />
                       <AvatarFallback className="rounded-lg">
                         {userInitials}
                       </AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                      <span className="truncate font-semibold">{"User"}</span>
-                      <span className="truncate text-xs">
-                        {"user@localizekit.com"}
+                      <span className="truncate font-semibold">
+                        {fullName || "User"}
                       </span>
+                      <span className="truncate text-xs">{email}</span>
                     </div>
                   </div>
                 </DropdownMenuLabel>

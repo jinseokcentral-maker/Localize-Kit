@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { EntityManager } from '@mikro-orm/postgresql';
 import { Effect, pipe } from 'effect';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import { SupabaseService } from '../supabase/supabase.service';
-import type { Database } from '../type/supabse';
+import { randomUUID } from 'crypto';
 import type {
   AddMemberInput,
   CreateProjectInput,
@@ -16,6 +15,8 @@ import {
   ForbiddenProjectAccessError,
   ProjectValidationError,
 } from './errors/project.errors';
+import { ProjectEntity } from '../database/entities/project.entity';
+import { TeamMemberEntity } from '../database/entities/team-member.entity';
 import type { Project, ProjectRow, TeamMemberRow } from './project.types';
 import { canCreateProject, type PlanName } from './plan/plan.util';
 
@@ -25,7 +26,7 @@ const SLUG_REGEX = /^[a-z0-9-]+$/;
 
 @Injectable()
 export class ProjectService {
-  constructor(private readonly supabaseService: SupabaseService) {}
+  constructor(private readonly em: EntityManager) {}
 
   createProject(
     userId: string,
@@ -35,13 +36,12 @@ export class ProjectService {
     Project,
     ProjectConflictError | ForbiddenProjectAccessError | ProjectValidationError
   > {
-    const client = this.getClient();
     return Effect.tryPromise({
       try: async () => {
         const slug = this.normalizeSlug(input.slug ?? input.name);
         this.validateSlug(slug);
 
-        const currentCount = await this.countProjects(client, userId);
+        const currentCount = await this.countProjects(userId);
         if (!canCreateProject(plan, currentCount)) {
           const limit = plan === 'free' ? 1 : plan === 'pro' ? 10 : Infinity;
           throw new ForbiddenProjectAccessError({
@@ -53,64 +53,56 @@ export class ProjectService {
 
         const defaultLanguage = input.defaultLanguage ?? DEFAULT_LANGUAGE;
         const languages = input.languages ?? [defaultLanguage];
+        const now = new Date().toISOString();
 
-        const { data, error } = await client
-          .from('projects')
-          .insert({
-            name: input.name,
-            description: input.description ?? null,
-            languages,
-            default_language: defaultLanguage,
-            slug,
-            owner_id: userId,
-          })
-          .select('*')
-          .single<ProjectRow>();
-        if (error !== null) {
-          const isConflict =
-            error.code === PROJECT_CONFLICT_CODE ||
-            error.message?.toLowerCase().includes('duplicate') ||
-            error.message?.toLowerCase().includes('unique') ||
-            error.message?.toLowerCase().includes('already exists');
-          if (isConflict) {
-            throw new ProjectConflictError({
-              reason: 'Slug already exists',
-            });
-          }
-          throw new ProjectConflictError({ reason: error.message });
+        const project = this.em.create(ProjectEntity, {
+          id: randomUUID(),
+          name: input.name,
+          description: input.description ?? null,
+          languages,
+          default_language: defaultLanguage,
+          slug,
+          owner_id: userId,
+          created_at: now,
+          updated_at: now,
+        });
+
+        const member = this.em.create(TeamMemberEntity, {
+          id: randomUUID(),
+          project_id: project.id,
+          user_id: userId,
+          role: 'owner',
+          joined_at: now,
+          invited_by: userId,
+          invited_at: now,
+          created_at: now,
+        });
+
+        await this.em.persistAndFlush([project, member]);
+        return mapProject(project);
+      },
+      catch: (err) => {
+        if (err instanceof ForbiddenProjectAccessError) {
+          return err;
         }
-
-        const memberInsert = await client
-          .from('team_members')
-          .insert({
-            project_id: data.id,
-            user_id: userId,
-            role: 'owner',
-            joined_at: new Date().toISOString(),
-            invited_by: userId,
-            invited_at: new Date().toISOString(),
-          })
-          .select('*')
-          .single<TeamMemberRow>();
-
-        if (memberInsert.error !== null) {
-          throw new ProjectConflictError({
-            reason: memberInsert.error.message,
+        if (err instanceof ProjectValidationError) {
+          return err;
+        }
+        if (
+          err instanceof Error &&
+          (err.message.includes('duplicate') ||
+            err.message.includes('unique') ||
+            err.message.includes('23505') ||
+            err.message.includes('already exists'))
+        ) {
+          return new ProjectConflictError({
+            reason: 'Slug already exists',
           });
         }
-
-        return mapProject(data);
+        return new ProjectConflictError({
+          reason: err instanceof Error ? err.message : 'Conflict',
+        });
       },
-      catch: (err) =>
-        err instanceof ProjectConflictError
-          ? err
-          : err instanceof ForbiddenProjectAccessError
-            ? err
-            : err instanceof ProjectValidationError
-              ? err
-              : new ProjectConflictError({
-                  reason: err instanceof Error ? err.message : 'Conflict',
-                }),
     });
   }
 
@@ -118,41 +110,45 @@ export class ProjectService {
     userId: string,
     pagination: ListProjectsInput,
   ): Effect.Effect<ListProjectsOutput, never> {
-    const client = this.getClient();
     const { pageSize, index } = pagination;
-    const from = index * pageSize;
-    const to = from + pageSize - 1;
     return Effect.tryPromise(async () => {
-      const { data: memberRows, error: memberError } = await client
-        .from('team_members')
-        .select('project_id')
-        .eq('user_id', userId);
-      if (memberError !== null) {
-        throw memberError;
-      }
+      const [memberRows, ownerProjects] = await Promise.all([
+        this.em.find(TeamMemberEntity, { user_id: userId }),
+        this.em.find(ProjectEntity, { owner_id: userId }),
+      ]);
 
       const memberProjectIds =
-        memberRows?.map((row) => row.project_id).filter(Boolean) ?? [];
+        memberRows.length > 0
+          ? memberRows.map((m) => m.project_id)
+          : [];
 
-      const filters = [`owner_id.eq.${userId}`];
-      if (memberProjectIds.length > 0) {
-        filters.push(`id.in.(${memberProjectIds.join(',')})`);
-      }
+      const memberProjects =
+        memberProjectIds.length > 0
+          ? await this.em.find(ProjectEntity, {
+              id: { $in: memberProjectIds },
+            })
+          : [];
 
-      const { data, error, count } = await client
-        .from('projects')
-        .select('*', { count: 'exact' })
-        .or(filters.join(','))
-        .order('created_at', { ascending: false })
-        .range(from, to);
-      if (error !== null || data === null) {
-        throw error ?? new Error('Failed to list projects');
-      }
+      const ownerProjectIds = new Set(ownerProjects.map((p) => p.id));
+      const allProjects = [
+        ...ownerProjects,
+        ...memberProjects.filter((p) => !ownerProjectIds.has(p.id)),
+      ];
+      const uniqueProjects = Array.from(
+        new Map(allProjects.map((p) => [p.id, p])).values(),
+      );
 
-      const totalCount = count ?? 0;
+      uniqueProjects.sort(
+        (a, b) =>
+          new Date(b.created_at ?? 0).getTime() -
+          new Date(a.created_at ?? 0).getTime(),
+      );
 
-      const hasNext = (index + 1) * pageSize < totalCount;
-      const items = data;
+      const totalCount = uniqueProjects.length;
+      const from = index * pageSize;
+      const to = from + pageSize;
+      const items = uniqueProjects.slice(from, to);
+      const hasNext = to < totalCount;
       const totalPageCount =
         pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0;
 
@@ -204,27 +200,31 @@ export class ProjectService {
     TeamMemberRow,
     ProjectNotFoundError | ForbiddenProjectAccessError
   > {
-    const client = this.getClient();
     return pipe(
       this.ensureOwner(userId, projectId),
       Effect.flatMap(() =>
         Effect.tryPromise({
           try: async () => {
-            const { data, error } = await client
-              .from('team_members')
-              .insert({
-                project_id: projectId,
-                user_id: input.userId,
-                role: input.role,
-              })
-              .select('*')
-              .single<TeamMemberRow>();
-            if (error !== null || data === null) {
-              throw new Error(error?.message ?? 'Failed to add member');
-            }
-            return data;
+            const member = this.em.create(TeamMemberEntity, {
+              id: randomUUID(),
+              project_id: projectId,
+              user_id: input.userId,
+              role: input.role,
+              created_at: new Date().toISOString(),
+            });
+            await this.em.persistAndFlush(member);
+            return {
+              id: member.id,
+              project_id: member.project_id,
+              user_id: member.user_id,
+              role: member.role,
+              invited_at: member.invited_at,
+              joined_at: member.joined_at,
+              invited_by: member.invited_by,
+              created_at: member.created_at,
+            } as TeamMemberRow;
           },
-          catch: (err) => new ProjectNotFoundError(),
+          catch: () => new ProjectNotFoundError(),
         }),
       ),
     );
@@ -235,20 +235,19 @@ export class ProjectService {
     projectId: string,
     memberId: string,
   ): Effect.Effect<void, ProjectNotFoundError | ForbiddenProjectAccessError> {
-    const client = this.getClient();
     return pipe(
       this.ensureOwner(userId, projectId),
       Effect.flatMap(() =>
         Effect.tryPromise({
           try: async () => {
-            const { error } = await client
-              .from('team_members')
-              .delete()
-              .eq('project_id', projectId)
-              .eq('user_id', memberId);
-            if (error !== null) {
-              throw new Error(error.message);
+            const member = await this.em.findOne(TeamMemberEntity, {
+              project_id: projectId,
+              user_id: memberId,
+            });
+            if (member === null) {
+              throw new Error('Member not found');
             }
+            await this.em.removeAndFlush(member);
           },
           catch: () => new ProjectNotFoundError(),
         }),
@@ -260,28 +259,23 @@ export class ProjectService {
     userId: string,
     projectId: string,
   ): Effect.Effect<
-    ProjectRow,
+    ProjectEntity,
     ProjectNotFoundError | ForbiddenProjectAccessError
   > {
-    const client = this.getClient();
     return Effect.tryPromise({
       try: async () => {
-        const { data, error } = await client
-          .from('projects')
-          .select('*')
-          .eq('id', projectId)
-          .single<ProjectRow>();
-        if (error !== null || data === null) {
+        const project = await this.em.findOne(ProjectEntity, { id: projectId });
+        if (project === null) {
           throw new ProjectNotFoundError();
         }
-        if (data.owner_id !== userId) {
+        if (project.owner_id !== userId) {
           throw new ForbiddenProjectAccessError({
             plan: 'unknown',
             currentCount: 0,
             limit: 0,
           });
         }
-        return data;
+        return project;
       },
       catch: (err) => {
         if (err instanceof ProjectNotFoundError) {
@@ -299,32 +293,35 @@ export class ProjectService {
     projectId: string,
     input: UpdateProjectInput,
   ): Effect.Effect<Project, ProjectNotFoundError> {
-    const client = this.getClient();
     return Effect.tryPromise({
       try: async () => {
-        const { data, error } = await client
-          .from('projects')
-          .update({
-            name: input.name,
-            description: input.description,
-            languages: input.languages,
-            default_language: input.defaultLanguage,
-            slug: input.slug,
-          })
-          .eq('id', projectId)
-          .select('*')
-          .single<ProjectRow>();
-        if (error !== null || data === null) {
+        const project = await this.em.findOne(ProjectEntity, { id: projectId });
+        if (project === null) {
           throw new ProjectNotFoundError();
         }
-        return mapProject(data);
+        if (input.name !== undefined) {
+          project.name = input.name;
+        }
+        if (input.description !== undefined) {
+          project.description = input.description;
+        }
+        if (input.languages !== undefined) {
+          project.languages = input.languages;
+        }
+        if (input.defaultLanguage !== undefined) {
+          project.default_language = input.defaultLanguage;
+        }
+        if (input.slug !== undefined) {
+          const slug = this.normalizeSlug(input.slug);
+          this.validateSlug(slug);
+          project.slug = slug;
+        }
+        project.updated_at = new Date().toISOString();
+        await this.em.flush();
+        return mapProject(project);
       },
       catch: () => new ProjectNotFoundError(),
     });
-  }
-
-  private getClient(): SupabaseClient<Database> {
-    return this.supabaseService.getClient();
   }
 
   private normalizeSlug(raw: string): string {
@@ -344,31 +341,36 @@ export class ProjectService {
     }
   }
 
-  private async countProjects(
-    client: SupabaseClient<Database>,
-    userId: string,
-  ): Promise<number> {
-    const { count, error } = await client
-      .from('projects')
-      .select('*', { count: 'exact', head: true })
-      .eq('owner_id', userId);
-    if (error !== null || count === null) {
-      return 0;
-    }
+  private async countProjects(userId: string): Promise<number> {
+    const count = await this.em.count(ProjectEntity, { owner_id: userId });
     return count;
   }
 }
 
-function mapProject(row: ProjectRow): Project {
+function mapProject(row: ProjectRow | ProjectEntity): Project {
+  const projectRow =
+    row instanceof ProjectEntity
+      ? {
+          id: row.id,
+          name: row.name,
+          description: row.description,
+          languages: row.languages,
+          default_language: row.default_language,
+          slug: row.slug,
+          owner_id: row.owner_id,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+        }
+      : row;
   return {
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    languages: row.languages,
-    defaultLanguage: row.default_language,
-    slug: row.slug,
-    ownerId: row.owner_id,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    id: projectRow.id,
+    name: projectRow.name,
+    description: projectRow.description,
+    languages: projectRow.languages,
+    defaultLanguage: projectRow.default_language,
+    slug: projectRow.slug,
+    ownerId: projectRow.owner_id,
+    createdAt: projectRow.created_at,
+    updatedAt: projectRow.updated_at,
   };
 }

@@ -1,18 +1,41 @@
 import { Plus, Globe } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { openCreateProjectDialog } from "./CreateProjectDialog/CreateProjectDialog";
+import { useGetMe } from "~/hooks/useGetMe";
+import {
+  canCreateProject,
+  getDisabledReason,
+  type PlanName,
+} from "../utils/planUtils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 
 /**
  * Dashboard page header component
  */
 export function DashboardPageHeader() {
+  const { data: userData } = useGetMe();
+
+  // Get plan from user data
+  const plan = (
+    typeof userData?.plan === "string" ? userData.plan : "free"
+  ) as PlanName;
+
+  // Check if user can create project
+  const canCreate = canCreateProject(plan, userData?.team?.projectCount ?? 0);
+  const disabledReason = getDisabledReason(
+    plan,
+    userData?.team?.projectCount ?? 0
+  );
+
   const handleCreateProject = async () => {
-    const result = await openCreateProjectDialog();
-    if (result) {
-      // Project created successfully
-      // TODO: Refresh projects list or navigate to new project
-      console.log("Project created:", result);
+    if (!canCreate) {
+      return;
     }
+    await openCreateProjectDialog();
   };
 
   return (
@@ -27,13 +50,34 @@ export function DashboardPageHeader() {
         </p>
       </div>
       <div className="flex items-center gap-3">
-        <Button
-          onClick={handleCreateProject}
-          className="shadow-sm hover:shadow-md"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create Project</span>
-        </Button>
+        {disabledReason ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="inline-block">
+                <Button
+                  onClick={handleCreateProject}
+                  disabled={!canCreate}
+                  className="shadow-sm hover:shadow-md"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Create Project</span>
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent className="bg-card text-card-foreground border border-border shadow-md rounded-lg px-3 py-2 text-xs max-w-[280px]">
+              <p className="leading-relaxed">{disabledReason}</p>
+            </TooltipContent>
+          </Tooltip>
+        ) : (
+          <Button
+            onClick={handleCreateProject}
+            disabled={!canCreate}
+            className="shadow-sm hover:shadow-md"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create Project</span>
+          </Button>
+        )}
       </div>
     </div>
   );
