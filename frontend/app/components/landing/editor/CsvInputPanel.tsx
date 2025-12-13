@@ -1,4 +1,3 @@
-import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import CodeMirror from "@uiw/react-codemirror";
 import { Upload, Maximize2, X, Table, FileText } from "lucide-react";
@@ -37,15 +36,12 @@ export function CsvInputPanel({
   viewMode = "code",
   onToggleViewMode,
 }: CsvInputPanelProps) {
-  const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      const file = acceptedFiles[0];
-      if (file) {
-        onFileUpload(file);
-      }
-    },
-    [onFileUpload]
-  );
+  function onDrop(acceptedFiles: File[]) {
+    const file = acceptedFiles[0];
+    if (file) {
+      onFileUpload(file);
+    }
+  }
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,

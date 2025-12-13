@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { DashboardLayout } from "~/components/dashboard/DashboardLayout";
+import { filterAndSortProjects } from "./utils/projectFilters";
 import {
   Plus,
   Search,
@@ -103,51 +104,11 @@ export const DashboardPage: React.FC = () => {
   const [stats] = useState<DashboardStats>(mockStats);
 
   // Filter and sort projects
-  const filteredProjects = React.useMemo(() => {
-    let filtered = projects;
-
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (p) =>
-          p.name.toLowerCase().includes(query) ||
-          p.description.toLowerCase().includes(query) ||
-          p.type.toLowerCase().includes(query) ||
-          p.targetLangs.some((lang) => lang.toLowerCase().includes(query))
-      );
-    }
-
-    // Status filter
-    if (filterStatus !== "all") {
-      filtered = filtered.filter((p) => p.status === filterStatus);
-    }
-
-    // Sort
-    const sorted = [...filtered].sort((a, b) => {
-      switch (sortOption) {
-        case "newest":
-          return (
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-        case "oldest":
-          return (
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-        case "name-asc":
-          return a.name.localeCompare(b.name);
-        case "name-desc":
-          return b.name.localeCompare(a.name);
-        case "updated":
-          // Simplified - would need actual updatedAt timestamps
-          return 0;
-        default:
-          return 0;
-      }
-    });
-
-    return sorted;
-  }, [projects, searchQuery, filterStatus, sortOption]);
+  const filteredProjects = filterAndSortProjects(projects, {
+    searchQuery,
+    filterStatus,
+    sortOption,
+  });
 
   const isAtProjectLimit = stats.totalProjects >= stats.projectsLimit;
   const apiUsagePercent = (stats.apiUsage / stats.apiLimit) * 100;

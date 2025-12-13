@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { TypoH1, TypoP } from "~/components/typo";
@@ -66,12 +66,14 @@ export function TestimonialsSection() {
   }, [isPaused]);
 
   // responsive slices
-  const visible = useMemo(() => {
+  function getVisibleCount() {
     if (typeof window === "undefined") return 3;
     if (window.matchMedia("(max-width: 767px)").matches) return 1;
     if (window.matchMedia("(max-width: 1023px)").matches) return 2;
     return 3;
-  }, []);
+  }
+
+  const visible = getVisibleCount();
 
   const getVisible = () => {
     const arr: Testimonial[] = [];
