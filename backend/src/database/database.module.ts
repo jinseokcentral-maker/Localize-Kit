@@ -46,11 +46,7 @@ function getDbUrl(configService: ConfigService): string {
         const parsedUrl = new URL(dbUrl);
         return {
           driver: PostgreSqlDriver,
-          host: parsedUrl.hostname,
-          port: parsedUrl.port ? parseInt(parsedUrl.port, 10) : 5432,
-          user: parsedUrl.username,
-          password: parsedUrl.password,
-          dbName: parsedUrl.pathname.slice(1),
+          clientUrl: dbUrl,
           entities: [ProfileEntity, ProjectEntity, TeamMemberEntity],
           autoLoadEntities: false,
           connect: true,
@@ -64,6 +60,12 @@ function getDbUrl(configService: ConfigService): string {
             safe: false,
             snapshot: true,
             emit: 'ts',
+          },
+          driverOptions: {
+            connection: {
+              options: '-c sslmode=require',
+              family: 'IPv4',
+            },
           },
         };
       },

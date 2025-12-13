@@ -59,7 +59,7 @@ export class ProjectService {
           id: randomUUID(),
           name: input.name,
           description: input.description ?? null,
-          languages,
+          languages: languages as string[],
           default_language: defaultLanguage,
           slug,
           owner_id: userId,
