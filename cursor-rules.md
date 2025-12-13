@@ -10,4 +10,5 @@
   - Keep functions pure; no hidden side effects. Side effects live in Effect pipelines.
   - Validate external responses (e.g., `effect/Schema` or `zod`) before use.
   - Batch and dedupe external calls when possible (see batching guidance).
-- Prefer Suspensive for data fetching/UI async flows: use SuspenseQuery / SuspenseQueries / SuspenseInfiniteQuery (and matching hooks) with Suspense + ErrorBoundary wrappers; keep components in happy-path mode and push loading/error handling to boundaries.
+- Prefer React Suspense for data fetching/UI async flows: use TanStack Query's `useSuspenseQuery` with Suspense + ErrorBoundary wrappers; keep components in happy-path mode and push loading/error handling to boundaries. **Always wrap Suspense with ErrorBoundary** - Suspense handles loading states, ErrorBoundary handles error states. Never use Suspense without ErrorBoundary.
+- Use `nuqs` and `tanstack query` proactively to minimize props: Use `nuqs`'s `useQueryState` for URL state management, and `tanstack query` for server state. Each component should read its required state directly rather than receiving it via props to avoid props drilling.

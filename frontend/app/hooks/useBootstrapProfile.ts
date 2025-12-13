@@ -3,9 +3,10 @@ import { Effect } from "effect";
 import { useLocation, useNavigate } from "react-router";
 import { supabase } from "~/lib/supabaseClient";
 import { apiClient } from "~/lib/api/authClient";
-import { authControllerLoginWithProvider } from "../api";
+import { extractApiData } from "~/lib/api/apiWrapper";
 import { useTokenStore } from "../stores/tokenStore";
 import { useSupabase } from "./useAuth";
+import { authControllerLoginWithProvider } from "~/api";
 
 export function useBootstrapProfile() {
   const { isInitialized, isSupabaseReady, isAuthenticated } = useSupabase();
@@ -41,18 +42,23 @@ export function useBootstrapProfile() {
 
       const loginRes = yield* _(
         Effect.tryPromise({
-          try: () =>
-            authControllerLoginWithProvider({
+          try: async () => {
+            const response = await authControllerLoginWithProvider({
               client: apiClient,
               body: { accessToken: supabaseAccess },
               throwOnError: true,
-            }),
+            });
+            return extractApiData<{
+              accessToken: string;
+              refreshToken: string;
+            }>(response.data);
+          },
           catch: (err) => err,
         }),
       );
 
-      const accessToken = loginRes.data?.data?.accessToken;
-      const refreshToken = loginRes.data?.data?.refreshToken;
+      const accessToken = loginRes.accessToken;
+      const refreshToken = loginRes.refreshToken;
 
       if (!accessToken) {
         yield* _(Effect.sync(() => clear()));

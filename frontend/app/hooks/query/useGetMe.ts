@@ -2,19 +2,29 @@ import { useQuery } from "@tanstack/react-query";
 import { Effect } from "effect";
 import { apiClient } from "~/lib/api/authClient";
 import { userControllerGetMe } from "~/api";
-import type { UserControllerGetMeResponse } from "~/api/types.gen";
+import { extractApiData } from "~/lib/api/apiWrapper";
+
+type UserData = {
+    id: string;
+    email?: string | unknown;
+    fullName?: string | unknown;
+    avatarUrl?: string | unknown;
+    plan?: string | unknown;
+    createdAt?: string | unknown;
+    updatedAt?: string | unknown;
+};
 
 /**
  * Effect-based API call for getting current user profile
  */
-function getMeEffect(): Effect.Effect<UserControllerGetMeResponse, Error> {
+function getMeEffect(): Effect.Effect<UserData, Error> {
     return Effect.tryPromise({
         try: async () => {
             const { data } = await userControllerGetMe({
                 client: apiClient,
                 throwOnError: true,
             });
-            return data;
+            return extractApiData<UserData>(data);
         },
         catch: (err) =>
             new Error(

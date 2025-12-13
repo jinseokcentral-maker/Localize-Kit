@@ -1,6 +1,7 @@
 /**
  * Dashboard project filtering and sorting utilities
  */
+import dayjs from "dayjs";
 import type { FilterStatus, Project, SortOption } from "~/types/dashboard";
 
 /**
@@ -44,13 +45,13 @@ export function sortProjects(
         switch (sortOption) {
             case "newest":
                 return (
-                    new Date(b.createdAt).getTime() -
-                    new Date(a.createdAt).getTime()
+                    dayjs(b.createdAt).valueOf() -
+                    dayjs(a.createdAt).valueOf()
                 );
             case "oldest":
                 return (
-                    new Date(a.createdAt).getTime() -
-                    new Date(b.createdAt).getTime()
+                    dayjs(a.createdAt).valueOf() -
+                    dayjs(b.createdAt).valueOf()
                 );
             case "name-asc":
                 return a.name.localeCompare(b.name);
