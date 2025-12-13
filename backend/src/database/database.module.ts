@@ -6,7 +6,9 @@ import type { MikroOrmModuleOptions } from '@mikro-orm/nestjs';
 import { Effect } from 'effect';
 import { ProfileEntity } from './entities/profile.entity';
 import { ProjectEntity } from './entities/project.entity';
+import { TeamEntity } from './entities/team.entity';
 import { TeamMemberEntity } from './entities/team-member.entity';
+import { TeamMembershipEntity } from './entities/team-membership.entity';
 import { URL } from 'url';
 
 const DB_URL_KEY = 'DB_URL_STRING';
@@ -47,7 +49,13 @@ function getDbUrl(configService: ConfigService): string {
         return {
           driver: PostgreSqlDriver,
           clientUrl: dbUrl,
-          entities: [ProfileEntity, ProjectEntity, TeamMemberEntity],
+          entities: [
+            ProfileEntity,
+            ProjectEntity,
+            TeamEntity,
+            TeamMemberEntity,
+            TeamMembershipEntity,
+          ],
           autoLoadEntities: false,
           connect: true,
           debug: process.env.NODE_ENV !== 'production',

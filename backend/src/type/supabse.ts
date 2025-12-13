@@ -156,6 +156,7 @@ export type Database = {
           id: string;
           plan: string | null;
           stripe_customer_id: string | null;
+          team_id: string | null;
           updated_at: string | null;
         };
         Insert: {
@@ -166,6 +167,7 @@ export type Database = {
           id: string;
           plan?: string | null;
           stripe_customer_id?: string | null;
+          team_id?: string | null;
           updated_at?: string | null;
         };
         Update: {
@@ -176,6 +178,7 @@ export type Database = {
           id?: string;
           plan?: string | null;
           stripe_customer_id?: string | null;
+          team_id?: string | null;
           updated_at?: string | null;
         };
         Relationships: [];
@@ -292,6 +295,65 @@ export type Database = {
             columns: ['project_id'];
             isOneToOne: false;
             referencedRelation: 'projects';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      teams: {
+        Row: {
+          id: string;
+          name: string;
+          owner_id: string;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          owner_id: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          owner_id?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      team_memberships: {
+        Row: {
+          id: string;
+          team_id: string;
+          user_id: string;
+          role: string;
+          joined_at: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          team_id: string;
+          user_id: string;
+          role?: string;
+          joined_at?: string | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          team_id?: string;
+          user_id?: string;
+          role?: string;
+          joined_at?: string | null;
+          created_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'team_memberships_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
             referencedColumns: ['id'];
           },
         ];

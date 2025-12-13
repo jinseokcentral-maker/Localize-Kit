@@ -17,6 +17,6 @@ export type TeamInfo = Readonly<{
   projectCount: number;
   plan: string | null;
   canCreateProject: boolean;
+  teamName: string | null;
+  memberCount: number;
 }>;
-
-

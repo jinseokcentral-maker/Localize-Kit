@@ -23,6 +23,9 @@ export class ProfileEntity implements ProfileRow {
   @Property({ nullable: true, columnType: 'text' })
   stripe_customer_id!: string | null;
 
+  @Property({ nullable: true })
+  team_id!: string | null;
+
   @Property({ nullable: true, columnType: 'timestamp' })
   created_at!: string | null;
 

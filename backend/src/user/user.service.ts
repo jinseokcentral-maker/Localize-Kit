@@ -6,6 +6,8 @@ import { Effect, pipe } from 'effect';
 import { JWT_REFRESH_EXPIRES_IN_KEY } from '../auth/constants/auth.constants';
 import { ProfileEntity } from '../database/entities/profile.entity';
 import { ProjectEntity } from '../database/entities/project.entity';
+import { TeamEntity } from '../database/entities/team.entity';
+import { TeamMembershipEntity } from '../database/entities/team-membership.entity';
 import { canCreateProject, type PlanName } from '../project/plan/plan.util';
 import { UserConflictError, UserNotFoundError } from './errors/user.errors';
 import type { RegisterUserInput, UpdateUserInput } from './user.schemas';
@@ -176,10 +178,24 @@ export class UserService {
         ]);
         const plan = (profile?.plan ?? 'free') as PlanName;
         const canCreate = canCreateProject(plan, projectCount);
+
+        let teamName: string | null = null;
+        let memberCount = 0;
+        if (profile?.team_id !== null && profile?.team_id !== undefined) {
+          const [team, count] = await Promise.all([
+            this.em.findOne(TeamEntity, { id: profile.team_id }),
+            this.em.count(TeamMembershipEntity, { team_id: profile.team_id }),
+          ]);
+          teamName = team?.name ?? null;
+          memberCount = count;
+        }
+
         return {
           projectCount,
           plan: profile?.plan ?? 'free',
           canCreateProject: canCreate,
+          teamName,
+          memberCount,
         };
       },
       catch: () => new Error('Failed to fetch team info'),
@@ -189,6 +205,8 @@ export class UserService {
           projectCount: 0,
           plan: 'free',
           canCreateProject: false,
+          teamName: null,
+          memberCount: 0,
         }),
       ),
     );
