@@ -1,4 +1,7 @@
 
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
 echo "🧪 Running tests before push (concurrent)..."
 echo ""
 
@@ -10,12 +13,24 @@ cd "$REPO_ROOT" || exit 1
 FRONTEND_LOG="/tmp/frontend-test-$$.log"
 BACKEND_LOG="/tmp/backend-test-$$.log"
 
+# Function to prefix output with [Frontend] or [Backend]
+prefix_output() {
+  local prefix="$1"
+  while IFS= read -r line; do
+    echo "[$prefix] $line"
+  done
+}
+
 # Run frontend and backend tests concurrently
 echo "📦 Starting frontend and backend tests..."
-(cd "$REPO_ROOT/frontend" && pnpm run test -- --run > "$FRONTEND_LOG" 2>&1) &
+echo ""
+
+# Frontend test with prefixed output
+(cd "$REPO_ROOT/frontend" && pnpm run test -- --run 2>&1 | prefix_output "Frontend" | tee "$FRONTEND_LOG") &
 FRONTEND_PID=$!
 
-(cd "$REPO_ROOT/backend" && pnpm run test > "$BACKEND_LOG" 2>&1) &
+# Backend test with prefixed output
+(cd "$REPO_ROOT/backend" && pnpm run test 2>&1 | prefix_output "Backend" | tee "$BACKEND_LOG") &
 BACKEND_PID=$!
 
 # Wait for both tests to complete
@@ -25,29 +40,23 @@ FRONTEND_EXIT=$?
 wait $BACKEND_PID
 BACKEND_EXIT=$?
 
+# Cleanup log files
+rm -f "$FRONTEND_LOG" "$BACKEND_LOG"
+
 # Check results
 FAILED=false
 
 if [ $FRONTEND_EXIT -ne 0 ]; then
   echo ""
-  echo "❌ Frontend tests failed (exit code: $FRONTEND_EXIT):"
-  echo "----------------------------------------"
-  cat "$FRONTEND_LOG"
-  echo "----------------------------------------"
+  echo "❌ Frontend tests failed (exit code: $FRONTEND_EXIT)"
   FAILED=true
 fi
 
 if [ $BACKEND_EXIT -ne 0 ]; then
   echo ""
-  echo "❌ Backend tests failed (exit code: $BACKEND_EXIT):"
-  echo "----------------------------------------"
-  cat "$BACKEND_LOG"
-  echo "----------------------------------------"
+  echo "❌ Backend tests failed (exit code: $BACKEND_EXIT)"
   FAILED=true
 fi
-
-# Cleanup log files
-rm -f "$FRONTEND_LOG" "$BACKEND_LOG"
 
 if [ "$FAILED" = true ]; then
   echo ""
