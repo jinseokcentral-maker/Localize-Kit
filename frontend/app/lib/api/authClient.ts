@@ -84,7 +84,7 @@ export const createAuthClient = ({
 
             let newTokens: TokenBundle;
             try {
-                newTokens = (await refreshRes.json()) as TokenBundle;
+                newTokens = (await refreshRes.json()).data as TokenBundle;
             } catch {
                 await tokenProvider.clearTokens();
                 return response;
