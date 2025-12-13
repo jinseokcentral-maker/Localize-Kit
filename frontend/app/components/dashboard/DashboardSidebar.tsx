@@ -43,6 +43,7 @@ import { useSupabase } from "~/hooks/useAuth";
 import { useTokenStore } from "~/stores/tokenStore";
 import { useGetMe } from "~/hooks/useGetMe";
 import { getPlanDisplayName } from "~/pages/dashboard/utils/planUtils";
+import { supabase } from "~/lib/supabaseClient";
 
 interface DashboardSidebarProps {
   currentPath: string;
@@ -70,7 +71,6 @@ function getUserInitials(
 
 export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
   const navigate = useNavigate();
-  const { accessToken } = useTokenStore();
   const { clear } = useTokenStore();
   const { data: userData } = useGetMe();
 
@@ -88,6 +88,7 @@ export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
   const userInitials = getUserInitials(fullName, email);
 
   const handleLogout = async () => {
+    await supabase.auth.signOut();
     clear();
     navigate("/");
   };
