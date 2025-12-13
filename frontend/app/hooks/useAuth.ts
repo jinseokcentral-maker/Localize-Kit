@@ -1,44 +1,64 @@
 import { useEffect, useState } from "react";
+import { Effect } from "effect";
 
-import { supabase, isSupabaseConfigured } from "~/lib/supabaseClient";
+import { isSupabaseConfigured, supabase } from "~/lib/supabaseClient";
 
 export function useSupabase() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSupabaseReady, setIsSupabaseReady] = useState(false);
-
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
+    let cancelled = false;
 
     if (!isSupabaseConfigured) {
-      if (mounted) {
+      if (!cancelled) {
         setIsInitialized(true);
         setIsSupabaseReady(false);
         setIsAuthenticated(false);
       }
       return () => {
-        mounted = false;
+        cancelled = true;
       };
     }
 
     setIsSupabaseReady(true);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      setIsAuthenticated(!!session?.user);
-      setIsInitialized(true);
-    });
-
+    // Setup auth state change listener (synchronous)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return;
-      setIsAuthenticated(!!session?.user);
+      if (!cancelled) {
+        setIsAuthenticated(!!session?.user);
+      }
+    });
+
+    // Get initial session using Effect
+    const sessionEffect = Effect.gen(function* (_) {
+      const sessionRes = yield* _(
+        Effect.tryPromise({
+          try: () => supabase.auth.getSession(),
+          catch: (err) => err as Error,
+        }),
+      );
+
+      if (!cancelled) {
+        setIsAuthenticated(!!sessionRes.data.session?.user);
+        setIsInitialized(true);
+      }
+    });
+
+    Effect.runPromise(
+      sessionEffect.pipe(Effect.catchAll(() => Effect.void)),
+    ).catch(() => {
+      // Handle error silently or set error state if needed
+      if (!cancelled) {
+        setIsInitialized(true);
+      }
     });
 
     return () => {
-      mounted = false;
+      cancelled = true;
       subscription.unsubscribe();
     };
   }, []);
@@ -47,6 +67,5 @@ export function useSupabase() {
     isSupabaseReady,
     isInitialized,
     isAuthenticated,
-
   };
 }

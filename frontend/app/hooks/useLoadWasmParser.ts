@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Effect } from "effect";
 
 type LoadStatus = "idle" | "loading" | "loaded" | "error";
 
@@ -11,20 +12,39 @@ export function useLoadWasmParser(): LoadStatus {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
     setStatus("loading");
 
-    void import("~/lib/parser/index")
-      .then(({ initWasm }: { initWasm: () => Promise<void> }) =>
-        initWasm?.()
-      )
-      .then(() => {
-        setStatus("loaded");
-        console.info("[LocalizeKit] WASM parser loaded");
-      })
-      .catch((err) => {
-        setStatus("error");
-        console.warn("[LocalizeKit] WASM parser load failed", err);
-      });
+    const loadWasmEffect = Effect.gen(function* (_) {
+      // Dynamic import of parser module
+      const parserModule = yield* _(
+        Effect.tryPromise({
+          try: () => import("~/lib/parser/index"),
+          catch: (err) => err as Error,
+        }),
+      );
+
+      // Initialize WASM
+      yield* _(
+        Effect.tryPromise({
+          try: () => parserModule.initWasm?.(),
+          catch: (err) => err as Error,
+        }),
+      );
+
+      setStatus("loaded");
+      console.info("[LocalizeKit] WASM parser loaded");
+    });
+
+    Effect.runPromise(
+      loadWasmEffect.pipe(
+        Effect.catchAll((err) => {
+          setStatus("error");
+          console.warn("[LocalizeKit] WASM parser load failed", err);
+          return Effect.void;
+        }),
+      ),
+    );
   }, []);
 
   return status;

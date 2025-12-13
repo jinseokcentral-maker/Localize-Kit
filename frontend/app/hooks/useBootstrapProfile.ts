@@ -72,10 +72,14 @@ export function useBootstrapProfile() {
       }
     });
 
-    Effect.runPromise(syncEffect).catch((err) => {
-      console.error("Bootstrap auth sync failed", err);
-      clear();
-    });
+    Effect.runPromise(
+      syncEffect.pipe(
+        Effect.catchAll((err) => {
+          console.error("Bootstrap auth sync failed", err);
+          return Effect.sync(() => clear());
+        }),
+      ),
+    );
   }, [
     isInitialized,
     isSupabaseReady,
