@@ -49,5 +49,3 @@ export function useLoadWasmParser(): LoadStatus {
 
   return status;
 }
-
-

@@ -1,42 +1,33 @@
 import { useQueryState, parseAsStringLiteral, parseAsBoolean } from "nuqs";
 import { useEffect, useRef, useState } from "react";
+import { Effect } from "effect";
 import { cn } from "~/lib/utils";
 import { CsvInputPanel } from "./CsvInputPanel";
 import { JsonOutputPanel } from "./JsonOutputPanel";
 import { EditorControls } from "./EditorControls";
 import { useCsvStore } from "~/stores/csvStore";
-import {
-  parseCsvString,
-  rewriteCsvKeySeparator,
-  excelToCsv,
-} from "~/lib/parser/index";
-import { logTimed } from "~/lib/logger";
 import { useLoadWasmParser } from "~/hooks/useLoadWasmParser";
 import { toast } from "sonner";
-import JSZip from "jszip";
-
-// 샘플 데이터 (중첩 키 예시 포함)
-const SAMPLE_CSV = `key,en,ko,ja
-common.hello,Hello,안녕하세요,こんにちは
-common.goodbye,Goodbye,안녕히 가세요,さようなら
-common.welcome,Welcome,환영합니다,ようこそ
-auth.login,Login,로그인,ログイン
-auth.logout,Logout,로그아웃,ログアウト
-auth.signup,Sign up,회원가입,新規登録
-errors.notFound,Page not found,페이지를 찾을 수 없습니다,ページが見つかりません
-errors.serverError,Server error,서버 오류,サーバーエラー`;
-
-// 언어 코드 추출
-function extractLanguages(csv: string): string[] {
-  const firstLine = csv.trim().split("\n")[0];
-  if (!firstLine) return [];
-
-  const headers = firstLine.split(",").map((h) => h.trim());
-  return headers.filter((h) => h.toLowerCase() !== "key").map((h) => h); // 원본 케이스 유지
-}
+import {
+  extractLanguages,
+  resolveLanguageKey,
+  getCurrentLanguage,
+  formatJsonOutput,
+  isExcelFile,
+  isCsvFile,
+  isValidFileType,
+  type Separator,
+} from "./utils/editorUtils";
+import {
+  parseCsvEffect,
+  rewriteCsvSeparatorEffect,
+  excelToCsvEffect,
+  readFileAsArrayBufferEffect,
+  readFileAsTextEffect,
+  generateZipEffect,
+} from "./utils/editorEffects";
 
 export type OutputFormat = "json";
-export type Separator = "." | "/" | "-";
 const OUTPUT_FORMATS = ["json"] as const;
 const SEPARATORS = [".", "/", "-"] as const;
 
@@ -80,16 +71,12 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
     : extractLanguages(csvContent);
 
   // 빈 문자열이면 첫 번째 파싱된 언어 사용. 조회용은 항상 소문자로 통일.
-  const currentLanguageRaw = activeLanguage || languages[0] || "en";
-  const currentLanguage = currentLanguageRaw.toLowerCase();
+  const currentLanguage = getCurrentLanguage(activeLanguage, languages);
 
-  const resolvedLanguageKey = (() => {
-    const target = currentLanguage.toLowerCase().replace("_", "-");
-    return Object.keys(jsonOutput).find((key) => {
-      const normalized = key.toLowerCase().replace("_", "-");
-      return normalized === target;
-    });
-  })();
+  const resolvedLanguageKey = resolveLanguageKey(
+    currentLanguage,
+    Object.keys(jsonOutput)
+  );
 
   const currentJson = resolvedLanguageKey
     ? jsonOutput[resolvedLanguageKey]
@@ -106,7 +93,7 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
     }
   }, [isFullscreen]);
 
-  async function parseAndSet(
+  function parseAndSet(
     csv: string,
     {
       fromUpload = false,
@@ -119,34 +106,42 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
     } = {}
   ) {
     if (wasmStatus !== "loaded") return;
-    const runId = ++parseRunIdRef.current;
-    const start = performance.now();
-    try {
-      const result = await parseCsvString(csv, {
-        separator: separatorOverride ?? separator,
-        nested: nestedOverride ?? nestedKeys,
-      });
-      if (runId !== parseRunIdRef.current) return;
-      setJsonOutput(result.data ?? {});
-      setParsedLanguages(result.languages || []);
-      setParseError(null);
-      const end = performance.now();
-      logTimed("Parse CSV", end - start);
 
-      if (fromUpload || uploadToastRef.current !== null) {
-        const durationMs = Math.round(end - start);
-        const rows = result.row_count ?? 0;
-        toast.success(`${rows} rows converted in ${durationMs}ms.`);
+    const runId = ++parseRunIdRef.current;
+
+    const parseEffect = parseCsvEffect(csv, {
+      separator: separatorOverride ?? separator,
+      nested: nestedOverride ?? nestedKeys,
+    });
+
+    Effect.runPromise(parseEffect)
+      .then((result) => {
+        if (runId !== parseRunIdRef.current) return;
+
+        setJsonOutput(result.data);
+        setParsedLanguages(result.languages);
+        setParseError(null);
+
+        if (fromUpload || uploadToastRef.current !== null) {
+          const durationMs = Math.round(
+            performance.now() - (uploadToastRef.current ?? performance.now())
+          );
+          const rows = result.row_count ?? 0;
+          toast.success(`${rows} rows converted in ${durationMs}ms.`);
+          uploadToastRef.current = null;
+        }
+      })
+      .catch((err) => {
+        if (runId !== parseRunIdRef.current) return;
+
+        setJsonOutput({});
+        setParsedLanguages([]);
+        setParseError(
+          err instanceof Error ? err.message : "Failed to parse CSV"
+        );
+        console.warn("[Editor] parse error", err);
         uploadToastRef.current = null;
-      }
-    } catch (err) {
-      if (runId !== parseRunIdRef.current) return;
-      setJsonOutput({});
-      setParsedLanguages([]);
-      setParseError(err instanceof Error ? err.message : "Failed to parse CSV");
-      console.warn("[Editor] parse error", err);
-      uploadToastRef.current = null;
-    }
+      });
   }
 
   function triggerParse(
@@ -190,106 +185,124 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
     if (hasInitialParseRef.current) return;
     if (wasmStatus === "loaded") {
       hasInitialParseRef.current = true;
-      const rewritten = rewriteCsvKeySeparator(csvContent, separator);
-      if (rewritten !== csvContent) {
-        setCsv(rewritten);
-      }
-      triggerParse(rewritten, {
-        immediate: true,
-        separatorOverride: separator,
+
+      Effect.runPromise(
+        rewriteCsvSeparatorEffect(csvContent, separator).pipe(
+          Effect.catchAll(() => Effect.succeed(csvContent))
+        )
+      ).then((rewritten) => {
+        if (rewritten !== csvContent) {
+          setCsv(rewritten);
+        }
+        triggerParse(rewritten, {
+          immediate: true,
+          separatorOverride: separator,
+        });
       });
     }
-  }, [wasmStatus, csvContent, separator]); // setCsv/triggerParse stable enough in scope
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wasmStatus, csvContent, separator]);
 
-  const handleSeparatorChange = (sep: Separator | null) => {
+  function handleSeparatorChange(sep: Separator | null) {
     if (!sep) return;
     setSeparator(sep);
-    const rewritten = rewriteCsvKeySeparator(csvContent, sep);
-    setCsv(rewritten);
-    triggerParse(rewritten, {
-      immediate: true,
-      separatorOverride: sep,
-    });
-  };
 
-  const handleNestedChange = (value: boolean) => {
+    Effect.runPromise(
+      rewriteCsvSeparatorEffect(csvContent, sep).pipe(
+        Effect.catchAll(() => Effect.succeed(csvContent))
+      )
+    ).then((rewritten) => {
+      setCsv(rewritten);
+      triggerParse(rewritten, {
+        immediate: true,
+        separatorOverride: sep,
+      });
+    });
+  }
+
+  function handleNestedChange(value: boolean) {
     setNestedKeys(value);
     triggerParse(csvContent, {
       immediate: true,
       nestedOverride: value,
     });
-  };
+  }
 
-  const handleCsvChange = (value: string) => {
+  function handleCsvChange(value: string) {
     setCsv(value);
     triggerParse(value);
-  };
+  }
 
   // 파일 업로드 핸들러
-  const handleFileUpload = (file: File) => {
-    const name = file.name.toLowerCase();
-    const isExcel = name.endsWith(".xlsx") || name.endsWith(".xls");
-    const isCsv = name.endsWith(".csv");
-
-    if (!isExcel && !isCsv) {
+  function handleFileUpload(file: File) {
+    if (!isValidFileType(file.name)) {
       toast.error("Invalid file type. Please upload CSV or Excel.");
       return;
     }
 
-    if (isExcel) {
+    if (isExcelFile(file.name)) {
       if (wasmStatus !== "loaded") {
         toast.error("WASM not loaded yet. Please try again.");
         return;
       }
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const buffer = e.target?.result as ArrayBuffer;
-          const csvText = await excelToCsv(new Uint8Array(buffer));
-          setCsv(csvText);
-          setActiveLanguage(null);
-          uploadToastRef.current = performance.now();
-          toast.success("Excel converted to CSV");
-          triggerParse(csvText, { immediate: true, fromUpload: true });
-        } catch (err) {
-          toast.error("Failed to parse Excel file");
-          console.error(err);
-        }
-      };
-      reader.readAsArrayBuffer(file);
+
+      const uploadEffect = Effect.gen(function* (_) {
+        const buffer = yield* _(readFileAsArrayBufferEffect(file));
+        const csvText = yield* _(excelToCsvEffect(new Uint8Array(buffer)));
+        return csvText;
+      });
+
+      Effect.runPromise(
+        uploadEffect.pipe(
+          Effect.catchAll((err) => {
+            toast.error("Failed to parse Excel file");
+            console.error(err);
+            return Effect.void;
+          })
+        )
+      ).then((csvText) => {
+        if (!csvText) return;
+
+        setCsv(csvText);
+        setActiveLanguage(null);
+        uploadToastRef.current = performance.now();
+        toast.success("Excel converted to CSV");
+        triggerParse(csvText, { immediate: true, fromUpload: true });
+      });
       return;
     }
 
-    if (isCsv) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        if (text) {
-          setCsv(text);
-          setActiveLanguage(null);
-          uploadToastRef.current = performance.now();
-          triggerParse(text, { immediate: true, fromUpload: true });
-        }
-      };
-      reader.readAsText(file);
+    if (isCsvFile(file.name)) {
+      Effect.runPromise(
+        readFileAsTextEffect(file).pipe(
+          Effect.catchAll((err) => {
+            toast.error("Failed to read CSV file");
+            console.error(err);
+            return Effect.void;
+          })
+        )
+      ).then((text) => {
+        if (!text) return;
+
+        setCsv(text);
+        setActiveLanguage(null);
+        uploadToastRef.current = performance.now();
+        triggerParse(text, { immediate: true, fromUpload: true });
+      });
       return;
     }
-  };
+  }
 
-  const formatted = {
-    text: JSON.stringify(currentJson, null, 2),
-    ext: "json",
-    mime: "application/json",
-  };
+  const formatted = formatJsonOutput(currentJson);
 
   // 복사 핸들러
-  const handleCopy = () => {
+  function handleCopy() {
     navigator.clipboard.writeText(formatted.text);
     toast.success("Copied output");
-  };
+  }
 
   // 다운로드 핸들러
-  const handleDownload = () => {
+  function handleDownload() {
     const blob = new Blob([formatted.text], { type: formatted.mime });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -300,25 +313,30 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Downloaded current output");
-  };
+  }
 
   // 전체 다운로드 핸들러
-  const handleDownloadAll = async () => {
-    const zip = new JSZip();
-    Object.entries(jsonOutput).forEach(([lang, data]) => {
-      const jsonString = JSON.stringify(data, null, 2);
-      zip.file(`${lang.toLowerCase()}.json`, jsonString);
-    });
+  function handleDownloadAll() {
+    Effect.runPromise(
+      generateZipEffect(jsonOutput).pipe(
+        Effect.catchAll((err) => {
+          toast.error("Failed to generate ZIP file");
+          console.error(err);
+          return Effect.void;
+        })
+      )
+    ).then((blob) => {
+      if (!blob) return;
 
-    const content = await zip.generateAsync({ type: "blob" });
-    const url = URL.createObjectURL(content);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "i18n.zip";
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Downloaded i18n.zip");
-  };
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "i18n.zip";
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Downloaded i18n.zip");
+    });
+  }
 
   return (
     <section className="px-8 py-12">
