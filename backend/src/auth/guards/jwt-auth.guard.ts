@@ -48,17 +48,20 @@ export class JwtAuthGuard implements CanActivate {
       return true;
     }
 
-    return Effect.runPromise(
-      pipe(
-        this.extractBearerToken(request),
-        Effect.flatMap((token) => this.verifyToken(token)),
-        Effect.tap((payload) => {
-          request.user = payload;
-        }),
-        Effect.as(true),
-        Effect.catchAll((err) => Effect.fail(toUnauthorizedException(err))),
-      ),
-    );
+    try {
+      return await Effect.runPromise(
+        pipe(
+          this.extractBearerToken(request),
+          Effect.flatMap((token) => this.verifyToken(token)),
+          Effect.tap((payload) => {
+            request.user = payload;
+          }),
+          Effect.as(true),
+        ),
+      );
+    } catch (err) {
+      throw toUnauthorizedException(err);
+    }
   }
 
   private getAccessLevel(context: ExecutionContext): AuthAccessLevel {

@@ -26,6 +26,7 @@ import {
 import { InvalidTokenError, ProviderAuthError } from './errors/auth.errors';
 import { toUnauthorizedException } from '../common/errors/unauthorized-error';
 import { errorMessages } from '../common/errors/error-messages';
+import { runEffectWithErrorHandling } from '../common/effect/effect.util';
 import { ResponseEnvelopeDto } from '../common/response/response.schema';
 import { buildResponse } from '../common/response/response.util';
 import type { ResponseEnvelope } from '../common/response/response.schema';
@@ -80,17 +81,18 @@ export class AuthController {
   async loginWithProvider(
     @Body() body: unknown,
   ): Promise<ResponseEnvelope<{ accessToken: string; refreshToken: string }>> {
-    return pipe(
-      Effect.try({
-        try: () => providerLoginSchema.parse(body),
-        catch: (err) => err,
-      }),
-      Effect.flatMap((parsed) =>
-        this.authService.loginWithGoogleAccessToken(parsed.accessToken),
+    return runEffectWithErrorHandling(
+      pipe(
+        Effect.try({
+          try: () => providerLoginSchema.parse(body),
+          catch: (err) => err,
+        }),
+        Effect.flatMap((parsed) =>
+          this.authService.loginWithGoogleAccessToken(parsed.accessToken),
+        ),
+        Effect.map((tokens) => buildResponse(tokens)),
       ),
-      Effect.catchAll((err) => Effect.fail(mapAuthError(err))),
-      Effect.map((tokens) => buildResponse(tokens)),
-      Effect.runPromise,
+      mapAuthError,
     );
   }
 
@@ -128,17 +130,18 @@ export class AuthController {
   async refreshTokens(
     @Body() body: unknown,
   ): Promise<ResponseEnvelope<{ accessToken: string; refreshToken: string }>> {
-    return pipe(
-      Effect.try({
-        try: () => refreshTokensSchema.parse(body),
-        catch: (err) => err,
-      }),
-      Effect.flatMap((parsed) =>
-        this.authService.refreshTokens(parsed.refreshToken),
+    return runEffectWithErrorHandling(
+      pipe(
+        Effect.try({
+          try: () => refreshTokensSchema.parse(body),
+          catch: (err) => err,
+        }),
+        Effect.flatMap((parsed) =>
+          this.authService.refreshTokens(parsed.refreshToken),
+        ),
+        Effect.map((tokens) => buildResponse(tokens)),
       ),
-      Effect.catchAll((err) => Effect.fail(mapRefreshError(err))),
-      Effect.map((tokens) => buildResponse(tokens)),
-      Effect.runPromise,
+      mapRefreshError,
     );
   }
 }

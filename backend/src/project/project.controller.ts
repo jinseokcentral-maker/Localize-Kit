@@ -28,6 +28,7 @@ import { Effect, pipe } from 'effect';
 import { Private } from '../auth/decorators/auth-access.decorator';
 import type { JwtPayload } from '../auth/guards/jwt-auth.guard';
 import { toUnauthorizedException } from '../common/errors/unauthorized-error';
+import { runEffectWithErrorHandling } from '../common/effect/effect.util';
 import {
   ResponseEnvelopeDto,
   type ResponseEnvelope,
@@ -147,25 +148,26 @@ export class ProjectController {
     @Req() req: AuthenticatedRequest,
     @Body() body: unknown,
   ): Promise<ResponseEnvelope<Project>> {
-    return pipe(
-      Effect.all({
-        userId: this.requireUserId(req),
-        plan: this.resolvePlan(req),
-        input: Effect.try({
-          try: () => createProjectSchema.parse(body),
-          catch: (err) => err,
+    return runEffectWithErrorHandling(
+      pipe(
+        Effect.all({
+          userId: this.requireUserId(req),
+          plan: this.resolvePlan(req),
+          input: Effect.try({
+            try: () => createProjectSchema.parse(body),
+            catch: (err) => err,
+          }),
         }),
-      }),
-      Effect.flatMap(({ userId, plan, input }) =>
-        this.projectService.createProject(
-          userId,
-          input as CreateProjectInput,
-          plan,
+        Effect.flatMap(({ userId, plan, input }) =>
+          this.projectService.createProject(
+            userId,
+            input as CreateProjectInput,
+            plan,
+          ),
         ),
+        Effect.map((project) => buildResponse(project)),
       ),
-      Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
-      Effect.map((project) => buildResponse(project)),
-      Effect.runPromise,
+      mapControllerError,
     );
   }
 
@@ -200,23 +202,24 @@ export class ProjectController {
     @Req() req: AuthenticatedRequest,
     @Query() query: unknown,
   ): Promise<ResponseEnvelope<ListProjectsOutput>> {
-    return pipe(
-      Effect.all({
-        userId: this.requireUserId(req),
-        pagination: Effect.try({
-          try: () => listProjectsSchema.parse(query),
-          catch: (err) => err,
+    return runEffectWithErrorHandling(
+      pipe(
+        Effect.all({
+          userId: this.requireUserId(req),
+          pagination: Effect.try({
+            try: () => listProjectsSchema.parse(query),
+            catch: (err) => err,
+          }),
         }),
-      }),
-      Effect.flatMap(({ userId, pagination }) =>
-        this.projectService.listProjects(
-          userId,
-          pagination as ListProjectsInput,
+        Effect.flatMap(({ userId, pagination }) =>
+          this.projectService.listProjects(
+            userId,
+            pagination as ListProjectsInput,
+          ),
         ),
+        Effect.map((projects) => buildResponse(projects)),
       ),
-      Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
-      Effect.map((projects) => buildResponse(projects)),
-      Effect.runPromise,
+      mapControllerError,
     );
   }
 
@@ -245,24 +248,25 @@ export class ProjectController {
     @Param('id') id: string,
     @Body() body: unknown,
   ): Promise<ResponseEnvelope<Project>> {
-    return pipe(
-      Effect.all({
-        userId: this.requireUserId(req),
-        input: Effect.try({
-          try: () => updateProjectSchema.parse(body),
-          catch: (err) => err,
+    return runEffectWithErrorHandling(
+      pipe(
+        Effect.all({
+          userId: this.requireUserId(req),
+          input: Effect.try({
+            try: () => updateProjectSchema.parse(body),
+            catch: (err) => err,
+          }),
         }),
-      }),
-      Effect.flatMap(({ userId, input }) =>
-        this.projectService.updateProject(
-          userId,
-          id,
-          input as UpdateProjectInput,
+        Effect.flatMap(({ userId, input }) =>
+          this.projectService.updateProject(
+            userId,
+            id,
+            input as UpdateProjectInput,
+          ),
         ),
+        Effect.map((project) => buildResponse(project)),
       ),
-      Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
-      Effect.map((project) => buildResponse(project)),
-      Effect.runPromise,
+      mapControllerError,
     );
   }
 
@@ -294,20 +298,21 @@ export class ProjectController {
     @Param('id') id: string,
     @Body() body: unknown,
   ): Promise<ResponseEnvelope<null>> {
-    return pipe(
-      Effect.all({
-        userId: this.requireUserId(req),
-        input: Effect.try({
-          try: () => addMemberSchema.parse(body),
-          catch: (err) => err,
+    return runEffectWithErrorHandling(
+      pipe(
+        Effect.all({
+          userId: this.requireUserId(req),
+          input: Effect.try({
+            try: () => addMemberSchema.parse(body),
+            catch: (err) => err,
+          }),
         }),
-      }),
-      Effect.flatMap(({ userId, input }) =>
-        this.projectService.addMember(userId, id, input as AddMemberInput),
+        Effect.flatMap(({ userId, input }) =>
+          this.projectService.addMember(userId, id, input as AddMemberInput),
+        ),
+        Effect.map(() => buildResponse(null)),
       ),
-      Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
-      Effect.map(() => buildResponse(null)),
-      Effect.runPromise,
+      mapControllerError,
     );
   }
 
@@ -339,14 +344,15 @@ export class ProjectController {
     @Param('id') id: string,
     @Body('userId') memberId: string,
   ): Promise<ResponseEnvelope<null>> {
-    return pipe(
-      this.requireUserId(req),
-      Effect.flatMap((userId) =>
-        this.projectService.removeMember(userId, id, memberId),
+    return runEffectWithErrorHandling(
+      pipe(
+        this.requireUserId(req),
+        Effect.flatMap((userId) =>
+          this.projectService.removeMember(userId, id, memberId),
+        ),
+        Effect.map(() => buildResponse(null)),
       ),
-      Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
-      Effect.map(() => buildResponse(null)),
-      Effect.runPromise,
+      mapControllerError,
     );
   }
 

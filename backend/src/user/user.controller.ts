@@ -24,6 +24,7 @@ import { Effect, pipe } from 'effect';
 import { Public } from '../auth/decorators/auth-access.decorator';
 import type { JwtPayload } from '../auth/guards/jwt-auth.guard';
 import { toUnauthorizedException } from '../common/errors/unauthorized-error';
+import { runEffectWithErrorHandling } from '../common/effect/effect.util';
 import {
   ResponseEnvelopeDto,
   type ResponseEnvelope,
@@ -147,17 +148,18 @@ export class UserController {
   ): Promise<
     ResponseEnvelope<{ user: User; accessToken: string; refreshToken: string }>
   > {
-    return pipe(
-      Effect.try({
-        try: () => registerUserSchema.parse(body),
-        catch: (err) => err,
-      }),
-      Effect.flatMap((input: RegisterUserInput) =>
-        this.userService.registerUser(input),
+    return runEffectWithErrorHandling(
+      pipe(
+        Effect.try({
+          try: () => registerUserSchema.parse(body),
+          catch: (err) => err,
+        }),
+        Effect.flatMap((input: RegisterUserInput) =>
+          this.userService.registerUser(input),
+        ),
+        Effect.map((payload) => buildResponse(payload)),
       ),
-      Effect.catchAll((err) => Effect.fail(mapUserError(err))),
-      Effect.map((payload) => buildResponse(payload)),
-      Effect.runPromise,
+      mapUserError,
     );
   }
 
@@ -174,12 +176,13 @@ export class UserController {
   })
   @ApiUnauthorizedResponse({ description: 'Unauthorized' })
   getMe(@Req() req: AuthenticatedRequest): Promise<ResponseEnvelope<User>> {
-    return pipe(
-      this.requireAuthUser(req),
-      Effect.flatMap((userId) => this.userService.getUserById(userId)),
-      Effect.catchAll((err) => Effect.fail(mapUserError(err))),
-      Effect.map((user) => buildResponse(user)),
-      Effect.runPromise,
+    return runEffectWithErrorHandling(
+      pipe(
+        this.requireAuthUser(req),
+        Effect.flatMap((userId) => this.userService.getUserById(userId)),
+        Effect.map((user) => buildResponse(user)),
+      ),
+      mapUserError,
     );
   }
 
@@ -204,20 +207,21 @@ export class UserController {
     @Req() req: AuthenticatedRequest,
     @Body() body: unknown,
   ): Promise<ResponseEnvelope<User>> {
-    return pipe(
-      Effect.all({
-        userId: this.requireAuthUser(req),
-        input: Effect.try({
-          try: () => updateUserSchema.parse(body),
-          catch: (err) => err,
+    return runEffectWithErrorHandling(
+      pipe(
+        Effect.all({
+          userId: this.requireAuthUser(req),
+          input: Effect.try({
+            try: () => updateUserSchema.parse(body),
+            catch: (err) => err,
+          }),
         }),
-      }),
-      Effect.flatMap(({ userId, input }) =>
-        this.userService.updateUser(userId, input as UpdateUserInput),
+        Effect.flatMap(({ userId, input }) =>
+          this.userService.updateUser(userId, input as UpdateUserInput),
+        ),
+        Effect.map((user) => buildResponse(user)),
       ),
-      Effect.catchAll((err) => Effect.fail(mapUserError(err))),
-      Effect.map((user) => buildResponse(user)),
-      Effect.runPromise,
+      mapUserError,
     );
   }
 
