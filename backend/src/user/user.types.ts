@@ -10,6 +10,13 @@ export type User = Readonly<{
   plan: string | null;
   createdAt: string | null;
   updatedAt: string | null;
+  team?: TeamInfo;
+}>;
+
+export type TeamInfo = Readonly<{
+  projectCount: number;
+  plan: string | null;
+  canCreateProject: boolean;
 }>;
 
 

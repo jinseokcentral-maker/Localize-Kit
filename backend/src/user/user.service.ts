@@ -2,11 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { Effect, pipe } from 'effect';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '../type/supabse';
 import { JWT_REFRESH_EXPIRES_IN_KEY } from '../auth/constants/auth.constants';
 import { SupabaseService } from '../supabase/supabase.service';
+import { canCreateProject, type PlanName } from '../project/plan/plan.util';
 import { UserConflictError, UserNotFoundError } from './errors/user.errors';
 import type { RegisterUserInput, UpdateUserInput } from './user.schemas';
-import type { User, UserProfileRow } from './user.types';
+import type { TeamInfo, User, UserProfileRow } from './user.types';
 
 const USER_CONFLICT_CODE = '23505';
 
@@ -35,7 +38,14 @@ export class UserService {
 
   getUserById(userId: string): Effect.Effect<User, UserNotFoundError> {
     return pipe(
-      this.fetchProfileById(userId),
+      Effect.all({
+        user: this.fetchProfileById(userId),
+        teamInfo: this.fetchTeamInfo(userId),
+      }),
+      Effect.map(({ user, teamInfo }) => ({
+        ...user,
+        team: teamInfo,
+      })),
       Effect.mapError(() => new UserNotFoundError()),
     );
   }
@@ -160,6 +170,50 @@ export class UserService {
       accessToken: this.signUserToken(user),
       refreshToken: this.signRefreshToken(user),
     };
+  }
+
+  private fetchTeamInfo(userId: string): Effect.Effect<TeamInfo, never> {
+    const client = this.supabaseService.getClient();
+    return Effect.tryPromise({
+      try: async () => {
+        const projectCount = await this.countProjects(client, userId);
+        const { data } = await client
+          .from('profiles')
+          .select('plan')
+          .eq('id', userId)
+          .single<{ plan: string | null }>();
+        const plan = (data?.plan ?? 'free') as PlanName;
+        const canCreate = canCreateProject(plan, projectCount);
+        return {
+          projectCount,
+          plan: data?.plan ?? null,
+          canCreateProject: canCreate,
+        };
+      },
+      catch: () => new Error('Failed to fetch team info'),
+    }).pipe(
+      Effect.catchAll(() =>
+        Effect.succeed({
+          projectCount: 0,
+          plan: null,
+          canCreateProject: false,
+        }),
+      ),
+    );
+  }
+
+  private async countProjects(
+    client: SupabaseClient<Database>,
+    userId: string,
+  ): Promise<number> {
+    const { count, error } = await client
+      .from('team_members')
+      .select('project_id', { count: 'exact', head: true })
+      .eq('user_id', userId);
+    if (error !== null || count === null) {
+      return 0;
+    }
+    return count;
   }
 }
 

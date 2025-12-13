@@ -53,13 +53,12 @@ export const errorMessages = {
   },
   project: {
     notFound: (): string => 'Project not found',
-    conflict: (context?: ErrorContext): string =>
-      createMessage(
-        'Project conflict{{reason}}',
-        context
-          ? { reason: context.reason ? `: ${context.reason}` : '' }
-          : undefined,
-      ),
+    conflict: (context?: ErrorContext): string => {
+      if (context?.reason) {
+        return `Project conflict: ${context.reason}`;
+      }
+      return 'Project conflict';
+    },
     forbidden: (): string => 'Forbidden: insufficient project access',
     validation: (context?: ErrorContext): string =>
       createMessage(
@@ -162,8 +161,24 @@ export function getErrorMessage(
           : undefined;
       return messages.project.conflict({ reason });
     }
-    case ErrorName.ForbiddenProjectAccessError:
+    case ErrorName.ForbiddenProjectAccessError: {
+      const plan =
+        typeof error === 'object' && error !== null && 'plan' in error
+          ? (error as { plan?: string }).plan
+          : undefined;
+      const currentCount =
+        typeof error === 'object' && error !== null && 'currentCount' in error
+          ? (error as { currentCount?: number }).currentCount
+          : undefined;
+      const limit =
+        typeof error === 'object' && error !== null && 'limit' in error
+          ? (error as { limit?: number }).limit
+          : undefined;
+      if (plan && limit !== undefined && currentCount !== undefined) {
+        return `Project limit exceeded. Your ${plan} plan allows ${limit} project${limit === 1 ? '' : 's'}, and you currently have ${currentCount}.`;
+      }
       return messages.project.forbidden();
+    }
     case ErrorName.ProjectValidationError: {
       const reason =
         typeof error === 'object' && error !== null && 'reason' in error

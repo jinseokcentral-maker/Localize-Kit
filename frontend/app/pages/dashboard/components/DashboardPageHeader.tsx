@@ -1,11 +1,20 @@
 import { Plus, Globe } from "lucide-react";
-import { Link } from "react-router";
 import { Button } from "~/components/ui/button";
+import { openCreateProjectDialog } from "./CreateProjectDialog/CreateProjectDialog";
 
 /**
  * Dashboard page header component
  */
 export function DashboardPageHeader() {
+  const handleCreateProject = async () => {
+    const result = await openCreateProjectDialog();
+    if (result) {
+      // Project created successfully
+      // TODO: Refresh projects list or navigate to new project
+      console.log("Project created:", result);
+    }
+  };
+
   return (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
       <div>
@@ -18,14 +27,14 @@ export function DashboardPageHeader() {
         </p>
       </div>
       <div className="flex items-center gap-3">
-        <Button asChild className="shadow-sm hover:shadow-md">
-          <Link to="/dashboard/projects/new">
-            <Plus className="w-4 h-4" />
-            <span>Create Project</span>
-          </Link>
+        <Button
+          onClick={handleCreateProject}
+          className="shadow-sm hover:shadow-md"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Create Project</span>
         </Button>
       </div>
     </div>
   );
 }
-

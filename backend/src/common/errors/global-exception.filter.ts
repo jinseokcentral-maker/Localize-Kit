@@ -6,8 +6,10 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { Cause } from 'effect';
 import { UnauthorizedError } from './unauthorized-error';
 import { ErrorName, errorMessages, getErrorMessage } from './error-messages';
+import { unwrapFiberFailure } from '../effect/effect.util';
 
 type LoggerLike = Readonly<{
   error: (obj: Record<string, unknown>, message?: string) => void;
@@ -49,7 +51,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   }
 
   private resolveStatus(exception: unknown): number {
-    if (this.isProviderAuthError(exception)) {
+    const unwrapped = unwrapFiberFailure(exception);
+    if (this.isProviderAuthError(unwrapped)) {
       return HttpStatus.INTERNAL_SERVER_ERROR;
     }
     if (exception instanceof HttpException) {
@@ -62,13 +65,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
       return status;
     }
-    if (exception instanceof UnauthorizedError) {
+    if (unwrapped instanceof UnauthorizedError) {
       return HttpStatus.UNAUTHORIZED;
     }
-    if (this.isJwtRelatedError(exception)) {
+    if (this.isJwtRelatedError(unwrapped)) {
       return HttpStatus.UNAUTHORIZED;
     }
-    if (this.isTaggedError(exception)) {
+    if (this.isForbiddenProjectAccessError(unwrapped)) {
+      return HttpStatus.FORBIDDEN;
+    }
+    if (this.isTaggedError(unwrapped)) {
       return HttpStatus.BAD_REQUEST;
     }
     return HttpStatus.INTERNAL_SERVER_ERROR;
@@ -104,7 +110,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       }
       return exception.message;
     }
-    return getErrorMessage(exception, errorMessages);
+    const unwrapped = unwrapFiberFailure(exception);
+    return getErrorMessage(unwrapped, errorMessages);
   }
 
   private isTaggedError(error: unknown): error is { _tag?: string } {
@@ -154,6 +161,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       errorTag === ErrorName.UnauthorizedError ||
       error.message?.toLowerCase().includes('jwt expired') === true
     );
+  }
+
+  private isForbiddenProjectAccessError(error: unknown): boolean {
+    const errorTag = this.getErrorTag(error);
+    return errorTag === ErrorName.ForbiddenProjectAccessError;
   }
 
   private getErrorTag(error: unknown): string | undefined {

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { NuqsAdapter } from "nuqs/adapters/react-router/v7";
+import { OverlayProvider } from "overlay-kit";
 import {
   isRouteErrorResponse,
   Links,
@@ -66,8 +67,10 @@ export default function App() {
   return (
     <NuqsAdapter>
       <QueryClientProvider client={queryClient}>
-        <Outlet />
-        <Toaster />
+        <OverlayProvider>
+          <Outlet />
+          <Toaster />
+        </OverlayProvider>
       </QueryClientProvider>
     </NuqsAdapter>
   );

@@ -1,7 +1,9 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Post,
@@ -28,7 +30,10 @@ import { Effect, pipe } from 'effect';
 import { Private } from '../auth/decorators/auth-access.decorator';
 import type { JwtPayload } from '../auth/guards/jwt-auth.guard';
 import { toUnauthorizedException } from '../common/errors/unauthorized-error';
-import { runEffectWithErrorHandling } from '../common/effect/effect.util';
+import {
+  runEffectWithErrorHandling,
+  unwrapFiberFailure,
+} from '../common/effect/effect.util';
 import {
   ResponseEnvelopeDto,
   type ResponseEnvelope,
@@ -62,7 +67,6 @@ import {
   UpdateProjectDto,
 } from './project.schemas';
 import { ZodError } from 'zod';
-import { ConflictException, ForbiddenException } from '@nestjs/common';
 import type { PlanName } from './plan/plan.util';
 
 type AuthenticatedRequest = {
@@ -372,20 +376,27 @@ export class ProjectController {
 }
 
 function mapControllerError(err: unknown): Error {
-  if (err instanceof ZodError) {
-    return new BadRequestException(err.issues);
+  const unwrapped = unwrapFiberFailure(err);
+  if (unwrapped instanceof ZodError) {
+    return new BadRequestException(unwrapped.issues);
   }
-  if (err instanceof ProjectValidationError) {
-    return new BadRequestException(err.reason);
+  if (unwrapped instanceof ProjectValidationError) {
+    return new BadRequestException(unwrapped.reason);
   }
-  if (err instanceof ForbiddenProjectAccessError) {
-    return new ForbiddenException('Plan limit exceeded');
+  if (unwrapped instanceof ForbiddenProjectAccessError) {
+    const message =
+      unwrapped.plan &&
+      unwrapped.limit !== undefined &&
+      unwrapped.currentCount !== undefined
+        ? `Project limit exceeded. Your ${unwrapped.plan} plan allows ${unwrapped.limit} project${unwrapped.limit === 1 ? '' : 's'}, and you currently have ${unwrapped.currentCount}.`
+        : 'Forbidden: insufficient project access';
+    return new ForbiddenException(message);
   }
-  if (err instanceof ProjectConflictError) {
-    return new ConflictException(err.reason);
+  if (unwrapped instanceof ProjectConflictError) {
+    return new ConflictException(unwrapped.reason);
   }
-  if (err instanceof Error) {
-    return err;
+  if (unwrapped instanceof Error) {
+    return unwrapped;
   }
-  return toUnauthorizedException(err);
+  return toUnauthorizedException(unwrapped);
 }

@@ -38,13 +38,18 @@ export class ProjectService {
     const client = this.getClient();
     return Effect.tryPromise({
       try: async () => {
-        const currentCount = await this.countProjects(client, userId);
-        if (!canCreateProject(plan, currentCount)) {
-          throw new ForbiddenProjectAccessError();
-        }
-
         const slug = this.normalizeSlug(input.slug ?? input.name);
         this.validateSlug(slug);
+
+        const currentCount = await this.countProjects(client, userId);
+        if (!canCreateProject(plan, currentCount)) {
+          const limit = plan === 'free' ? 1 : plan === 'pro' ? 10 : Infinity;
+          throw new ForbiddenProjectAccessError({
+            plan,
+            currentCount,
+            limit,
+          });
+        }
 
         const defaultLanguage = input.defaultLanguage ?? DEFAULT_LANGUAGE;
         const languages = input.languages ?? [defaultLanguage];
@@ -62,8 +67,15 @@ export class ProjectService {
           .select('*')
           .single<ProjectRow>();
         if (error !== null) {
-          if (error.code === PROJECT_CONFLICT_CODE) {
-            throw new ProjectConflictError({ reason: error.message });
+          const isConflict =
+            error.code === PROJECT_CONFLICT_CODE ||
+            error.message?.toLowerCase().includes('duplicate') ||
+            error.message?.toLowerCase().includes('unique') ||
+            error.message?.toLowerCase().includes('already exists');
+          if (isConflict) {
+            throw new ProjectConflictError({
+              reason: 'Slug already exists',
+            });
           }
           throw new ProjectConflictError({ reason: error.message });
         }
@@ -263,7 +275,11 @@ export class ProjectService {
           throw new ProjectNotFoundError();
         }
         if (data.owner_id !== userId) {
-          throw new ForbiddenProjectAccessError();
+          throw new ForbiddenProjectAccessError({
+            plan: 'unknown',
+            currentCount: 0,
+            limit: 0,
+          });
         }
         return data;
       },
