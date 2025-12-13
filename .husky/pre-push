@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🧪 Running tests before push..."
+echo ""
+
+# Run frontend tests (CI mode - run once and exit)
+echo "📦 Running frontend tests..."
+cd frontend && pnpm run test -- --run || {
+  echo ""
+  echo "❌ Frontend tests failed"
+  exit 1
+}
+
+# Run backend tests
+echo ""
+echo "📦 Running backend tests..."
+cd ../backend && pnpm run test || {
+  echo ""
+  echo "❌ Backend tests failed"
+  exit 1
+}
+
+echo ""
+echo "✅ All tests passed! Pushing..."
+

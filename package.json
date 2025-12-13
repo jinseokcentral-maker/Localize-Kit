@@ -1,0 +1,15 @@
+{
+  "name": "localizekit",
+  "version": "0.0.1",
+  "private": true,
+  "description": "LocalizeKit monorepo",
+  "scripts": {
+    "prepare": "husky",
+    "test:frontend": "cd frontend && pnpm run test",
+    "test:backend": "cd backend && pnpm run test",
+    "test:all": "pnpm run test:frontend && pnpm run test:backend"
+  },
+  "devDependencies": {
+    "husky": "^9.0.0"
+  }
+}
