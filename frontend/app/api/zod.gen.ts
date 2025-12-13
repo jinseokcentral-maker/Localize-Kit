@@ -99,7 +99,9 @@ export const zListProjectsResponseDto = z.object({
     meta: z.object({
         index: z.int().gte(0).lte(9007199254740991),
         pageSize: z.int().lte(9007199254740991),
-        hasNext: z.boolean()
+        hasNext: z.boolean(),
+        totalCount: z.int().gte(0).lte(9007199254740991),
+        totalPageCount: z.int().gte(0).lte(9007199254740991)
     })
 });
 

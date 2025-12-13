@@ -127,7 +127,7 @@ export class ProjectService {
         filters.push(`id.in.(${memberProjectIds.join(',')})`);
       }
 
-      const { data, error } = await client
+      const { data, error, count } = await client
         .from('projects')
         .select('*', { count: 'exact' })
         .or(filters.join(','))
@@ -137,12 +137,7 @@ export class ProjectService {
         throw error ?? new Error('Failed to list projects');
       }
 
-      const totalCount =
-        data.length > 0 && typeof data[0].count === 'number'
-          ? data[0].count
-          : typeof (data as { count?: number }[])[0]?.count === 'number'
-            ? ((data as { count?: number }[])[0].count ?? 0)
-            : 0;
+      const totalCount = count ?? 0;
 
       const hasNext = (index + 1) * pageSize < totalCount;
       const items = data;

@@ -68,6 +68,8 @@ export type ListProjectsResponseDto = {
         index: number;
         pageSize: number;
         hasNext: boolean;
+        totalCount: number;
+        totalPageCount: number;
     };
 };
 

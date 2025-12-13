@@ -156,8 +156,9 @@ describe('ProjectService', () => {
                     order: jest.fn(() => ({
                       range: jest.fn(() =>
                         Promise.resolve({
-                          data: [{ ...projectRow, count: 1 }],
+                          data: [projectRow],
                           error: null,
+                          count: 1,
                         }),
                       ),
                     })),
