@@ -13,11 +13,17 @@ cd "$REPO_ROOT" || exit 1
 FRONTEND_LOG="/tmp/frontend-test-$$.log"
 BACKEND_LOG="/tmp/backend-test-$$.log"
 
-# Function to prefix output with [Frontend] or [Backend]
+# ANSI color codes
+BLUE='\033[0;34m'
+GREEN='\033[0;32m'
+RESET='\033[0m'
+
+# Function to prefix output with colored [Frontend] or [Backend]
 prefix_output() {
   local prefix="$1"
+  local color="$2"
   while IFS= read -r line; do
-    echo "[$prefix] $line"
+    echo "${color}[$prefix]${RESET} $line"
   done
 }
 
@@ -25,12 +31,12 @@ prefix_output() {
 echo "📦 Starting frontend and backend tests..."
 echo ""
 
-# Frontend test with prefixed output
-(cd "$REPO_ROOT/frontend" && pnpm run test -- --run 2>&1 | prefix_output "Frontend" | tee "$FRONTEND_LOG") &
+# Frontend test with blue prefixed output
+(cd "$REPO_ROOT/frontend" && pnpm run test -- --run 2>&1 | prefix_output "Frontend" "$BLUE" | tee "$FRONTEND_LOG") &
 FRONTEND_PID=$!
 
-# Backend test with prefixed output
-(cd "$REPO_ROOT/backend" && pnpm run test 2>&1 | prefix_output "Backend" | tee "$BACKEND_LOG") &
+# Backend test with green prefixed output
+(cd "$REPO_ROOT/backend" && pnpm run test 2>&1 | prefix_output "Backend" "$GREEN" | tee "$BACKEND_LOG") &
 BACKEND_PID=$!
 
 # Wait for both tests to complete
