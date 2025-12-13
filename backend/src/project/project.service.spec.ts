@@ -109,7 +109,7 @@ describe("ProjectService", () => {
     const projects = await Effect.runPromise(
       service.listProjects("user-1", { pageSize: 10, index: 0 }),
     );
-    expect(projects.items.length).toBeGreaterThan(100);
+    expect(projects.items.length).toBeGreaterThan(0);
     expect(projects.meta.hasNext).toBe(false);
     expect(projects.meta.totalCount).toBe(1);
     expect(projects.meta.totalPageCount).toBe(1);
