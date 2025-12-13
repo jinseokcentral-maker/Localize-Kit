@@ -27,6 +27,7 @@ import type {
   DashboardStats,
 } from "~/types/dashboard";
 import { Button } from "~/components/ui/button";
+import { useGetMe } from "~/hooks/useGetMe";
 
 // Mock data - will be replaced with actual API calls
 const mockProjects: Project[] = [
