@@ -67,6 +67,8 @@ export class ProjectService {
           updated_at: now,
         });
 
+        await this.em.persistAndFlush(project);
+
         const member = this.em.create(TeamMemberEntity, {
           id: randomUUID(),
           project_id: project.id,
@@ -78,7 +80,7 @@ export class ProjectService {
           created_at: now,
         });
 
-        await this.em.persistAndFlush([project, member]);
+        await this.em.persistAndFlush(member);
         return mapProject(project);
       },
       catch: (err) => {
