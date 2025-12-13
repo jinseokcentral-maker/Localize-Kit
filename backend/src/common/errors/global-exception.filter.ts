@@ -54,6 +54,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (exception instanceof UnauthorizedError) {
       return HttpStatus.UNAUTHORIZED;
     }
+    if (this.isJwtExpired(exception)) {
+      return HttpStatus.UNAUTHORIZED;
+    }
     if (this.isTaggedError(exception)) {
       return HttpStatus.BAD_REQUEST;
     }
@@ -93,6 +96,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (exception instanceof Error && typeof exception.message === 'string') {
       return exception.message;
     }
+    if (this.isJwtExpired(exception)) {
+      return 'jwt expired';
+    }
     if (this.isTaggedError(exception)) {
       return `TaggedError:${this.getTag(exception)}`;
     }
@@ -109,6 +115,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   private getTag(error: { _tag?: string }): string {
     return error._tag ?? 'Unknown';
+  }
+
+  private isJwtExpired(error: unknown): boolean {
+    return (
+      error instanceof Error &&
+      typeof error.message === 'string' &&
+      error.message.toLowerCase().includes('jwt expired')
+    );
   }
 }
 

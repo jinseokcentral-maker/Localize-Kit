@@ -10,7 +10,8 @@ import { authControllerLoginWithProvider } from "~/api";
 
 export function useBootstrapProfile() {
   const { isInitialized, isSupabaseReady, isAuthenticated } = useSupabase();
-  const { setAccessToken, setRefreshToken, clear } = useTokenStore();
+  const { accessToken, setAccessToken, setRefreshToken, clear } =
+    useTokenStore();
   const bootstrappedRef = useRef(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,6 +26,14 @@ export function useBootstrapProfile() {
     }
     if (bootstrappedRef.current) return;
     bootstrappedRef.current = true;
+
+    // If accessToken already exists, skip login and just handle redirect
+    if (accessToken) {
+      if (location.pathname === "/verify") {
+        navigate("/dashboard", { replace: true });
+      }
+      return;
+    }
 
     const syncEffect = Effect.gen(function* (_) {
       const sessionRes = yield* _(
