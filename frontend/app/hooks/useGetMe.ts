@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Effect } from "effect";
-import { apiClient } from "~/api/authClient";
+import { apiClient } from "~/lib/api/authClient";
 import { userControllerGetMe } from "~/api";
 import type { UserControllerGetMeResponse } from "~/api/types.gen";
 

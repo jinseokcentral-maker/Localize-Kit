@@ -349,6 +349,14 @@ export type ProjectControllerCreateProjectErrors = {
         error?: string;
     };
     /**
+     * Plan limit exceeded
+     */
+    403: {
+        statusCode: number;
+        message: string;
+        error?: string;
+    };
+    /**
      * Slug conflict
      */
     409: {

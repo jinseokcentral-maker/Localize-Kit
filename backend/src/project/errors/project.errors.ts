@@ -8,3 +8,7 @@ export class ProjectConflictError extends Data.TaggedError('ProjectConflictError
 
 export class ForbiddenProjectAccessError extends Data.TaggedError('ForbiddenProjectAccessError') {}
 
+export class ProjectValidationError extends Data.TaggedError('ProjectValidationError')<{
+  readonly reason: string;
+}> {}
+

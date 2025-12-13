@@ -28,6 +28,16 @@ import type {
 } from "~/types/dashboard";
 import { Button } from "~/components/ui/button";
 import { useGetMe } from "~/hooks/useGetMe";
+import { useListProjects } from "~/hooks/useListProjects";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "~/components/ui/pagination";
 
 // Mock data - will be replaced with actual API calls
 const mockProjects: Project[] = [
@@ -101,10 +111,26 @@ export const DashboardPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [sortOption, setSortOption] = useState<SortOption>("newest");
-  const [projects] = useState<Project[]>(mockProjects);
+  const [pageIndex, setPageIndex] = useState(0);
+  const pageSize = 15;
+
+  // Fetch projects from API
+  const { data: projectsData, isLoading } = useListProjects({
+    pageSize,
+    index: pageIndex,
+  });
+
+  // Use mock data for now (API response structure differs from Project type)
+  // TODO: Map API response to Project type when backend is ready
+  const projects = mockProjects;
+  const paginationMeta = projectsData?.data?.meta ?? {
+    index: pageIndex,
+    pageSize,
+    hasNext: false,
+  };
   const [stats] = useState<DashboardStats>(mockStats);
 
-  // Filter and sort projects
+  // Filter and sort projects (client-side filtering for now)
   const filteredProjects = filterAndSortProjects(projects, {
     searchQuery,
     filterStatus,
@@ -155,7 +181,7 @@ export const DashboardPage: React.FC = () => {
 
       {/* Upgrade Banner (if at limit) */}
       {isAtProjectLimit && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center justify-between">
+        <div className="mb-6 p-4 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             <div>
@@ -289,24 +315,121 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Projects List or Empty State */}
-      {filteredProjects.length === 0 ? (
+      {isLoading ? (
+        <div className="bg-card border border-border rounded-xl p-12 text-center">
+          <p className="text-muted-foreground">Loading projects...</p>
+        </div>
+      ) : filteredProjects.length === 0 ? (
         <EmptyState
           hasProjects={projects.length > 0}
           searchQuery={searchQuery}
           onClearSearch={() => setSearchQuery("")}
         />
       ) : (
-        <div
-          className={
-            view === "grid"
-              ? "grid grid-cols-1 md:grid-cols-2 gap-4"
-              : "space-y-4"
-          }
-        >
-          {filteredProjects.map((project) => (
-            <ProjectCard key={project.id} view={view} project={project} />
-          ))}
-        </div>
+        <>
+          <div
+            className={
+              view === "grid"
+                ? "grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"
+                : "space-y-4 mb-6"
+            }
+          >
+            {filteredProjects.map((project) => (
+              <ProjectCard key={project.id} view={view} project={project} />
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {paginationMeta && (
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (pageIndex > 0) {
+                        setPageIndex(pageIndex - 1);
+                      }
+                    }}
+                    className={
+                      pageIndex === 0
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+
+                {/* Page numbers */}
+                {(() => {
+                  const currentPage = pageIndex + 1;
+                  // Since we don't have total count, show pages around current
+                  // Show at least current page and nearby pages
+                  const pages: (number | "ellipsis")[] = [];
+
+                  // Always show first page if not on first page
+                  if (currentPage > 1) {
+                    pages.push(1);
+                    if (currentPage > 3) {
+                      pages.push("ellipsis");
+                    }
+                  }
+
+                  // Show pages around current
+                  const start = Math.max(1, currentPage - 1);
+                  const end = currentPage + 1;
+
+                  for (let i = start; i <= end; i++) {
+                    if (i === 1 && currentPage > 1) continue; // Already added
+                    pages.push(i);
+                  }
+
+                  // Show ellipsis and next page indicator if hasNext
+                  if (paginationMeta.hasNext) {
+                    if (currentPage < end) {
+                      pages.push("ellipsis");
+                    }
+                    // Don't show exact last page since we don't know it
+                  }
+
+                  return pages.map((page, idx) => (
+                    <PaginationItem key={idx}>
+                      {page === "ellipsis" ? (
+                        <PaginationEllipsis />
+                      ) : (
+                        <PaginationLink
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setPageIndex(page - 1);
+                          }}
+                          isActive={page === currentPage}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      )}
+                    </PaginationItem>
+                  ));
+                })()}
+
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (paginationMeta.hasNext) {
+                        setPageIndex(pageIndex + 1);
+                      }
+                    }}
+                    className={
+                      !paginationMeta.hasNext
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
+        </>
       )}
     </DashboardLayout>
   );

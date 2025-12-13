@@ -523,6 +523,15 @@ export type Database = {
     }
     Functions: {
       generate_random_username: { Args: never; Returns: string }
+      get_project_api_usage: { Args: { project_uuid: string }; Returns: number }
+      get_project_api_usage_by_month: {
+        Args: {
+          project_uuid: string
+          target_month: number
+          target_year: number
+        }
+        Returns: number
+      }
       has_project_access: {
         Args: { project_uuid: string; required_role?: string }
         Returns: boolean

@@ -1,20 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
 import { Effect } from "effect";
-import { apiClient } from "~/api/authClient";
+import { apiClient } from "~/lib/api/authClient";
 import { projectControllerListProjects } from "~/api";
 import type { ProjectControllerListProjectsResponse } from "~/api/types.gen";
+
+interface UseListProjectsOptions {
+  pageSize?: number;
+  index?: number;
+}
 
 /**
  * Effect-based API call for listing projects
  */
-function listProjectsEffect(): Effect.Effect<
-  ProjectControllerListProjectsResponse,
-  Error
-> {
+function listProjectsEffect(
+  pageSize: number = 15,
+  index: number = 0,
+): Effect.Effect<ProjectControllerListProjectsResponse, Error> {
   return Effect.tryPromise({
     try: async () => {
       const { data } = await projectControllerListProjects({
         client: apiClient,
+        query: {
+          pageSize,
+          index,
+        },
         throwOnError: true,
       });
       return data;
@@ -30,12 +39,14 @@ function listProjectsEffect(): Effect.Effect<
  * Hook to fetch list of projects
  * Uses TanStack Query with Effect pattern
  */
-export function useListProjects() {
+export function useListProjects(options: UseListProjectsOptions = {}) {
+  const { pageSize = 15, index = 0 } = options;
+
   return useQuery({
-    queryKey: ["projects"],
+    queryKey: ["projects", pageSize, index],
     queryFn: async () => {
       return Effect.runPromise(
-        listProjectsEffect().pipe(
+        listProjectsEffect(pageSize, index).pipe(
           Effect.catchAll((err) => {
             // Re-throw error so TanStack Query can handle it
             return Effect.fail(err);
@@ -47,4 +58,3 @@ export function useListProjects() {
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
 }
-

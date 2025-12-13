@@ -54,3 +54,7 @@ Types
 API docs
 
 - Include Swagger docs with bearer JWT security and annotate public/private routes accordingly when adding controllers or endpoints.
+
+Business logic reference
+
+- Business rules are documented in `/Users/miso/Desktop/Development/LocalizeKit/docs/BUSINESS_LOGIC.md`; consult it when implementing or modifying flows.

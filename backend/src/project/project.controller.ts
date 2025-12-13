@@ -14,6 +14,7 @@ import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiConflictResponse,
+  ApiForbiddenResponse,
   ApiExtraModels,
   ApiOkResponse,
   ApiOperation,
@@ -48,6 +49,11 @@ import type {
 } from './project.schemas';
 import type { Project } from './project.types';
 import {
+  ForbiddenProjectAccessError,
+  ProjectConflictError,
+  ProjectValidationError,
+} from './errors/project.errors';
+import {
   AddMemberDto,
   CreateProjectDto,
   ProjectDto,
@@ -55,6 +61,8 @@ import {
   UpdateProjectDto,
 } from './project.schemas';
 import { ZodError } from 'zod';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
+import type { PlanName } from './plan/plan.util';
 
 type AuthenticatedRequest = {
   user?: JwtPayload;
@@ -131,20 +139,28 @@ export class ProjectController {
     schema: errorSchema,
   })
   @ApiConflictResponse({ description: 'Slug conflict', schema: errorSchema })
+  @ApiForbiddenResponse({
+    description: 'Plan limit exceeded',
+    schema: errorSchema,
+  })
   createProject(
     @Req() req: AuthenticatedRequest,
     @Body() body: unknown,
   ): Promise<ResponseEnvelope<Project>> {
     return pipe(
-      this.requireUserId(req),
-      Effect.flatMap((userId) =>
-        Effect.try({
+      Effect.all({
+        userId: this.requireUserId(req),
+        plan: this.resolvePlan(req),
+        input: Effect.try({
           try: () => createProjectSchema.parse(body),
           catch: (err) => err,
-        }).pipe(
-          Effect.flatMap((input: CreateProjectInput) =>
-            this.projectService.createProject(userId, input),
-          ),
+        }),
+      }),
+      Effect.flatMap(({ userId, plan, input }) =>
+        this.projectService.createProject(
+          userId,
+          input as CreateProjectInput,
+          plan,
         ),
       ),
       Effect.catchAll((err) => Effect.fail(mapControllerError(err))),
@@ -341,11 +357,26 @@ export class ProjectController {
       Effect.orElseFail(() => new Error('Unauthorized')),
     );
   }
+
+  private resolvePlan(
+    req: AuthenticatedRequest,
+  ): Effect.Effect<PlanName, Error> {
+    return Effect.succeed((req.user?.plan as PlanName | undefined) ?? 'free');
+  }
 }
 
 function mapControllerError(err: unknown): Error {
   if (err instanceof ZodError) {
     return new BadRequestException(err.issues);
+  }
+  if (err instanceof ProjectValidationError) {
+    return new BadRequestException(err.reason);
+  }
+  if (err instanceof ForbiddenProjectAccessError) {
+    return new ForbiddenException('Plan limit exceeded');
+  }
+  if (err instanceof ProjectConflictError) {
+    return new ConflictException(err.reason);
   }
   if (err instanceof Error) {
     return err;

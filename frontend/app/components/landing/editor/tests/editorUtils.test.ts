@@ -226,4 +226,3 @@ describe("formatJsonOutput", () => {
         expect(JSON.parse(result.text)).toEqual(json);
     });
 });
-

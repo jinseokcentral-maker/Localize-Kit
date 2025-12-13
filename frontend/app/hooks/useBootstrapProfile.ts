@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { Effect } from "effect";
 import { useLocation, useNavigate } from "react-router";
 import { supabase } from "~/lib/supabaseClient";
-import { apiClient } from "../api/authClient";
+import { apiClient } from "~/lib/api/authClient";
 import { authControllerLoginWithProvider } from "../api";
 import { useTokenStore } from "../stores/tokenStore";
 import { useSupabase } from "./useAuth";

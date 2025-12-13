@@ -27,8 +27,19 @@ const projectRow: ProjectRow = {
   updated_at: '2024-01-01T00:00:00.000Z',
 };
 
-const memberRow: TeamMemberRow = {
+const ownerMemberRow: TeamMemberRow = {
   id: 'member-1',
+  user_id: 'user-1',
+  project_id: 'proj-1',
+  role: 'owner',
+  created_at: '2024-01-01T00:00:00.000Z',
+  invited_at: null,
+  invited_by: null,
+  joined_at: null,
+};
+
+const memberRow: TeamMemberRow = {
+  id: 'member-2',
   user_id: 'user-2',
   project_id: 'proj-1',
   role: 'editor',
@@ -51,23 +62,38 @@ describe('ProjectService', () => {
   });
 
   it('creates project', async () => {
+    const countSelect = jest.fn(() => ({
+      eq: jest.fn(() => Promise.resolve({ count: 0, error: null })),
+    }));
+    const insertProject = jest.fn(() => ({
+      select: jest.fn(() => ({
+        single: jest.fn().mockResolvedValue({ data: projectRow, error: null }),
+      })),
+    }));
+    const insertMember = jest.fn(() => ({
+      select: jest.fn(() => ({
+        single: jest
+          .fn()
+          .mockResolvedValue({ data: ownerMemberRow, error: null }),
+      })),
+    }));
     supabaseService.getClient = jest.fn(
       () =>
         ({
-          from: jest.fn(() => ({
-            select: jest.fn(() => ({
-              eq: jest.fn(() =>
-                Promise.resolve({ count: 0, error: null }),
-              ),
-            })),
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest
-                  .fn()
-                  .mockResolvedValue({ data: projectRow, error: null }),
-              })),
-            })),
-          })),
+          from: jest.fn((table: string) => {
+            if (table === 'projects') {
+              return {
+                select: countSelect,
+                insert: insertProject,
+              };
+            }
+            if (table === 'team_members') {
+              return {
+                insert: insertMember,
+              };
+            }
+            return {};
+          }),
         }) as unknown as SupabaseClient<Database>,
     );
 
@@ -80,24 +106,31 @@ describe('ProjectService', () => {
   });
 
   it('fails create on conflict', async () => {
+    const countSelect = jest.fn(() => ({
+      eq: jest.fn(() => Promise.resolve({ count: 0, error: null })),
+    }));
+    const insertProject = jest.fn(() => ({
+      select: jest.fn(() => ({
+        single: jest.fn().mockResolvedValue({
+          data: null,
+          error: { code: '23505', message: 'conflict' },
+        }),
+      })),
+    }));
     supabaseService.getClient = jest.fn(
       () =>
         ({
-          from: jest.fn(() => ({
-            select: jest.fn(() => ({
-              eq: jest.fn(() =>
-                Promise.resolve({ count: 0, error: null }),
-              ),
-            })),
-            insert: jest.fn(() => ({
-              select: jest.fn(() => ({
-                single: jest.fn().mockResolvedValue({
-                  data: null,
-                  error: { code: '23505', message: 'conflict' },
-                }),
-              })),
-            })),
-          })),
+          from: jest.fn((table: string) => {
+            if (table === 'projects') {
+              return {
+                select: countSelect,
+                insert: insertProject,
+              };
+            }
+            return {
+              insert: jest.fn(),
+            };
+          }),
         }) as unknown as SupabaseClient<Database>,
     );
 
@@ -123,7 +156,7 @@ describe('ProjectService', () => {
                     order: jest.fn(() => ({
                       range: jest.fn(() =>
                         Promise.resolve({
-                          data: [projectRow],
+                          data: [{ ...projectRow, count: 1 }],
                           error: null,
                         }),
                       ),
@@ -149,6 +182,8 @@ describe('ProjectService', () => {
     );
     expect(projects.items.length).toBeGreaterThan(0);
     expect(projects.meta.hasNext).toBe(false);
+    expect(projects.meta.totalCount).toBe(1);
+    expect(projects.meta.totalPageCount).toBe(1);
   });
 
   it('updates project', async () => {
@@ -168,12 +203,10 @@ describe('ProjectService', () => {
                 update: jest.fn(() => ({
                   eq: jest.fn(() => ({
                     select: jest.fn(() => ({
-                      single: jest
-                        .fn()
-                        .mockResolvedValue({
-                          data: { ...projectRow, name: 'New' },
-                          error: null,
-                        }),
+                      single: jest.fn().mockResolvedValue({
+                        data: { ...projectRow, name: 'New' },
+                        error: null,
+                      }),
                     })),
                   })),
                 })),

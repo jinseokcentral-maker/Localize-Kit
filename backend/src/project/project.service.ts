@@ -14,11 +14,14 @@ import {
   ProjectConflictError,
   ProjectNotFoundError,
   ForbiddenProjectAccessError,
+  ProjectValidationError,
 } from './errors/project.errors';
 import type { Project, ProjectRow, TeamMemberRow } from './project.types';
 import { canCreateProject, type PlanName } from './plan/plan.util';
 
 const PROJECT_CONFLICT_CODE = '23505';
+const DEFAULT_LANGUAGE = 'en';
+const SLUG_REGEX = /^[a-z0-9-]+$/;
 
 @Injectable()
 export class ProjectService {
@@ -30,7 +33,7 @@ export class ProjectService {
     plan: PlanName = 'free',
   ): Effect.Effect<
     Project,
-    ProjectConflictError | ForbiddenProjectAccessError
+    ProjectConflictError | ForbiddenProjectAccessError | ProjectValidationError
   > {
     const client = this.getClient();
     return Effect.tryPromise({
@@ -40,14 +43,20 @@ export class ProjectService {
           throw new ForbiddenProjectAccessError();
         }
 
+        const slug = this.normalizeSlug(input.slug ?? input.name);
+        this.validateSlug(slug);
+
+        const defaultLanguage = input.defaultLanguage ?? DEFAULT_LANGUAGE;
+        const languages = input.languages ?? [defaultLanguage];
+
         const { data, error } = await client
           .from('projects')
           .insert({
             name: input.name,
             description: input.description ?? null,
-            languages: input.languages ?? null,
-            default_language: input.defaultLanguage ?? null,
-            slug: input.slug ?? input.name,
+            languages,
+            default_language: defaultLanguage,
+            slug,
             owner_id: userId,
           })
           .select('*')
@@ -58,14 +67,38 @@ export class ProjectService {
           }
           throw new ProjectConflictError({ reason: error.message });
         }
+
+        const memberInsert = await client
+          .from('team_members')
+          .insert({
+            project_id: data.id,
+            user_id: userId,
+            role: 'owner',
+            joined_at: new Date().toISOString(),
+            invited_by: userId,
+            invited_at: new Date().toISOString(),
+          })
+          .select('*')
+          .single<TeamMemberRow>();
+
+        if (memberInsert.error !== null) {
+          throw new ProjectConflictError({
+            reason: memberInsert.error.message,
+          });
+        }
+
         return mapProject(data);
       },
       catch: (err) =>
         err instanceof ProjectConflictError
           ? err
-          : new ProjectConflictError({
-              reason: err instanceof Error ? err.message : 'Conflict',
-            }),
+          : err instanceof ForbiddenProjectAccessError
+            ? err
+            : err instanceof ProjectValidationError
+              ? err
+              : new ProjectConflictError({
+                  reason: err instanceof Error ? err.message : 'Conflict',
+                }),
     });
   }
 
@@ -76,7 +109,7 @@ export class ProjectService {
     const client = this.getClient();
     const { pageSize, index } = pagination;
     const from = index * pageSize;
-    const to = from + pageSize;
+    const to = from + pageSize - 1;
     return Effect.tryPromise(async () => {
       const { data: memberRows, error: memberError } = await client
         .from('team_members')
@@ -96,7 +129,7 @@ export class ProjectService {
 
       const { data, error } = await client
         .from('projects')
-        .select('*')
+        .select('*', { count: 'exact' })
         .or(filters.join(','))
         .order('created_at', { ascending: false })
         .range(from, to);
@@ -104,8 +137,17 @@ export class ProjectService {
         throw error ?? new Error('Failed to list projects');
       }
 
-      const hasNext = data.length > pageSize;
-      const items = hasNext ? data.slice(0, pageSize) : data;
+      const totalCount =
+        data.length > 0 && typeof data[0].count === 'number'
+          ? data[0].count
+          : typeof (data as { count?: number }[])[0]?.count === 'number'
+            ? ((data as { count?: number }[])[0].count ?? 0)
+            : 0;
+
+      const hasNext = (index + 1) * pageSize < totalCount;
+      const items = data;
+      const totalPageCount =
+        pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0;
 
       return {
         items: items.map(mapProject),
@@ -113,13 +155,21 @@ export class ProjectService {
           index,
           pageSize,
           hasNext,
+          totalCount,
+          totalPageCount,
         },
       };
     }).pipe(
       Effect.catchAll(() =>
         Effect.succeed({
           items: [] as Project[],
-          meta: { index, pageSize, hasNext: false },
+          meta: {
+            index,
+            pageSize,
+            hasNext: false,
+            totalCount: 0,
+            totalPageCount: 0,
+          },
         }),
       ),
     );
@@ -264,6 +314,23 @@ export class ProjectService {
 
   private getClient(): SupabaseClient<Database> {
     return this.supabaseService.getClient();
+  }
+
+  private normalizeSlug(raw: string): string {
+    const trimmed = raw.trim().toLowerCase();
+    return trimmed
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  private validateSlug(slug: string): void {
+    if (!SLUG_REGEX.test(slug) || slug.length === 0) {
+      throw new ProjectValidationError({
+        reason: 'Slug must match ^[a-z0-9-]+$',
+      });
+    }
   }
 
   private async countProjects(

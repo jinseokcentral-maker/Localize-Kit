@@ -47,6 +47,8 @@ export const listProjectsResponseSchema = z.object({
     index: z.number().int().nonnegative(),
     pageSize: z.number().int().positive(),
     hasNext: z.boolean(),
+    totalCount: z.number().int().nonnegative(),
+    totalPageCount: z.number().int().nonnegative(),
   }),
 });
 

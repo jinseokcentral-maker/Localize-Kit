@@ -74,6 +74,22 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
+  // Ignore Chrome DevTools and other browser extension requests
+  if (isRouteErrorResponse(error) && error.status === 404) {
+    // Check error message or data for URL pattern
+    const errorMessage = error.data?.toString() || "";
+    if (
+      errorMessage.includes(".well-known") ||
+      errorMessage.includes("devtools") ||
+      errorMessage.includes("favicon")
+    ) {
+      // Silently ignore these requests in development
+      if (import.meta.env.DEV) {
+        return null;
+      }
+    }
+  }
+
   let message = "Oops!";
   let details = "An unexpected error occurred.";
   let stack: string | undefined;
@@ -87,6 +103,15 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   } else if (import.meta.env.DEV && error && error instanceof Error) {
     details = error.message;
     stack = error.stack;
+
+    // Ignore Chrome DevTools errors in development
+    if (
+      details.includes(".well-known") ||
+      details.includes("devtools") ||
+      details.includes("No route matches")
+    ) {
+      return null;
+    }
   }
 
   return (
