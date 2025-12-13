@@ -1,4 +1,10 @@
-import { BadRequestException, Body, Controller, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  InternalServerErrorException,
+  Post,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -19,6 +25,7 @@ import {
 } from './auth.schemas';
 import { InvalidTokenError, ProviderAuthError } from './errors/auth.errors';
 import { toUnauthorizedException } from '../common/errors/unauthorized-error';
+import { errorMessages } from '../common/errors/error-messages';
 import { ResponseEnvelopeDto } from '../common/response/response.schema';
 import { buildResponse } from '../common/response/response.util';
 import type { ResponseEnvelope } from '../common/response/response.schema';
@@ -129,7 +136,7 @@ export class AuthController {
       Effect.flatMap((parsed) =>
         this.authService.refreshTokens(parsed.refreshToken),
       ),
-      Effect.catchAll((err) => Effect.fail(mapAuthError(err))),
+      Effect.catchAll((err) => Effect.fail(mapRefreshError(err))),
       Effect.map((tokens) => buildResponse(tokens)),
       Effect.runPromise,
     );
@@ -147,4 +154,21 @@ function mapAuthError(err: unknown): Error {
     return err;
   }
   return new BadRequestException('Invalid request');
+}
+
+function mapRefreshError(err: unknown): Error {
+  if (err instanceof InvalidTokenError) {
+    const reason = err.reason;
+    return new InternalServerErrorException(
+      errorMessages.system.refreshTokenFailed({ reason }),
+    );
+  }
+  if (err instanceof Error) {
+    return new InternalServerErrorException(
+      errorMessages.system.refreshTokenFailed({ reason: err.message }),
+    );
+  }
+  return new InternalServerErrorException(
+    errorMessages.system.refreshTokenFailed(),
+  );
 }
