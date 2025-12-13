@@ -1,13 +1,23 @@
 #!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
 
 echo "🧪 Running tests before push (concurrent)..."
 echo ""
 
+# Get the repository root directory
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT" || exit 1
+
+# Create temporary log files
+FRONTEND_LOG="/tmp/frontend-test-$$.log"
+BACKEND_LOG="/tmp/backend-test-$$.log"
+
 # Run frontend and backend tests concurrently
-cd frontend && pnpm run test -- --run > /tmp/frontend-test.log 2>&1 &
+echo "📦 Starting frontend and backend tests..."
+(cd "$REPO_ROOT/frontend" && pnpm run test -- --run > "$FRONTEND_LOG" 2>&1) &
 FRONTEND_PID=$!
 
-cd ../backend && pnpm run test > /tmp/backend-test.log 2>&1 &
+(cd "$REPO_ROOT/backend" && pnpm run test > "$BACKEND_LOG" 2>&1) &
 BACKEND_PID=$!
 
 # Wait for both tests to complete
@@ -18,20 +28,36 @@ wait $BACKEND_PID
 BACKEND_EXIT=$?
 
 # Check results
+FAILED=false
+
 if [ $FRONTEND_EXIT -ne 0 ]; then
   echo ""
-  echo "❌ Frontend tests failed:"
-  cat /tmp/frontend-test.log
-  exit 1
+  echo "❌ Frontend tests failed (exit code: $FRONTEND_EXIT):"
+  echo "----------------------------------------"
+  cat "$FRONTEND_LOG"
+  echo "----------------------------------------"
+  FAILED=true
 fi
 
 if [ $BACKEND_EXIT -ne 0 ]; then
   echo ""
-  echo "❌ Backend tests failed:"
-  cat /tmp/backend-test.log
+  echo "❌ Backend tests failed (exit code: $BACKEND_EXIT):"
+  echo "----------------------------------------"
+  cat "$BACKEND_LOG"
+  echo "----------------------------------------"
+  FAILED=true
+fi
+
+# Cleanup log files
+rm -f "$FRONTEND_LOG" "$BACKEND_LOG"
+
+if [ "$FAILED" = true ]; then
+  echo ""
+  echo "❌ Some tests failed. Push aborted."
   exit 1
 fi
 
 echo ""
 echo "✅ All tests passed! Pushing..."
+exit 0
 
