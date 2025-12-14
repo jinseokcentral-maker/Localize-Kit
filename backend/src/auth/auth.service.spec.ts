@@ -7,6 +7,7 @@ import { TeamEntity } from '../database/entities/team.entity';
 import { TeamMembershipEntity } from '../database/entities/team-membership.entity';
 import { AuthService } from './auth.service';
 import {
+  InvalidTeamError,
   InvalidTokenError,
   ProviderAuthError,
   TeamAccessForbiddenError,
@@ -129,9 +130,20 @@ describe('AuthService', () => {
       },
     );
 
+    const mockTeam: TeamEntity = Object.assign(new TeamEntity(), {
+      id: 'team-1',
+      name: 'Team Alpha',
+      owner_id: 'user-1',
+      avatar_url: null,
+      personal: false,
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-01T00:00:00.000Z',
+    });
+
     (em.findOne as jest.Mock)
-      .mockResolvedValueOnce(mockMembership)
-      .mockResolvedValueOnce(mockProfile);
+      .mockResolvedValueOnce(mockTeam) // team exists
+      .mockResolvedValueOnce(mockMembership) // membership exists
+      .mockResolvedValueOnce(mockProfile); // profile exists
     jwtService.sign = jest
       .fn()
       .mockReturnValueOnce('access-token')
@@ -145,6 +157,7 @@ describe('AuthService', () => {
       accessToken: 'access-token',
       refreshToken: 'refresh-token',
     });
+    expect(em.findOne).toHaveBeenCalledWith(TeamEntity, { id: 'team-1' });
     expect(em.findOne).toHaveBeenCalledWith(TeamMembershipEntity, {
       user_id: 'user-1',
       team_id: 'team-1',
@@ -152,8 +165,36 @@ describe('AuthService', () => {
     expect(em.findOne).toHaveBeenCalledWith(ProfileEntity, { id: 'user-1' });
   });
 
+  it('fails to switch team when team does not exist', async () => {
+    (em.findOne as jest.Mock).mockResolvedValueOnce(null); // team not found
+
+    const result = await Effect.runPromise(
+      Effect.either(authService.switchTeam('user-1', 'invalid-team-id')),
+    );
+
+    expect(result._tag).toBe('Left');
+    if (result._tag === 'Left') {
+      expect(result.left).toBeInstanceOf(InvalidTeamError);
+      if (result.left instanceof InvalidTeamError) {
+        expect(result.left.teamId).toBe('invalid-team-id');
+      }
+    }
+  });
+
   it('fails to switch team when user is not a member', async () => {
-    (em.findOne as jest.Mock).mockResolvedValueOnce(null);
+    const mockTeam: TeamEntity = Object.assign(new TeamEntity(), {
+      id: 'team-1',
+      name: 'Team Alpha',
+      owner_id: 'other-user',
+      avatar_url: null,
+      personal: false,
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-01T00:00:00.000Z',
+    });
+
+    (em.findOne as jest.Mock)
+      .mockResolvedValueOnce(mockTeam) // team exists
+      .mockResolvedValueOnce(null); // membership not found
 
     const result = await Effect.runPromise(
       Effect.either(authService.switchTeam('user-1', 'team-1')),
@@ -170,6 +211,15 @@ describe('AuthService', () => {
   });
 
   it('switches team when profile is not found', async () => {
+    const mockTeam: TeamEntity = Object.assign(new TeamEntity(), {
+      id: 'team-1',
+      name: 'Team Alpha',
+      owner_id: 'user-1',
+      avatar_url: null,
+      personal: false,
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-01T00:00:00.000Z',
+    });
     const mockMembership: TeamMembershipEntity = Object.assign(
       new TeamMembershipEntity(),
       {
@@ -183,8 +233,9 @@ describe('AuthService', () => {
     );
 
     (em.findOne as jest.Mock)
-      .mockResolvedValueOnce(mockMembership)
-      .mockResolvedValueOnce(null);
+      .mockResolvedValueOnce(mockTeam) // team exists
+      .mockResolvedValueOnce(mockMembership) // membership exists
+      .mockResolvedValueOnce(null); // profile not found
 
     const result = await Effect.runPromise(
       Effect.either(authService.switchTeam('user-1', 'team-1')),
@@ -325,7 +376,7 @@ describe('AuthService', () => {
     });
   });
 
-  it('fails to login with teamId when user is not a member', async () => {
+  it('fails to login with invalid teamId (team does not exist)', async () => {
     const mockAuthUser: SupabaseAuthUser = {
       id: 'user-1',
       email: 'a@b.com',
@@ -349,6 +400,60 @@ describe('AuthService', () => {
     });
     (em.findOne as jest.Mock)
       .mockResolvedValueOnce(mockProfile) // findOrCreateUser: find existing profile
+      .mockResolvedValueOnce(null); // verifyTeamMembership: team not found
+
+    const result = await Effect.runPromise(
+      Effect.either(
+        authService.loginWithGoogleAccessToken(
+          'google-token',
+          'invalid-team-id',
+        ),
+      ),
+    );
+
+    expect(result._tag).toBe('Left');
+    if (result._tag === 'Left') {
+      expect(result.left).toBeInstanceOf(InvalidTeamError);
+      if (result.left instanceof InvalidTeamError) {
+        expect(result.left.teamId).toBe('invalid-team-id');
+      }
+    }
+  });
+
+  it('fails to login with teamId when user is not a member', async () => {
+    const mockAuthUser: SupabaseAuthUser = {
+      id: 'user-1',
+      email: 'a@b.com',
+      user_metadata: { name: 'Alice' },
+    } as unknown as SupabaseAuthUser;
+    const mockProfile: ProfileEntity = Object.assign(new ProfileEntity(), {
+      id: 'user-1',
+      email: 'a@b.com',
+      full_name: 'Alice',
+      avatar_url: null,
+      plan: 'free',
+      stripe_customer_id: null,
+      team_id: 'personal-team-1',
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-01T00:00:00.000Z',
+    });
+    const mockTeam: TeamEntity = Object.assign(new TeamEntity(), {
+      id: 'team-1',
+      name: 'Team Alpha',
+      owner_id: 'other-user',
+      avatar_url: null,
+      personal: false,
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-01T00:00:00.000Z',
+    });
+
+    (supabaseClient.auth.getUser as jest.Mock).mockResolvedValue({
+      data: { user: mockAuthUser },
+      error: null,
+    });
+    (em.findOne as jest.Mock)
+      .mockResolvedValueOnce(mockProfile) // findOrCreateUser: find existing profile
+      .mockResolvedValueOnce(mockTeam) // verifyTeamMembership: team exists
       .mockResolvedValueOnce(null); // verifyTeamMembership: membership not found
 
     const result = await Effect.runPromise(

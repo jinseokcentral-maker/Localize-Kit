@@ -6,7 +6,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { Cause } from 'effect';
+
 import { UnauthorizedError } from './unauthorized-error';
 import { ErrorName, errorMessages, getErrorMessage } from './error-messages';
 import { unwrapFiberFailure } from '../effect/effect.util';

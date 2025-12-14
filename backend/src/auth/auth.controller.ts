@@ -28,6 +28,7 @@ import {
   switchTeamSchema,
 } from './auth.schemas';
 import {
+  InvalidTeamError,
   InvalidTokenError,
   ProviderAuthError,
   TeamAccessForbiddenError,
@@ -227,6 +228,9 @@ function mapAuthError(err: unknown): Error {
   if (err instanceof ProviderAuthError) {
     return toUnauthorizedException(err);
   }
+  if (err instanceof InvalidTeamError) {
+    return new BadRequestException(`Invalid team ID: ${err.teamId}`);
+  }
   if (err instanceof TeamAccessForbiddenError) {
     return new ForbiddenException(`User is not a member of team ${err.teamId}`);
   }
@@ -254,6 +258,9 @@ function mapRefreshError(err: unknown): Error {
 }
 
 function mapSwitchTeamError(err: unknown): Error {
+  if (err instanceof InvalidTeamError) {
+    return new BadRequestException(`Invalid team ID: ${err.teamId}`);
+  }
   if (err instanceof TeamAccessForbiddenError) {
     return new ForbiddenException(
       `User ${err.userId} is not a member of team ${err.teamId}`,

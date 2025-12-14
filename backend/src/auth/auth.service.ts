@@ -12,6 +12,7 @@ import type { User, UserProfileRow } from '../user/user.types';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { JWT_REFRESH_EXPIRES_IN_KEY } from './constants/auth.constants';
 import {
+  InvalidTeamError,
   InvalidTokenError,
   ProviderAuthError,
   TeamAccessForbiddenError,
@@ -51,7 +52,10 @@ export class AuthService {
   loginWithGoogleAccessToken(
     accessToken: string,
     teamId?: string,
-  ): Effect.Effect<TokenPair, ProviderAuthError | TeamAccessForbiddenError> {
+  ): Effect.Effect<
+    TokenPair,
+    ProviderAuthError | TeamAccessForbiddenError | InvalidTeamError
+  > {
     return pipe(
       this.signInWithGoogle(accessToken),
       Effect.flatMap((authUser) =>
@@ -70,7 +74,7 @@ export class AuthService {
                 ),
               ) as Effect.Effect<
                 TokenPair,
-                ProviderAuthError | TeamAccessForbiddenError
+                ProviderAuthError | TeamAccessForbiddenError | InvalidTeamError
               >;
             }
             return pipe(
@@ -85,7 +89,7 @@ export class AuthService {
               ),
             ) as Effect.Effect<
               TokenPair,
-              ProviderAuthError | TeamAccessForbiddenError
+              ProviderAuthError | TeamAccessForbiddenError | InvalidTeamError
             >;
           }),
         ),
@@ -96,9 +100,15 @@ export class AuthService {
   switchTeam(
     userId: string,
     teamId: string,
-  ): Effect.Effect<TokenPair, TeamAccessForbiddenError> {
+  ): Effect.Effect<TokenPair, TeamAccessForbiddenError | InvalidTeamError> {
     return Effect.tryPromise({
       try: async () => {
+        // 먼저 팀이 존재하는지 확인
+        const team = await this.em.findOne(TeamEntity, { id: teamId });
+        if (team === null) {
+          throw new InvalidTeamError({ teamId });
+        }
+        // 팀이 존재하면 멤버십 확인
         const membership = await this.em.findOne(TeamMembershipEntity, {
           user_id: userId,
           team_id: teamId,
@@ -118,6 +128,9 @@ export class AuthService {
         });
       },
       catch: (err) => {
+        if (err instanceof InvalidTeamError) {
+          return err;
+        }
         if (err instanceof TeamAccessForbiddenError) {
           return err;
         }
@@ -246,9 +259,15 @@ export class AuthService {
   private verifyTeamMembership(
     userId: string,
     teamId: string,
-  ): Effect.Effect<string, TeamAccessForbiddenError> {
+  ): Effect.Effect<string, TeamAccessForbiddenError | InvalidTeamError> {
     return Effect.tryPromise({
       try: async () => {
+        // 먼저 팀이 존재하는지 확인
+        const team = await this.em.findOne(TeamEntity, { id: teamId });
+        if (team === null) {
+          throw new InvalidTeamError({ teamId });
+        }
+        // 팀이 존재하면 멤버십 확인
         const membership = await this.em.findOne(TeamMembershipEntity, {
           user_id: userId,
           team_id: teamId,
@@ -259,6 +278,9 @@ export class AuthService {
         return teamId;
       },
       catch: (err) => {
+        if (err instanceof InvalidTeamError) {
+          return err;
+        }
         if (err instanceof TeamAccessForbiddenError) {
           return err;
         }

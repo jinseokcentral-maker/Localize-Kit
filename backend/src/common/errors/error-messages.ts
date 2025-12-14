@@ -16,6 +16,8 @@ export enum ErrorName {
   UserNotFoundError = 'UserNotFoundError',
   UserConflictError = 'UserConflictError',
   PersonalTeamNotFoundError = 'PersonalTeamNotFoundError',
+  TeamAccessForbiddenError = 'TeamAccessForbiddenError',
+  InvalidTeamError = 'InvalidTeamError',
   MissingEnvError = 'MissingEnvError',
   InvalidPortError = 'InvalidPortError',
 }
@@ -88,6 +90,12 @@ export const errorMessages = {
           ? { userId: context.userId ? `: ${context.userId}` : '' }
           : undefined,
       ),
+  },
+  team: {
+    invalid: (context?: ErrorContext): string =>
+      createMessage('Invalid team ID: {{teamId}}', context),
+    accessForbidden: (context?: ErrorContext): string =>
+      createMessage('User is not a member of team {{teamId}}', context),
   },
   system: {
     missingEnv: (context?: ErrorContext): string =>
@@ -214,6 +222,20 @@ export function getErrorMessage(
           ? (error as { userId?: string }).userId
           : undefined;
       return messages.user.personalTeamNotFound({ userId });
+    }
+    case ErrorName.InvalidTeamError: {
+      const teamId =
+        typeof error === 'object' && error !== null && 'teamId' in error
+          ? (error as { teamId?: string }).teamId
+          : undefined;
+      return messages.team.invalid({ teamId: teamId || 'unknown' });
+    }
+    case ErrorName.TeamAccessForbiddenError: {
+      const teamId =
+        typeof error === 'object' && error !== null && 'teamId' in error
+          ? (error as { teamId?: string }).teamId
+          : undefined;
+      return messages.team.accessForbidden({ teamId: teamId || 'unknown' });
     }
     case ErrorName.MissingEnvError: {
       const key =

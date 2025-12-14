@@ -3,12 +3,15 @@ import { Effect } from "effect";
 import { useLocation, useNavigate } from "react-router";
 import { supabase } from "~/lib/supabaseClient";
 import { apiClient, publicApiClient } from "~/lib/api/authClient";
-import { extractApiData } from "~/lib/api/apiWrapper";
+import { extractApiData, preserveError } from "~/lib/api/apiWrapper";
 import { useTokenStore } from "../stores/tokenStore";
 import { useSupabase } from "./useAuth";
 import { authControllerLoginWithProvider, userControllerGetMe } from "~/api";
 import { isProtectedRoute, isUnprotectedRoute } from "~/lib/routes";
 import type { UserData } from "./useGetMe";
+import { toast } from "sonner";
+import { openTeamAccessDeniedDialog } from "~/pages/auth/login/components/TeamAccessDeniedDialog";
+import { getTeamLoginErrorAction } from "./utils/bootstrapAuthErrors";
 
 /**
  * 경로에서 teamId 추출
@@ -29,6 +32,10 @@ function redirectToLogin(
 ): Effect.Effect<void, never> {
   return Effect.sync(() => {
     const params = new URLSearchParams();
+    const teamId = extractTeamIdFromPath(pathname);
+    if (teamId) {
+      params.set("teamId", teamId);
+    }
     params.set("redirect", pathname);
     navigate(`/login?${params.toString()}`, { replace: true });
   });
@@ -47,6 +54,12 @@ function clearPendingRedirect(): void {
 
 function clearPendingTeamId(): void {
   if (typeof window === "undefined") return;
+  sessionStorage.removeItem("pendingTeamId");
+}
+
+function clearPendingLoginContext(): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem("pendingRedirect");
   sessionStorage.removeItem("pendingTeamId");
 }
 
@@ -154,8 +167,7 @@ function syncSupabaseSessionEffect(
             refreshToken: string;
           }>(response.data);
         },
-        catch: (err) =>
-          new Error(`Failed to login with provider: ${String(err)}`),
+        catch: (err) => preserveError(err, "Failed to login with provider"),
       }),
     );
 
@@ -300,16 +312,42 @@ function bootstrapProfileEffect(
         clear,
         teamId,
         navigate,
-      )
-        .pipe(
-          Effect.tap(() => {
-            // 성공 후 sessionStorage 정리
-            if (typeof window !== "undefined" && teamId) {
-              sessionStorage.removeItem("pendingTeamId");
+      ).pipe(
+        Effect.tap(() => {
+          // 성공 후 sessionStorage 정리
+          if (typeof window !== "undefined" && teamId) {
+            sessionStorage.removeItem("pendingTeamId");
+          }
+          return Effect.void;
+        }),
+        Effect.catchAll((err) => {
+          const action = getTeamLoginErrorAction(err);
+
+          return Effect.sync(() => {
+            // 두 경우 다 redirect 관련 sessionStorage에 아무것도 남지 않게
+            clearPendingLoginContext();
+
+            // backend tokens는 없으므로 local token store도 비움
+            clear();
+
+            if (action.kind === "team_not_member") {
+              void openTeamAccessDeniedDialog();
+              navigate("/", { replace: true });
+              return;
             }
-            return Effect.void;
-          }),
-        ),
+
+            if (action.kind === "invalid_team_id") {
+              toast.error("Invalid login attempt.");
+              navigate("/", { replace: true });
+              return;
+            }
+
+            // unknown fallback
+            toast.error("Login failed. Please try again.");
+            navigate("/", { replace: true });
+          });
+        }),
+      ),
     );
   });
 }

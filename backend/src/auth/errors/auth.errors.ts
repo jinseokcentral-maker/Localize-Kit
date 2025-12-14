@@ -23,3 +23,7 @@ export class TeamAccessForbiddenError extends Data.TaggedError(
   readonly userId: string;
   readonly teamId: string;
 }> {}
+
+export class InvalidTeamError extends Data.TaggedError('InvalidTeamError')<{
+  readonly teamId: string;
+}> {}

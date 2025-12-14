@@ -89,6 +89,7 @@ describe("useBootstrapProfile", () => {
       const navigate = vi.fn();
       const pathname = "/teams/team-123/dashboard";
       const params = new URLSearchParams();
+      params.set("teamId", "team-123");
       params.set("redirect", pathname);
       const expectedUrl = `/login?${params.toString()}`;
 
@@ -329,6 +330,7 @@ describe("useBootstrapProfile", () => {
 
       const pathname = "/teams/team-123/dashboard";
       const params = new URLSearchParams();
+      params.set("teamId", "team-123");
       params.set("redirect", pathname);
       const expectedUrl = `/login?${params.toString()}`;
 

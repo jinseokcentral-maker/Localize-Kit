@@ -1,4 +1,4 @@
-import { Navigate, useLocation } from "react-router";
+import { Navigate, useLocation, useParams } from "react-router";
 import { DashboardPage } from "~/pages/dashboard";
 import { useTokenStore } from "~/stores/tokenStore";
 import type { Route } from "./+types/_app.teams.$teamId.dashboard._index";
@@ -20,6 +20,7 @@ export function meta({}: Route.MetaArgs) {
 export default function TeamDashboardRoute() {
   const accessToken = useTokenStore((state) => state.accessToken);
   const location = useLocation();
+  const { teamId } = useParams();
 
   // Hard guard: prevent dashboard from mounting when logged out
   // (avoids firing queries that would 401 before useBootstrapProfile redirects)
@@ -32,6 +33,9 @@ export default function TeamDashboardRoute() {
     }
 
     const params = new URLSearchParams();
+    if (typeof teamId === "string" && teamId) {
+      params.set("teamId", teamId);
+    }
     params.set("redirect", `${location.pathname}${location.search}`);
     return <Navigate to={`/login?${params.toString()}`} replace />;
   }
