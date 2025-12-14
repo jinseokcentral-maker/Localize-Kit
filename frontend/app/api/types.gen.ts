@@ -17,6 +17,11 @@ export type RefreshTokensDto = {
 
 export type ProviderLoginDto = {
     accessToken: string;
+    teamId?: string;
+};
+
+export type SwitchTeamDto = {
+    teamId: string;
 };
 
 export type CreateProjectDto = {
@@ -166,6 +171,43 @@ export type AuthControllerRefreshTokensResponses = {
 };
 
 export type AuthControllerRefreshTokensResponse = AuthControllerRefreshTokensResponses[keyof AuthControllerRefreshTokensResponses];
+
+export type AuthControllerSwitchTeamData = {
+    /**
+     * Switch team payload
+     */
+    body: SwitchTeamDto;
+    path?: never;
+    query?: never;
+    url: '/auth/switch-team';
+};
+
+export type AuthControllerSwitchTeamErrors = {
+    /**
+     * Invalid payload
+     */
+    400: {
+        statusCode: number;
+        message: string;
+        error?: string;
+    };
+};
+
+export type AuthControllerSwitchTeamError = AuthControllerSwitchTeamErrors[keyof AuthControllerSwitchTeamErrors];
+
+export type AuthControllerSwitchTeamResponses = {
+    /**
+     * New token pair with teamId
+     */
+    200: ResponseEnvelopeDto & {
+        data?: {
+            accessToken: string;
+            refreshToken: string;
+        };
+    };
+};
+
+export type AuthControllerSwitchTeamResponse = AuthControllerSwitchTeamResponses[keyof AuthControllerSwitchTeamResponses];
 
 export type UserControllerRegisterData = {
     /**

@@ -14,7 +14,12 @@ export const zRefreshTokensDto = z.object({
 });
 
 export const zProviderLoginDto = z.object({
-    accessToken: z.string().min(1)
+    accessToken: z.string().min(1),
+    teamId: z.optional(z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/))
+});
+
+export const zSwitchTeamDto = z.object({
+    teamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
 });
 
 export const zCreateProjectDto = z.object({
@@ -146,6 +151,22 @@ export const zAuthControllerRefreshTokensData = z.object({
  * New token pair
  */
 export const zAuthControllerRefreshTokensResponse = zResponseEnvelopeDto.and(z.object({
+    data: z.optional(z.object({
+        accessToken: z.string(),
+        refreshToken: z.string()
+    }))
+}));
+
+export const zAuthControllerSwitchTeamData = z.object({
+    body: zSwitchTeamDto,
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+/**
+ * New token pair with teamId
+ */
+export const zAuthControllerSwitchTeamResponse = zResponseEnvelopeDto.and(z.object({
     data: z.optional(z.object({
         accessToken: z.string(),
         refreshToken: z.string()

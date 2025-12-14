@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AppControllerGetHelloData, AppControllerGetHelloResponses, AuthControllerLoginWithProviderData, AuthControllerLoginWithProviderErrors, AuthControllerLoginWithProviderResponses, AuthControllerRefreshTokensData, AuthControllerRefreshTokensErrors, AuthControllerRefreshTokensResponses, ProjectControllerAddMemberData, ProjectControllerAddMemberErrors, ProjectControllerAddMemberResponses, ProjectControllerCreateProjectData, ProjectControllerCreateProjectErrors, ProjectControllerCreateProjectResponses, ProjectControllerListProjectsData, ProjectControllerListProjectsResponses, ProjectControllerRemoveMemberData, ProjectControllerRemoveMemberErrors, ProjectControllerRemoveMemberResponses, ProjectControllerUpdateProjectData, ProjectControllerUpdateProjectErrors, ProjectControllerUpdateProjectResponses, UserControllerGetMeData, UserControllerGetMeErrors, UserControllerGetMeResponses, UserControllerRegisterData, UserControllerRegisterErrors, UserControllerRegisterResponses, UserControllerUpdateMeData, UserControllerUpdateMeErrors, UserControllerUpdateMeResponses } from './types.gen';
+import type { AppControllerGetHelloData, AppControllerGetHelloResponses, AuthControllerLoginWithProviderData, AuthControllerLoginWithProviderErrors, AuthControllerLoginWithProviderResponses, AuthControllerRefreshTokensData, AuthControllerRefreshTokensErrors, AuthControllerRefreshTokensResponses, AuthControllerSwitchTeamData, AuthControllerSwitchTeamErrors, AuthControllerSwitchTeamResponses, ProjectControllerAddMemberData, ProjectControllerAddMemberErrors, ProjectControllerAddMemberResponses, ProjectControllerCreateProjectData, ProjectControllerCreateProjectErrors, ProjectControllerCreateProjectResponses, ProjectControllerListProjectsData, ProjectControllerListProjectsResponses, ProjectControllerRemoveMemberData, ProjectControllerRemoveMemberErrors, ProjectControllerRemoveMemberResponses, ProjectControllerUpdateProjectData, ProjectControllerUpdateProjectErrors, ProjectControllerUpdateProjectResponses, UserControllerGetMeData, UserControllerGetMeErrors, UserControllerGetMeResponses, UserControllerRegisterData, UserControllerRegisterErrors, UserControllerRegisterResponses, UserControllerUpdateMeData, UserControllerUpdateMeErrors, UserControllerUpdateMeResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -40,6 +40,18 @@ export const authControllerLoginWithProvider = <ThrowOnError extends boolean = f
  */
 export const authControllerRefreshTokens = <ThrowOnError extends boolean = false>(options: Options<AuthControllerRefreshTokensData, ThrowOnError>) => (options.client ?? client).post<AuthControllerRefreshTokensResponses, AuthControllerRefreshTokensErrors, ThrowOnError>({
     url: '/auth/refresh',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Switch active team and get new tokens
+ */
+export const authControllerSwitchTeam = <ThrowOnError extends boolean = false>(options: Options<AuthControllerSwitchTeamData, ThrowOnError>) => (options.client ?? client).post<AuthControllerSwitchTeamResponses, AuthControllerSwitchTeamErrors, ThrowOnError>({
+    url: '/auth/switch-team',
     ...options,
     headers: {
         'Content-Type': 'application/json',

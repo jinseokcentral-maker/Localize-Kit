@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { appControllerGetHello, authControllerLoginWithProvider, authControllerRefreshTokens, type Options, projectControllerAddMember, projectControllerCreateProject, projectControllerListProjects, projectControllerRemoveMember, projectControllerUpdateProject, userControllerGetMe, userControllerRegister, userControllerUpdateMe } from '../sdk.gen';
-import type { AppControllerGetHelloData, AppControllerGetHelloResponse, AuthControllerLoginWithProviderData, AuthControllerLoginWithProviderError, AuthControllerLoginWithProviderResponse, AuthControllerRefreshTokensData, AuthControllerRefreshTokensError, AuthControllerRefreshTokensResponse, ProjectControllerAddMemberData, ProjectControllerAddMemberError, ProjectControllerAddMemberResponse, ProjectControllerCreateProjectData, ProjectControllerCreateProjectError, ProjectControllerCreateProjectResponse, ProjectControllerListProjectsData, ProjectControllerListProjectsResponse, ProjectControllerRemoveMemberData, ProjectControllerRemoveMemberError, ProjectControllerRemoveMemberResponse, ProjectControllerUpdateProjectData, ProjectControllerUpdateProjectError, ProjectControllerUpdateProjectResponse, UserControllerGetMeData, UserControllerGetMeResponse, UserControllerRegisterData, UserControllerRegisterError, UserControllerRegisterResponse, UserControllerUpdateMeData, UserControllerUpdateMeError, UserControllerUpdateMeResponse } from '../types.gen';
+import { appControllerGetHello, authControllerLoginWithProvider, authControllerRefreshTokens, authControllerSwitchTeam, type Options, projectControllerAddMember, projectControllerCreateProject, projectControllerListProjects, projectControllerRemoveMember, projectControllerUpdateProject, userControllerGetMe, userControllerRegister, userControllerUpdateMe } from '../sdk.gen';
+import type { AppControllerGetHelloData, AppControllerGetHelloResponse, AuthControllerLoginWithProviderData, AuthControllerLoginWithProviderError, AuthControllerLoginWithProviderResponse, AuthControllerRefreshTokensData, AuthControllerRefreshTokensError, AuthControllerRefreshTokensResponse, AuthControllerSwitchTeamData, AuthControllerSwitchTeamError, AuthControllerSwitchTeamResponse, ProjectControllerAddMemberData, ProjectControllerAddMemberError, ProjectControllerAddMemberResponse, ProjectControllerCreateProjectData, ProjectControllerCreateProjectError, ProjectControllerCreateProjectResponse, ProjectControllerListProjectsData, ProjectControllerListProjectsResponse, ProjectControllerRemoveMemberData, ProjectControllerRemoveMemberError, ProjectControllerRemoveMemberResponse, ProjectControllerUpdateProjectData, ProjectControllerUpdateProjectError, ProjectControllerUpdateProjectResponse, UserControllerGetMeData, UserControllerGetMeResponse, UserControllerRegisterData, UserControllerRegisterError, UserControllerRegisterResponse, UserControllerUpdateMeData, UserControllerUpdateMeError, UserControllerUpdateMeResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -81,6 +81,23 @@ export const authControllerRefreshTokensMutation = (options?: Partial<Options<Au
     const mutationOptions: UseMutationOptions<AuthControllerRefreshTokensResponse, AuthControllerRefreshTokensError, Options<AuthControllerRefreshTokensData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await authControllerRefreshTokens({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Switch active team and get new tokens
+ */
+export const authControllerSwitchTeamMutation = (options?: Partial<Options<AuthControllerSwitchTeamData>>): UseMutationOptions<AuthControllerSwitchTeamResponse, AuthControllerSwitchTeamError, Options<AuthControllerSwitchTeamData>> => {
+    const mutationOptions: UseMutationOptions<AuthControllerSwitchTeamResponse, AuthControllerSwitchTeamError, Options<AuthControllerSwitchTeamData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await authControllerSwitchTeam({
                 ...options,
                 ...fnOptions,
                 throwOnError: true
