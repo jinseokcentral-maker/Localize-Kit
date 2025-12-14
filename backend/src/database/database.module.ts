@@ -74,6 +74,11 @@ function getDbUrl(configService: ConfigService): string {
               options: '-c sslmode=require',
               family: 'IPv4',
             },
+            pool: {
+              min: 2,
+              max: 10,
+              idleTimeoutMillis: 30000,
+            },
           },
         };
       },

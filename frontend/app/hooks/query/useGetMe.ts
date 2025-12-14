@@ -3,6 +3,7 @@ import { Effect } from "effect";
 import { apiClient } from "~/lib/api/authClient";
 import { userControllerGetMe } from "~/api";
 import { extractApiData } from "~/lib/api/apiWrapper";
+import { useTokenStore } from "~/stores/tokenStore";
 
 export type TeamInfo = Readonly<{
     projectCount: number;
@@ -24,6 +25,7 @@ type UserData = {
     createdAt?: string | unknown;
     updatedAt?: string | unknown;
     teams?: TeamInfo[];
+    activeTeamId?: string | unknown;
 };
 
 /**
@@ -50,8 +52,12 @@ function getMeEffect(): Effect.Effect<UserData, Error> {
 /**
  * Hook to fetch current user profile
  * Uses TanStack Query with Effect pattern
+ *
+ * Only enabled when accessToken exists in tokenStore
  */
 export function useGetMe() {
+    const accessToken = useTokenStore((state) => state.accessToken);
+
     return useQuery({
         queryKey: ["user", "me"],
         queryFn: async () => {
@@ -64,6 +70,7 @@ export function useGetMe() {
                 ),
             );
         },
+        enabled: Boolean(accessToken), // Only fetch when accessToken exists
         retry: 1,
         staleTime: 5 * 60 * 1000, // 5 minutes
     });

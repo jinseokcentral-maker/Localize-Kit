@@ -45,6 +45,7 @@ export class UserService {
 
   getUserById(
     userId: string,
+    activeTeamId?: string | null,
   ): Effect.Effect<User, UserNotFoundError | PersonalTeamNotFoundError> {
     return pipe(
       this.fetchProfileById(userId),
@@ -65,7 +66,19 @@ export class UserService {
           Effect.flatMap((fullName) =>
             pipe(
               this.fetchTeamsInfo(userId, fullName),
-              Effect.map((teams) => ({ ...user, teams })),
+              Effect.map((teams) => {
+                // activeTeamId가 null이면 personal team ID를 사용
+                let finalActiveTeamId = activeTeamId ?? null;
+                if (finalActiveTeamId === null) {
+                  const personalTeam = teams.find((team) => team.personal);
+                  finalActiveTeamId = personalTeam?.teamId ?? null;
+                }
+                return {
+                  ...user,
+                  teams,
+                  activeTeamId: finalActiveTeamId,
+                };
+              }),
             ),
           ),
         ),
@@ -119,7 +132,7 @@ export class UserService {
         if (teamsResult._tag === 'Left') {
           throw teamsResult.left;
         }
-        return { ...user, teams: teamsResult.right };
+        return { ...user, teams: teamsResult.right, activeTeamId: null };
       },
       catch: (err) => {
         if (err instanceof PersonalTeamNotFoundError) {
@@ -144,7 +157,7 @@ export class UserService {
 
   private fetchProfileById(
     userId: string,
-  ): Effect.Effect<Omit<User, 'teams'>, UserNotFoundError> {
+  ): Effect.Effect<Omit<User, 'teams' | 'activeTeamId'>, UserNotFoundError> {
     return Effect.tryPromise({
       try: async () => {
         const profile = await this.em.findOne(ProfileEntity, { id: userId });
@@ -184,7 +197,7 @@ export class UserService {
         if (teamsResult._tag === 'Left') {
           throw teamsResult.left;
         }
-        return { ...user, teams: teamsResult.right };
+        return { ...user, teams: teamsResult.right, activeTeamId: null };
       },
       catch: (err) => {
         if (err instanceof PersonalTeamNotFoundError) {
@@ -307,7 +320,7 @@ export class UserService {
 
 function mapProfileToUser(
   row: UserProfileRow | ProfileEntity,
-): Omit<User, 'teams'> {
+): Omit<User, 'teams' | 'activeTeamId'> {
   const profileRow =
     row instanceof ProfileEntity
       ? {

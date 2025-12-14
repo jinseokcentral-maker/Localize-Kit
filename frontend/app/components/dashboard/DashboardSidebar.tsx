@@ -369,9 +369,27 @@ export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
   );
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    // Mark logout as in progress so route guards won't redirect to /login?redirect=...
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("logoutInProgress", "1");
+      sessionStorage.removeItem("pendingRedirect");
+      sessionStorage.removeItem("pendingTeamId");
+    }
+
+    // Clear local tokens first (guards will see logoutInProgress and force '/')
     clear();
-    navigate("/");
+
+    // Navigate to landing
+    navigate("/", { replace: true });
+
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      // Cleanup logout flag
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("logoutInProgress");
+      }
+    }
   };
 
   const navMain = [

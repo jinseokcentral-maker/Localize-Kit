@@ -5,11 +5,33 @@ import { useTheme } from "~/hooks/useTheme";
 import { GithubIcon } from "~/components/icons/GithubIcon";
 import { TypoP } from "~/components/typo";
 import { useTokenStore } from "~/stores/tokenStore";
+import { useGetMe } from "~/hooks/query/useGetMe";
 
 export function Header() {
   const { theme, toggleTheme, isDark } = useTheme();
   const { accessToken } = useTokenStore();
   const isAuthenticated = Boolean(accessToken);
+  const { data: userData } = useGetMe();
+
+  // Get dashboard URL with activeTeamId
+  const getDashboardUrl = () => {
+    if (!isAuthenticated) {
+      return "/login";
+    }
+
+    // Extract activeTeamId from userData
+    const activeTeamId =
+      typeof userData?.activeTeamId === "string" && userData.activeTeamId
+        ? userData.activeTeamId
+        : null;
+
+    if (activeTeamId) {
+      return `/teams/${activeTeamId}/dashboard`;
+    }
+
+    // Fallback to login if no activeTeamId
+    return "/login";
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-sm">
@@ -79,7 +101,7 @@ export function Header() {
 
           {/* Auth Button */}
           <Button size="md" asChild>
-            <Link to={isAuthenticated ? "/dashboard" : "/login"}>
+            <Link to={getDashboardUrl()}>
               {isAuthenticated ? "Go to dashboard" : "Login"}
             </Link>
           </Button>

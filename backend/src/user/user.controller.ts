@@ -107,6 +107,7 @@ const userSchema = {
       type: 'array',
       items: teamInfoSchema,
     },
+    activeTeamId: oneOfString('uuid'),
   },
   required: ['id'],
 } satisfies SchemaObject;
@@ -205,7 +206,10 @@ export class UserController {
     return runEffectWithErrorHandling(
       pipe(
         this.requireAuthUser(req),
-        Effect.flatMap((userId) => this.userService.getUserById(userId)),
+        Effect.flatMap((userId) => {
+          const activeTeamId = req.user?.teamId ?? null;
+          return this.userService.getUserById(userId, activeTeamId);
+        }),
         Effect.map((user) => buildResponse(user)),
       ),
       mapUserError,

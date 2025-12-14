@@ -3,8 +3,9 @@ import { Effect } from "effect";
 import { apiClient } from "~/lib/api/authClient";
 import { userControllerGetMe } from "~/api";
 import { extractApiData } from "~/lib/api/apiWrapper";
+import type { TeamInfo } from "./query/useGetMe";
 
-type UserData = {
+export type UserData = {
     id: string;
     email?: string | unknown;
     fullName?: string | unknown;
@@ -12,11 +13,8 @@ type UserData = {
     plan?: string | unknown;
     createdAt?: string | unknown;
     updatedAt?: string | unknown;
-    team?: {
-        projectCount: number;
-        plan?: string | unknown;
-        canCreateProject: boolean;
-    };
+    teams?: TeamInfo[];
+    activeTeamId?: string;
 };
 
 /**

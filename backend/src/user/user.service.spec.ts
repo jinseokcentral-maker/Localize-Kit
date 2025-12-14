@@ -165,7 +165,7 @@ describe('UserService', () => {
       .mockResolvedValueOnce(0)
       .mockResolvedValueOnce(1);
 
-    const user = await Effect.runPromise(userService.getUserById('user-1'));
+    const user = await Effect.runPromise(userService.getUserById('user-1', null));
 
     expect(user.id).toBe('user-1');
     expect(user.teams).toHaveLength(1);
@@ -208,7 +208,7 @@ describe('UserService', () => {
       .mockResolvedValueOnce(5)
       .mockResolvedValueOnce(3);
 
-    const user = await Effect.runPromise(userService.getUserById('user-1'));
+    const user = await Effect.runPromise(userService.getUserById('user-1', null));
 
     expect(user.id).toBe('user-1');
     expect(user.teams).toHaveLength(1);

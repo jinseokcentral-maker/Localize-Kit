@@ -1,7 +1,7 @@
 import { Plus, Globe } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { openCreateProjectDialog } from "./CreateProjectDialog/CreateProjectDialog";
-import { useGetMe } from "~/hooks/useGetMe";
+import { useGetMe } from "~/hooks/query/useGetMe";
 import {
   canCreateProject,
   getDisabledReason,
@@ -24,12 +24,20 @@ export function DashboardPageHeader() {
     typeof userData?.plan === "string" ? userData.plan : "free"
   ) as PlanName;
 
+  // Find active team using activeTeamId
+  const activeTeamId =
+    typeof userData?.activeTeamId === "string" ? userData.activeTeamId : null;
+  const activeTeam = activeTeamId
+    ? userData?.teams?.find((team) => {
+        const teamId = typeof team.teamId === "string" ? team.teamId : null;
+        return teamId === activeTeamId;
+      })
+    : null;
+  const projectCount = activeTeam?.projectCount ?? 0;
+
   // Check if user can create project
-  const canCreate = canCreateProject(plan, userData?.team?.projectCount ?? 0);
-  const disabledReason = getDisabledReason(
-    plan,
-    userData?.team?.projectCount ?? 0
-  );
+  const canCreate = canCreateProject(plan, projectCount);
+  const disabledReason = getDisabledReason(plan, projectCount);
 
   const handleCreateProject = async () => {
     if (!canCreate) {

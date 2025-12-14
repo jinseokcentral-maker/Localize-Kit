@@ -233,9 +233,19 @@ const tokenStoreProvider: TokenProvider = {
     },
 };
 
-const apiBaseUrl = typeof window !== "undefined"
+export const apiBaseUrl = typeof window !== "undefined"
     ? (import.meta.env.VITE_API_URL as string) ?? "http://localhost:8000"
     : (import.meta.env.VITE_API_URL as string) ?? "http://localhost:8000";
+
+/**
+ * Public API client (no auth header injection, no refresh-on-401)
+ * Use this for endpoints like `/auth/login` that must work before tokens exist.
+ */
+export const publicApiClient = createClient(
+    createConfig({
+        baseUrl: apiBaseUrl,
+    }),
+);
 
 export const apiClient = createAuthClient({
     baseUrl: apiBaseUrl,

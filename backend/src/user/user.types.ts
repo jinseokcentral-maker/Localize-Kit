@@ -11,6 +11,7 @@ export type User = Readonly<{
   createdAt: string | null;
   updatedAt: string | null;
   teams: TeamInfo[];
+  activeTeamId: string | null;
 }>;
 
 export type TeamInfo = Readonly<{

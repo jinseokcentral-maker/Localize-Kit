@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Effect } from "effect";
+import { useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { EmailSentView } from "~/components/auth/EmailSentView";
 import { LoginCard } from "~/components/auth/LoginCard";
@@ -13,6 +14,25 @@ import {
 
 export default function LoginPage() {
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
+
+  // Get teamId and redirect from query params
+  const teamId = searchParams.get("teamId");
+  const redirect = searchParams.get("redirect");
+
+  // Store teamId/redirect in sessionStorage for use in /verify page
+  // (OAuth redirect loses query params)
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (teamId) {
+      sessionStorage.setItem("pendingTeamId", teamId);
+    }
+    if (redirect) {
+      sessionStorage.setItem("pendingRedirect", redirect);
+    }
+  }, [teamId, redirect]);
 
   const redirectTo = `${window.location.origin}${"/verify"}`;
 

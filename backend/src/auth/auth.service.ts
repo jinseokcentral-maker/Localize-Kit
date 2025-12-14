@@ -197,7 +197,7 @@ export class AuthService {
         });
         if (existing !== null) {
           const user = mapProfileToUser(existing);
-          return { ...user, teams: [] };
+          return { ...user, teams: [], activeTeamId: null };
         }
 
         const now = new Date().toISOString();
@@ -222,12 +222,24 @@ export class AuthService {
         });
         await this.em.persistAndFlush(profile);
         const user = mapProfileToUser(profile);
-        return { ...user, teams: [] };
+        return { ...user, teams: [], activeTeamId: null };
       },
-      catch: (err) =>
-        new ProviderAuthError(
-          err instanceof Error ? err.message : 'Failed to upsert user',
-        ),
+      catch: (err) => {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to upsert user';
+        // 데이터베이스 연결 에러인 경우 더 명확한 메시지 제공
+        if (
+          errorMessage.includes('ECONNRESET') ||
+          errorMessage.includes('ECONNREFUSED') ||
+          errorMessage.includes('ETIMEDOUT') ||
+          errorMessage.includes('connection')
+        ) {
+          return new ProviderAuthError(
+            `Database connection error: ${errorMessage}. Please try again.`,
+          );
+        }
+        return new ProviderAuthError(errorMessage);
+      },
     });
   }
 
@@ -301,7 +313,7 @@ export class AuthService {
 
 function mapProfileToUser(
   row: UserProfileRow | ProfileEntity,
-): Omit<User, 'teams'> {
+): Omit<User, 'teams' | 'activeTeamId'> {
   const profileRow =
     row instanceof ProfileEntity
       ? {
