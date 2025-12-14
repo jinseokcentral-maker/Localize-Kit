@@ -15,6 +15,7 @@ export enum ErrorName {
   ProjectArchivedError = 'ProjectArchivedError',
   UserNotFoundError = 'UserNotFoundError',
   UserConflictError = 'UserConflictError',
+  PersonalTeamNotFoundError = 'PersonalTeamNotFoundError',
   MissingEnvError = 'MissingEnvError',
   InvalidPortError = 'InvalidPortError',
 }
@@ -78,6 +79,13 @@ export const errorMessages = {
         'User conflict{{reason}}',
         context
           ? { reason: context.reason ? `: ${context.reason}` : '' }
+          : undefined,
+      ),
+    personalTeamNotFound: (context?: ErrorContext): string =>
+      createMessage(
+        'Personal team not found for user{{userId}}',
+        context
+          ? { userId: context.userId ? `: ${context.userId}` : '' }
           : undefined,
       ),
   },
@@ -199,6 +207,13 @@ export function getErrorMessage(
           ? (error as { reason?: string }).reason
           : undefined;
       return messages.user.conflict({ reason });
+    }
+    case ErrorName.PersonalTeamNotFoundError: {
+      const userId =
+        typeof error === 'object' && error !== null && 'userId' in error
+          ? (error as { userId?: string }).userId
+          : undefined;
+      return messages.user.personalTeamNotFound({ userId });
     }
     case ErrorName.MissingEnvError: {
       const key =

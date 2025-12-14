@@ -74,12 +74,14 @@ const updateRequestSchema: SchemaObject = {
 const teamInfoSchema: SchemaObject = {
   type: 'object',
   properties: {
+    teamId: oneOfString('uuid'),
     projectCount: { type: 'number' },
     plan: oneOfString(),
     canCreateProject: { type: 'boolean' },
     teamName: { type: 'string' },
     memberCount: { type: 'number' },
     avatarUrl: oneOfString('uri'),
+    personal: { type: 'boolean' },
   },
   required: [
     'projectCount',
@@ -87,6 +89,7 @@ const teamInfoSchema: SchemaObject = {
     'canCreateProject',
     'teamName',
     'memberCount',
+    'personal',
   ],
 };
 

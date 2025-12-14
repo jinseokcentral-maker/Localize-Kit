@@ -9,8 +9,10 @@ export type TeamInfo = Readonly<{
     plan?: string | unknown;
     canCreateProject: boolean;
     teamName: string;
+    teamId?: string | unknown;
     memberCount: number;
     avatarUrl?: string | unknown;
+    personal: boolean;
 }>;
 
 type UserData = {

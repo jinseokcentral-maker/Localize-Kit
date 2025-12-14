@@ -215,12 +215,14 @@ export type UserControllerRegisterResponses = {
                 createdAt?: string | unknown;
                 updatedAt?: string | unknown;
                 teams?: Array<{
+                    teamId?: string | unknown;
                     projectCount: number;
                     plan: string | unknown;
                     canCreateProject: boolean;
                     teamName: string;
                     memberCount: number;
                     avatarUrl?: string | unknown;
+                    personal: boolean;
                 }>;
             };
             accessToken?: string;
@@ -259,12 +261,14 @@ export type UserControllerGetMeResponses = {
             createdAt?: string | unknown;
             updatedAt?: string | unknown;
             teams?: Array<{
+                teamId?: string | unknown;
                 projectCount: number;
                 plan: string | unknown;
                 canCreateProject: boolean;
                 teamName: string;
                 memberCount: number;
                 avatarUrl?: string | unknown;
+                personal: boolean;
             }>;
         };
     };
@@ -317,12 +321,14 @@ export type UserControllerUpdateMeResponses = {
             createdAt?: string | unknown;
             updatedAt?: string | unknown;
             teams?: Array<{
+                teamId?: string | unknown;
                 projectCount: number;
                 plan: string | unknown;
                 canCreateProject: boolean;
                 teamName: string;
                 memberCount: number;
                 avatarUrl?: string | unknown;
+                personal: boolean;
             }>;
         };
     };

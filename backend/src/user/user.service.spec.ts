@@ -6,7 +6,11 @@ import { ProfileEntity } from '../database/entities/profile.entity';
 import { ProjectEntity } from '../database/entities/project.entity';
 import { TeamEntity } from '../database/entities/team.entity';
 import { TeamMembershipEntity } from '../database/entities/team-membership.entity';
-import { UserConflictError, UserNotFoundError } from './errors/user.errors';
+import {
+  PersonalTeamNotFoundError,
+  UserConflictError,
+  UserNotFoundError,
+} from './errors/user.errors';
 import { UserService } from './user.service';
 import type { RegisterUserInput, UpdateUserInput } from './user.schemas';
 
@@ -59,9 +63,47 @@ describe('UserService', () => {
   });
 
   it('registers a user and returns tokens', async () => {
-    (em.findOne as jest.Mock).mockResolvedValue(null);
-    (em.create as jest.Mock).mockReturnValue(mockProfile);
+    const mockPersonalTeam: TeamEntity = Object.assign(new TeamEntity(), {
+      id: 'personal-team-1',
+      name: 'Alice',
+      owner_id: 'user-1',
+      avatar_url: null,
+      personal: true,
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-01T00:00:00.000Z',
+    });
+    const mockMembership: TeamMembershipEntity = Object.assign(
+      new TeamMembershipEntity(),
+      {
+        id: 'membership-1',
+        team_id: 'personal-team-1',
+        user_id: 'user-1',
+        role: 'owner',
+        joined_at: '2024-01-01T00:00:00.000Z',
+        created_at: '2024-01-01T00:00:00.000Z',
+      },
+    );
+    const profileWithTeam = Object.assign(new ProfileEntity(), {
+      ...mockProfile,
+      team_id: 'personal-team-1',
+    });
+
+    (em.findOne as jest.Mock)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(profileWithTeam)
+      .mockResolvedValueOnce(profileWithTeam);
+    (em.create as jest.Mock)
+      .mockReturnValueOnce(mockProfile)
+      .mockReturnValueOnce(mockPersonalTeam)
+      .mockReturnValueOnce(mockMembership);
     (em.persistAndFlush as jest.Mock).mockResolvedValue(undefined);
+    (em.flush as jest.Mock).mockResolvedValue(undefined);
+    (em.find as jest.Mock)
+      .mockResolvedValueOnce([mockMembership])
+      .mockResolvedValueOnce([mockPersonalTeam]);
+    (em.count as jest.Mock)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(1);
     jwtService.sign = jest
       .fn()
       .mockReturnValueOnce('access-token')
@@ -72,8 +114,13 @@ describe('UserService', () => {
     );
 
     expect(result.user.id).toBe('user-1');
+    expect(result.user.teams).toHaveLength(1);
+    expect(result.user.teams[0].teamId).toBe('personal-team-1');
+    expect(result.user.teams[0].personal).toBe(true);
     expect(result.accessToken).toBe('access-token');
     expect(result.refreshToken).toBe('refresh-token');
+    expect(em.create).toHaveBeenCalledTimes(3);
+    expect(em.persistAndFlush).toHaveBeenCalledTimes(3);
   });
 
   it('fails to register on conflict', async () => {
@@ -93,20 +140,40 @@ describe('UserService', () => {
     }
   });
 
-  it('gets user by id with teams (no memberships)', async () => {
+  it('gets user by id with teams (no memberships, has personal team)', async () => {
+    const mockPersonalTeam: TeamEntity = Object.assign(new TeamEntity(), {
+      id: 'personal-team-1',
+      name: 'Alice',
+      owner_id: 'user-1',
+      avatar_url: null,
+      personal: true,
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-01T00:00:00.000Z',
+    });
+    const profileWithTeam = Object.assign(new ProfileEntity(), {
+      ...mockProfile,
+      team_id: 'personal-team-1',
+    });
+
     (em.findOne as jest.Mock)
-      .mockResolvedValueOnce(mockProfile)
-      .mockResolvedValueOnce(mockProfile);
-    (em.find as jest.Mock).mockResolvedValue([]);
-    (em.count as jest.Mock).mockResolvedValue(0);
+      .mockResolvedValueOnce(profileWithTeam)
+      .mockResolvedValueOnce(profileWithTeam)
+      .mockResolvedValueOnce(profileWithTeam)
+      .mockResolvedValueOnce(mockPersonalTeam);
+    (em.find as jest.Mock).mockResolvedValueOnce([]);
+    (em.count as jest.Mock)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(1);
 
     const user = await Effect.runPromise(userService.getUserById('user-1'));
 
     expect(user.id).toBe('user-1');
     expect(user.teams).toHaveLength(1);
+    expect(user.teams[0].teamId).toBe('personal-team-1');
     expect(user.teams[0].teamName).toBe('Alice');
     expect(user.teams[0].memberCount).toBe(1);
     expect(user.teams[0].avatarUrl).toBeNull();
+    expect(user.teams[0].personal).toBe(true);
   });
 
   it('gets user by id with teams (with memberships)', async () => {
@@ -115,6 +182,7 @@ describe('UserService', () => {
       name: 'My Team',
       owner_id: 'user-1',
       avatar_url: 'https://example.com/team-avatar.png',
+      personal: false,
       created_at: '2024-01-01T00:00:00.000Z',
       updated_at: '2024-01-01T00:00:00.000Z',
     });
@@ -144,10 +212,12 @@ describe('UserService', () => {
 
     expect(user.id).toBe('user-1');
     expect(user.teams).toHaveLength(1);
+    expect(user.teams[0].teamId).toBe('team-1');
     expect(user.teams[0].teamName).toBe('My Team');
     expect(user.teams[0].memberCount).toBe(3);
     expect(user.teams[0].avatarUrl).toBe('https://example.com/team-avatar.png');
     expect(user.teams[0].projectCount).toBe(5);
+    expect(user.teams[0].personal).toBe(false);
   });
 
   it('fails when user not found', async () => {
@@ -164,12 +234,34 @@ describe('UserService', () => {
   });
 
   it('updates user profile', async () => {
-    const updatedProfile = Object.assign(new ProfileEntity(), {
+    const mockPersonalTeam: TeamEntity = Object.assign(new TeamEntity(), {
+      id: 'personal-team-1',
+      name: 'Alice',
+      owner_id: 'user-1',
+      avatar_url: null,
+      personal: true,
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-01T00:00:00.000Z',
+    });
+    const profileWithTeam = Object.assign(new ProfileEntity(), {
       ...mockProfile,
+      team_id: 'personal-team-1',
+    });
+    const updatedProfile = Object.assign(new ProfileEntity(), {
+      ...profileWithTeam,
       full_name: 'Alice Updated',
     });
-    (em.findOne as jest.Mock).mockResolvedValue(mockProfile);
+
+    (em.findOne as jest.Mock)
+      .mockResolvedValueOnce(profileWithTeam)
+      .mockResolvedValueOnce(updatedProfile)
+      .mockResolvedValueOnce(updatedProfile)
+      .mockResolvedValueOnce(mockPersonalTeam);
     (em.flush as jest.Mock).mockResolvedValue(undefined);
+    (em.find as jest.Mock).mockResolvedValueOnce([]);
+    (em.count as jest.Mock)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(1);
 
     const user = await Effect.runPromise(
       userService.updateUser('user-1', updateInput),

@@ -14,10 +14,12 @@ export type User = Readonly<{
 }>;
 
 export type TeamInfo = Readonly<{
+  teamId: string | null;
   projectCount: number;
   plan: string | null;
   canCreateProject: boolean;
   teamName: string;
   memberCount: number;
   avatarUrl: string | null;
+  personal: boolean;
 }>;

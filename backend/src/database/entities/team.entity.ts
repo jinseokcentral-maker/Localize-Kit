@@ -22,5 +22,8 @@ export class TeamEntity implements TeamRow {
 
   @Property({ nullable: true, columnType: 'text' })
   avatar_url!: string | null;
+
+  @Property({ default: false })
+  personal!: boolean;
 }
 

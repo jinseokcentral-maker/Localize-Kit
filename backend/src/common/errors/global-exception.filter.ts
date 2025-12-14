@@ -74,6 +74,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (this.isForbiddenProjectAccessError(unwrapped)) {
       return HttpStatus.FORBIDDEN;
     }
+    if (this.isPersonalTeamNotFoundError(unwrapped)) {
+      return HttpStatus.INTERNAL_SERVER_ERROR;
+    }
     if (this.isTaggedError(unwrapped)) {
       return HttpStatus.BAD_REQUEST;
     }
@@ -166,6 +169,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private isForbiddenProjectAccessError(error: unknown): boolean {
     const errorTag = this.getErrorTag(error);
     return errorTag === ErrorName.ForbiddenProjectAccessError;
+  }
+
+  private isPersonalTeamNotFoundError(error: unknown): boolean {
+    const errorTag = this.getErrorTag(error);
+    return errorTag === ErrorName.PersonalTeamNotFoundError;
   }
 
   private getErrorTag(error: unknown): string | undefined {

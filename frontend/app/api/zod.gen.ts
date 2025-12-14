@@ -196,6 +196,10 @@ export const zUserControllerRegisterResponse = zResponseEnvelopeDto.and(z.object
                 z.unknown()
             ])),
             teams: z.optional(z.array(z.object({
+                teamId: z.optional(z.union([
+                    z.uuid(),
+                    z.unknown()
+                ])),
                 projectCount: z.number(),
                 plan: z.union([
                     z.string(),
@@ -207,7 +211,8 @@ export const zUserControllerRegisterResponse = zResponseEnvelopeDto.and(z.object
                 avatarUrl: z.optional(z.union([
                     z.url(),
                     z.unknown()
-                ]))
+                ])),
+                personal: z.boolean()
             })))
         })),
         accessToken: z.optional(z.string()),
@@ -252,6 +257,10 @@ export const zUserControllerGetMeResponse = zResponseEnvelopeDto.and(z.object({
             z.unknown()
         ])),
         teams: z.optional(z.array(z.object({
+            teamId: z.optional(z.union([
+                z.uuid(),
+                z.unknown()
+            ])),
             projectCount: z.number(),
             plan: z.union([
                 z.string(),
@@ -263,7 +272,8 @@ export const zUserControllerGetMeResponse = zResponseEnvelopeDto.and(z.object({
             avatarUrl: z.optional(z.union([
                 z.url(),
                 z.unknown()
-            ]))
+            ])),
+            personal: z.boolean()
         })))
     }))
 }));
@@ -309,6 +319,10 @@ export const zUserControllerUpdateMeResponse = zResponseEnvelopeDto.and(z.object
             z.unknown()
         ])),
         teams: z.optional(z.array(z.object({
+            teamId: z.optional(z.union([
+                z.uuid(),
+                z.unknown()
+            ])),
             projectCount: z.number(),
             plan: z.union([
                 z.string(),
@@ -320,7 +334,8 @@ export const zUserControllerUpdateMeResponse = zResponseEnvelopeDto.and(z.object
             avatarUrl: z.optional(z.union([
                 z.url(),
                 z.unknown()
-            ]))
+            ])),
+            personal: z.boolean()
         })))
     }))
 }));

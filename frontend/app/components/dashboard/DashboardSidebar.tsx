@@ -1,19 +1,33 @@
-import React from "react";
 import {
-  Globe,
-  Database,
-  Code2,
-  Webhook,
-  Settings,
-  Users,
-  CreditCard,
   BookOpen,
+  Check,
   ChevronsUpDown,
-  Sparkles,
+  CreditCard,
+  Database,
+  Globe,
   LogOut,
+  Settings,
+  Sparkles,
   Terminal,
+  Users,
+  Webhook,
 } from "lucide-react";
 
+import { Effect } from "effect";
+import { parseAsString, useQueryState } from "nuqs";
+import { Link, useNavigate } from "react-router";
+import { useGetMe } from "~/hooks/query/useGetMe";
+import { supabase } from "~/lib/supabaseClient";
+import { useTokenStore } from "~/stores/tokenStore";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
@@ -26,48 +40,16 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  SidebarSeparator,
+  useSidebar,
 } from "../ui/sidebar";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { Link, useNavigate } from "react-router";
-import { useSupabase } from "~/hooks/useAuth";
-import { useTokenStore } from "~/stores/tokenStore";
-import { useGetMe, type TeamInfo } from "~/hooks/query/useGetMe";
-import { getPlanDisplayName } from "~/pages/dashboard/utils/planUtils";
-import { supabase } from "~/lib/supabaseClient";
-import { useSidebar } from "../ui/sidebar";
+  getTeamsEffect,
+  getUserInitialsEffect,
+  shouldShowUpgradeEffect,
+} from "./utils/teamUtils";
 
 interface DashboardSidebarProps {
   currentPath: string;
-}
-
-/**
- * Get user initials from name or email
- */
-function getUserInitials(
-  fullName: string | unknown,
-  email: string | unknown
-): string {
-  if (typeof fullName === "string" && fullName.trim()) {
-    const parts = fullName.trim().split(" ");
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
-    return fullName.substring(0, 2).toUpperCase();
-  }
-  if (typeof email === "string" && email.trim()) {
-    return email.substring(0, 2).toUpperCase();
-  }
-  return "U";
 }
 
 /**
@@ -76,57 +58,34 @@ function getUserInitials(
 function TeamSwitcher() {
   const { isMobile } = useSidebar();
   const { data: userData } = useGetMe();
+  const [teamId, setTeamId] = useQueryState("team", parseAsString);
 
-  // Get teams from userData, fallback to default if not available
-  function getTeams(): Array<{
-    name: string;
-    plan: string;
-    teamInfo: TeamInfo;
-  }> {
-    if (!userData?.teams || userData.teams.length === 0) {
-      // Fallback to default team if no teams available
-      const plan = typeof userData?.plan === "string" ? userData.plan : "free";
-      const planDisplayName = getPlanDisplayName(plan);
-      return [
-        {
-          name: "LocalizeKit",
-          plan: planDisplayName,
-          teamInfo: {
-            projectCount: 0,
-            plan: userData?.plan ?? null,
-            canCreateProject: true,
-            teamName: "LocalizeKit",
-            memberCount: 1,
-          },
-        },
-      ];
-    }
+  // Get teams from userData using Effect pattern
+  const teams = Effect.runSync(
+    getTeamsEffect(userData?.teams).pipe(
+      Effect.catchAll(() => Effect.succeed([]))
+    )
+  );
 
-    // Map TeamInfo[] to display format
-    return userData.teams.map((teamInfo) => ({
-      name: teamInfo.teamName,
-      plan: getPlanDisplayName(
-        typeof teamInfo.plan === "string" ? teamInfo.plan : "free"
-      ),
-      teamInfo,
-    }));
-  }
+  // Find personal team (default)
+  const personalTeam = teams.find((team) => team.teamInfo.personal === true);
 
-  const teams = getTeams();
-  const [activeTeam, setActiveTeam] = React.useState(teams[0]);
+  // Find active team based on URL parameter
+  // If no teamId, use personal team as default
+  const activeTeam = teamId
+    ? teams.find((team) => team.id === teamId)
+    : personalTeam || null;
 
-  // Update active team when teams change
-  React.useEffect(() => {
-    const currentTeams = getTeams();
-    if (
-      currentTeams.length > 0 &&
-      (!activeTeam || !currentTeams.some((t) => t.name === activeTeam.name))
-    ) {
-      setActiveTeam(currentTeams[0]);
-    }
-  }, [userData, activeTeam]);
+  // Handle team selection
+  const handleTeamSelect = (team: (typeof teams)[0]) => {
+    setTeamId(team.id);
+  };
 
-  if (!activeTeam || teams.length === 0) {
+  // Display team (personal team is default if no teamId)
+  const displayTeam = activeTeam || personalTeam;
+
+  // Don't render if no teams available
+  if (!displayTeam || teams.length === 0) {
     return null;
   }
 
@@ -139,12 +98,12 @@ function TeamSwitcher() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:mb-2"
             >
-              {typeof activeTeam.teamInfo.avatarUrl === "string" &&
-              activeTeam.teamInfo.avatarUrl ? (
+              {typeof displayTeam.teamInfo.avatarUrl === "string" &&
+              displayTeam.teamInfo.avatarUrl ? (
                 <Avatar className="size-8 shrink-0">
                   <AvatarImage
-                    src={activeTeam.teamInfo.avatarUrl}
-                    alt={activeTeam.name}
+                    src={displayTeam.teamInfo.avatarUrl}
+                    alt={displayTeam.name}
                   />
                   <AvatarFallback className="bg-blue-600 text-sidebar-primary-foreground">
                     <svg
@@ -199,9 +158,9 @@ function TeamSwitcher() {
               )}
               <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                 <span className="truncate font-semibold">
-                  {activeTeam.name}
+                  {displayTeam.name}
                 </span>
-                <span className="truncate text-xs">{activeTeam.plan}</span>
+                <span className="truncate text-xs">{displayTeam.plan}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
@@ -215,18 +174,19 @@ function TeamSwitcher() {
             <DropdownMenuLabel className="text-muted-foreground text-xs">
               Teams
             </DropdownMenuLabel>
-            {teams.map((team, index) => (
+            {/* Personal team option */}
+            {personalTeam && (
               <DropdownMenuItem
-                key={team.name}
-                onClick={() => setActiveTeam(team)}
+                key={personalTeam.id}
+                onClick={() => handleTeamSelect(personalTeam)}
                 className="gap-2 p-2"
               >
-                {typeof team.teamInfo.avatarUrl === "string" &&
-                team.teamInfo.avatarUrl ? (
+                {typeof personalTeam.teamInfo.avatarUrl === "string" &&
+                personalTeam.teamInfo.avatarUrl ? (
                   <Avatar className="size-6 shrink-0">
                     <AvatarImage
-                      src={team.teamInfo.avatarUrl}
-                      alt={team.name}
+                      src={personalTeam.teamInfo.avatarUrl}
+                      alt={personalTeam.name}
                     />
                     <AvatarFallback className="bg-blue-600 text-white">
                       <svg
@@ -279,14 +239,99 @@ function TeamSwitcher() {
                     </svg>
                   </div>
                 )}
-                <div className="flex flex-col">
-                  <span className="font-medium">{team.name}</span>
+                <div className="flex flex-col flex-1">
+                  <span className="font-medium">{personalTeam.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {team.plan}
+                    {personalTeam.plan}
                   </span>
                 </div>
+                {displayTeam.id === personalTeam.id && (
+                  <Check className="size-4 text-foreground ml-auto" />
+                )}
               </DropdownMenuItem>
-            ))}
+            )}
+            {personalTeam &&
+              teams.filter((t) => !t.teamInfo.personal).length > 0 && (
+                <DropdownMenuSeparator />
+              )}
+            {/* Other teams (non-personal) */}
+            {teams
+              .filter((team) => !team.teamInfo.personal)
+              .map((team) => (
+                <DropdownMenuItem
+                  key={team.id}
+                  onClick={() => handleTeamSelect(team)}
+                  className="gap-2 p-2"
+                >
+                  {typeof team.teamInfo.avatarUrl === "string" &&
+                  team.teamInfo.avatarUrl ? (
+                    <Avatar className="size-6 shrink-0">
+                      <AvatarImage
+                        src={team.teamInfo.avatarUrl}
+                        alt={team.name}
+                      />
+                      <AvatarFallback className="bg-blue-600 text-white">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="size-3.5 shrink-0"
+                        >
+                          <rect x="3" y="4" width="18" height="16" rx="2" />
+                          <path d="M3 10h18" />
+                          <path d="M12 10v10" />
+                          <path d="M7 7h.01" />
+                          <path d="M11 7h.01" />
+                          <path d="M6 14h3" />
+                          <path d="M6 17h2" />
+                          <path d="M15 14h2" />
+                          <path d="M15 17h3" />
+                        </svg>
+                      </AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <div className="flex size-6 items-center justify-center rounded-md border bg-blue-600">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="size-3.5 shrink-0 text-white"
+                      >
+                        <rect x="3" y="4" width="18" height="16" rx="2" />
+                        <path d="M3 10h18" />
+                        <path d="M12 10v10" />
+                        <path d="M7 7h.01" />
+                        <path d="M11 7h.01" />
+                        <path d="M6 14h3" />
+                        <path d="M6 17h2" />
+                        <path d="M15 14h2" />
+                        <path d="M15 17h3" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className="flex flex-col flex-1">
+                    <span className="font-medium">{team.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {team.plan}
+                    </span>
+                  </div>
+                  {displayTeam.id === team.id && (
+                    <Check className="size-4 text-foreground ml-auto" />
+                  )}
+                </DropdownMenuItem>
+              ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
@@ -298,6 +343,7 @@ export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
   const navigate = useNavigate();
   const { clear } = useTokenStore();
   const { data: userData } = useGetMe();
+  const [teamId] = useQueryState("team", parseAsString);
 
   // Extract user info with fallbacks
   const fullName =
@@ -309,8 +355,18 @@ export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
   const avatarUrl =
     typeof userData?.avatarUrl === "string" ? userData.avatarUrl : undefined;
   const plan = typeof userData?.plan === "string" ? userData.plan : "free";
-  const planDisplayName = getPlanDisplayName(plan);
-  const userInitials = getUserInitials(fullName, email);
+  const userInitials = Effect.runSync(
+    getUserInitialsEffect({ fullName, email })
+  );
+
+  // Check if Upgrade to Pro should be shown using Effect pattern
+  const shouldShowUpgrade = Effect.runSync(
+    shouldShowUpgradeEffect({
+      plan,
+      teamId,
+      teams: userData?.teams,
+    })
+  );
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -405,26 +461,28 @@ export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
           </SidebarGroup>
         ))}
 
-        <SidebarGroup className="mt-auto">
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  className="bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 border border-blue-100 dark:border-blue-800"
-                  tooltip="Upgrade to Pro"
-                >
-                  <Link to="/pricing">
-                    <Sparkles className="text-blue-600 dark:text-blue-400 fill-current" />
-                    <span className="group-data-[collapsible=icon]:hidden">
-                      Upgrade to Pro
-                    </span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {shouldShowUpgrade && (
+          <SidebarGroup className="mt-auto">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    className="bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 border border-blue-100 dark:border-blue-800"
+                    tooltip="Upgrade to Pro"
+                  >
+                    <Link to="/pricing">
+                      <Sparkles className="text-blue-600 dark:text-blue-400 fill-current" />
+                      <span className="group-data-[collapsible=icon]:hidden">
+                        Upgrade to Pro
+                      </span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         <SidebarGroup>
           <SidebarGroupContent>
@@ -493,12 +551,14 @@ export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/pricing">
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Upgrade to Pro
-                  </Link>
-                </DropdownMenuItem>
+                {shouldShowUpgrade && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/pricing">
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Upgrade to Pro
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                   <Link to="/dashboard/billing">
                     <CreditCard className="mr-2 h-4 w-4" />

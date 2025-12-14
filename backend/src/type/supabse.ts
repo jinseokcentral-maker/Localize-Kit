@@ -316,6 +316,7 @@ export type Database = {
           created_at: string | null;
           updated_at: string | null;
           avatar_url: string | null;
+          personal: boolean;
         };
         Insert: {
           id?: string;
@@ -324,6 +325,7 @@ export type Database = {
           created_at?: string | null;
           updated_at?: string | null;
           avatar_url?: string | null;
+          personal?: boolean;
         };
         Update: {
           id?: string;
@@ -332,6 +334,7 @@ export type Database = {
           created_at?: string | null;
           updated_at?: string | null;
           avatar_url?: string | null;
+          personal?: boolean;
         };
         Relationships: [];
       };
