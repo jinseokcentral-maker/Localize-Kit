@@ -3,7 +3,8 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { csvTo2D, parseCsvData, createGridColumns } from "../ExcelView";
+import { csvTo2D, parseCsvData } from "../utils/editorUtils";
+import { createGridColumns } from "../ExcelView";
 
 describe("csvTo2D", () => {
   it("should convert simple CSV to 2D array", () => {

@@ -94,3 +94,29 @@ export function formatJsonOutput(
     };
 }
 
+/**
+ * Convert CSV string to 2D array
+ * @param csv - CSV content string
+ * @returns 2D array of strings (rows x columns)
+ */
+export function csvTo2D(csv: string): string[][] {
+    if (!csv.trim()) return [];
+    const lines = csv.replace(/\r\n/g, "\n").split("\n");
+    return lines
+        .filter((l, i) => l.trim().length > 0 || i === 0)
+        .map((line) => line.split(","));
+}
+
+/**
+ * Parse CSV into headers and rows
+ */
+export function parseCsvData(csv: string): {
+    headers: string[];
+    rows: string[][];
+} {
+    const twoD = csvTo2D(csv);
+    const headers = twoD[0] ?? [];
+    const rows = twoD.slice(1);
+    return { headers, rows };
+}
+

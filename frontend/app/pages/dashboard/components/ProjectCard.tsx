@@ -2,6 +2,7 @@ import { Globe, Clock, ArrowRight } from "lucide-react";
 import { Link } from "react-router";
 import type { ViewMode, Project } from "~/types/dashboard";
 import { formatRelativeDate } from "../utils/dateUtils";
+import { filterProjectLanguages } from "../utils/projectUtils";
 import { Badge } from "~/components/ui/badge";
 
 interface ProjectCardProps {
@@ -13,11 +14,7 @@ export function ProjectCard({ view, project }: ProjectCardProps) {
   const isGrid = view === "grid";
 
   // Get languages array (handle both string array and unknown types)
-  const languages = Array.isArray(project.languages)
-    ? project.languages.filter(
-        (lang): lang is string => typeof lang === "string"
-      )
-    : [];
+  const languages = filterProjectLanguages(project.languages);
 
   return (
     <div

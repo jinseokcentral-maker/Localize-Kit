@@ -7,6 +7,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "~/components/ui/pagination";
+import { generatePageNumbers } from "../utils/paginationUtils";
 
 interface ProjectPaginationProps {
   pageIndex: number;
@@ -20,38 +21,7 @@ export function ProjectPagination({
   onPageChange,
 }: ProjectPaginationProps) {
   const currentPage = pageIndex + 1;
-  const pages: (number | "ellipsis")[] = [];
-
-  if (totalPageCount <= 7) {
-    // Show all pages if total is small
-    for (let i = 1; i <= totalPageCount; i++) {
-      pages.push(i);
-    }
-  } else {
-    // Always show first page
-    pages.push(1);
-
-    if (currentPage > 3) {
-      pages.push("ellipsis");
-    }
-
-    // Show pages around current
-    const start = Math.max(2, currentPage - 1);
-    const end = Math.min(totalPageCount - 1, currentPage + 1);
-
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
-
-    if (currentPage < totalPageCount - 2) {
-      pages.push("ellipsis");
-    }
-
-    // Always show last page
-    if (totalPageCount > 1) {
-      pages.push(totalPageCount);
-    }
-  }
+  const pages = generatePageNumbers(currentPage, totalPageCount);
 
   return (
     <Pagination>
