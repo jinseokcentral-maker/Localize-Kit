@@ -19,5 +19,8 @@ export class TeamEntity implements TeamRow {
 
   @Property({ nullable: true, columnType: 'timestamp' })
   updated_at!: string | null;
+
+  @Property({ nullable: true, columnType: 'text' })
+  avatar_url!: string | null;
 }
 

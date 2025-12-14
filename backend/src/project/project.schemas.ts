@@ -34,11 +34,15 @@ export const projectResponseSchema = z.object({
   ownerId: z.string(),
   createdAt: z.string().nullable(),
   updatedAt: z.string().nullable(),
+  archived: z.boolean(),
 });
 
 export const listProjectsSchema = z.object({
   pageSize: z.coerce.number().int().positive().default(15),
   index: z.coerce.number().int().nonnegative().default(0),
+  search: z.string().optional(),
+  status: z.enum(['active', 'archived']).optional(),
+  sort: z.enum(['newest', 'oldest']).default('newest'),
 });
 
 export const listProjectsResponseSchema = z.object({

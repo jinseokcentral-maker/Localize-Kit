@@ -129,7 +129,8 @@ export class AuthService {
           id: authUser.id,
         });
         if (existing !== null) {
-          return mapProfileToUser(existing);
+          const user = mapProfileToUser(existing);
+          return { ...user, teams: [] };
         }
 
         const now = new Date().toISOString();
@@ -153,7 +154,8 @@ export class AuthService {
           updated_at: now,
         });
         await this.em.persistAndFlush(profile);
-        return mapProfileToUser(profile);
+        const user = mapProfileToUser(profile);
+        return { ...user, teams: [] };
       },
       catch: (err) =>
         new ProviderAuthError(
@@ -184,7 +186,9 @@ export class AuthService {
   }
 }
 
-function mapProfileToUser(row: UserProfileRow | ProfileEntity): User {
+function mapProfileToUser(
+  row: UserProfileRow | ProfileEntity,
+): Omit<User, 'teams'> {
   const profileRow =
     row instanceof ProfileEntity
       ? {

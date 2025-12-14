@@ -2,6 +2,7 @@ import { Globe, Clock, ArrowRight } from "lucide-react";
 import { Link } from "react-router";
 import type { ViewMode, Project } from "~/types/dashboard";
 import { formatRelativeDate } from "../utils/dateUtils";
+import { Badge } from "~/components/ui/badge";
 
 interface ProjectCardProps {
   view: ViewMode;
@@ -43,6 +44,12 @@ export function ProjectCard({ view, project }: ProjectCardProps) {
               <h3 className="text-base font-bold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
                 {project.name}
               </h3>
+              <Badge
+                variant={project.status === "archived" ? "secondary" : "default"}
+                className="text-xs"
+              >
+                {project.status === "archived" ? "Archived" : "Active"}
+              </Badge>
             </div>
 
             <p className="text-xs text-muted-foreground mb-3 line-clamp-1">

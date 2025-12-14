@@ -56,6 +56,7 @@ import type {
 import type { Project } from './project.types';
 import {
   ForbiddenProjectAccessError,
+  ProjectArchivedError,
   ProjectConflictError,
   ProjectValidationError,
 } from './errors/project.errors';
@@ -201,6 +202,24 @@ export class ProjectController {
     required: false,
     schema: { type: 'integer', minimum: 0, default: 0 },
     description: 'Zero-based page index',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    schema: { type: 'string' },
+    description: 'Search term to filter projects by name or description',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    schema: { type: 'string', enum: ['active', 'archived'] },
+    description: 'Filter by project status (active or archived)',
+  })
+  @ApiQuery({
+    name: 'sort',
+    required: false,
+    schema: { type: 'string', enum: ['newest', 'oldest'], default: 'newest' },
+    description: 'Sort order (newest or oldest)',
   })
   listProjects(
     @Req() req: AuthenticatedRequest,
@@ -394,6 +413,11 @@ function mapControllerError(err: unknown): Error {
   }
   if (unwrapped instanceof ProjectConflictError) {
     return new ConflictException(unwrapped.reason);
+  }
+  if (unwrapped instanceof ProjectArchivedError) {
+    return new ForbiddenException(
+      'Project is archived. Only read operations are allowed.',
+    );
   }
   if (unwrapped instanceof Error) {
     return unwrapped;

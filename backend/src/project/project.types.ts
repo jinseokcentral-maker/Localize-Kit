@@ -13,6 +13,7 @@ export type Project = Readonly<{
   ownerId: string;
   createdAt: string | null;
   updatedAt: string | null;
+  archived: boolean;
 }>;
 
 export type ProjectList = ReadonlyArray<Project>;

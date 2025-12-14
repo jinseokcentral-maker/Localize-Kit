@@ -41,9 +41,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Link, useNavigate } from "react-router";
 import { useSupabase } from "~/hooks/useAuth";
 import { useTokenStore } from "~/stores/tokenStore";
-import { useGetMe } from "~/hooks/useGetMe";
+import { useGetMe, type TeamInfo } from "~/hooks/query/useGetMe";
 import { getPlanDisplayName } from "~/pages/dashboard/utils/planUtils";
 import { supabase } from "~/lib/supabaseClient";
+import { useSidebar } from "../ui/sidebar";
 
 interface DashboardSidebarProps {
   currentPath: string;
@@ -67,6 +68,230 @@ function getUserInitials(
     return email.substring(0, 2).toUpperCase();
   }
   return "U";
+}
+
+/**
+ * TeamSwitcher component for selecting teams
+ */
+function TeamSwitcher() {
+  const { isMobile } = useSidebar();
+  const { data: userData } = useGetMe();
+
+  // Get teams from userData, fallback to default if not available
+  function getTeams(): Array<{
+    name: string;
+    plan: string;
+    teamInfo: TeamInfo;
+  }> {
+    if (!userData?.teams || userData.teams.length === 0) {
+      // Fallback to default team if no teams available
+      const plan = typeof userData?.plan === "string" ? userData.plan : "free";
+      const planDisplayName = getPlanDisplayName(plan);
+      return [
+        {
+          name: "LocalizeKit",
+          plan: planDisplayName,
+          teamInfo: {
+            projectCount: 0,
+            plan: userData?.plan ?? null,
+            canCreateProject: true,
+            teamName: "LocalizeKit",
+            memberCount: 1,
+          },
+        },
+      ];
+    }
+
+    // Map TeamInfo[] to display format
+    return userData.teams.map((teamInfo) => ({
+      name: teamInfo.teamName,
+      plan: getPlanDisplayName(
+        typeof teamInfo.plan === "string" ? teamInfo.plan : "free"
+      ),
+      teamInfo,
+    }));
+  }
+
+  const teams = getTeams();
+  const [activeTeam, setActiveTeam] = React.useState(teams[0]);
+
+  // Update active team when teams change
+  React.useEffect(() => {
+    const currentTeams = getTeams();
+    if (
+      currentTeams.length > 0 &&
+      (!activeTeam || !currentTeams.some((t) => t.name === activeTeam.name))
+    ) {
+      setActiveTeam(currentTeams[0]);
+    }
+  }, [userData, activeTeam]);
+
+  if (!activeTeam || teams.length === 0) {
+    return null;
+  }
+
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground group-data-[collapsible=icon]:mb-2"
+            >
+              {typeof activeTeam.teamInfo.avatarUrl === "string" &&
+              activeTeam.teamInfo.avatarUrl ? (
+                <Avatar className="size-8 shrink-0">
+                  <AvatarImage
+                    src={activeTeam.teamInfo.avatarUrl}
+                    alt={activeTeam.name}
+                  />
+                  <AvatarFallback className="bg-blue-600 text-sidebar-primary-foreground">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="size-5 text-white"
+                    >
+                      <rect x="3" y="4" width="18" height="16" rx="2" />
+                      <path d="M3 10h18" />
+                      <path d="M12 10v10" />
+                      <path d="M7 7h.01" />
+                      <path d="M11 7h.01" />
+                      <path d="M6 14h3" />
+                      <path d="M6 17h2" />
+                      <path d="M15 14h2" />
+                      <path d="M15 17h3" />
+                    </svg>
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-sidebar-primary-foreground">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="size-5 text-white"
+                  >
+                    <rect x="3" y="4" width="18" height="16" rx="2" />
+                    <path d="M3 10h18" />
+                    <path d="M12 10v10" />
+                    <path d="M7 7h.01" />
+                    <path d="M11 7h.01" />
+                    <path d="M6 14h3" />
+                    <path d="M6 17h2" />
+                    <path d="M15 14h2" />
+                    <path d="M15 17h3" />
+                  </svg>
+                </div>
+              )}
+              <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
+                <span className="truncate font-semibold">
+                  {activeTeam.name}
+                </span>
+                <span className="truncate text-xs">{activeTeam.plan}</span>
+              </div>
+              <ChevronsUpDown className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+            align="start"
+            side={isMobile ? "bottom" : "right"}
+            sideOffset={4}
+          >
+            <DropdownMenuLabel className="text-muted-foreground text-xs">
+              Teams
+            </DropdownMenuLabel>
+            {teams.map((team, index) => (
+              <DropdownMenuItem
+                key={team.name}
+                onClick={() => setActiveTeam(team)}
+                className="gap-2 p-2"
+              >
+                {typeof team.teamInfo.avatarUrl === "string" &&
+                team.teamInfo.avatarUrl ? (
+                  <Avatar className="size-6 shrink-0">
+                    <AvatarImage
+                      src={team.teamInfo.avatarUrl}
+                      alt={team.name}
+                    />
+                    <AvatarFallback className="bg-blue-600 text-white">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="size-3.5 shrink-0"
+                      >
+                        <rect x="3" y="4" width="18" height="16" rx="2" />
+                        <path d="M3 10h18" />
+                        <path d="M12 10v10" />
+                        <path d="M7 7h.01" />
+                        <path d="M11 7h.01" />
+                        <path d="M6 14h3" />
+                        <path d="M6 17h2" />
+                        <path d="M15 14h2" />
+                        <path d="M15 17h3" />
+                      </svg>
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <div className="flex size-6 items-center justify-center rounded-md border bg-blue-600">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="size-3.5 shrink-0 text-white"
+                    >
+                      <rect x="3" y="4" width="18" height="16" rx="2" />
+                      <path d="M3 10h18" />
+                      <path d="M12 10v10" />
+                      <path d="M7 7h.01" />
+                      <path d="M11 7h.01" />
+                      <path d="M6 14h3" />
+                      <path d="M6 17h2" />
+                      <path d="M15 14h2" />
+                      <path d="M15 17h3" />
+                    </svg>
+                  </div>
+                )}
+                <div className="flex flex-col">
+                  <span className="font-medium">{team.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {team.plan}
+                  </span>
+                </div>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
 }
 
 export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
@@ -146,43 +371,7 @@ export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              size="lg"
-              className="group-data-[collapsible=icon]:mb-2"
-            >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-sidebar-primary-foreground">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="size-5 text-white"
-                >
-                  <rect x="3" y="4" width="18" height="16" rx="2" />
-                  <path d="M3 10h18" />
-                  <path d="M12 10v10" />
-                  <path d="M7 7h.01" />
-                  <path d="M11 7h.01" />
-                  <path d="M6 14h3" />
-                  <path d="M6 17h2" />
-                  <path d="M15 14h2" />
-                  <path d="M15 17h3" />
-                </svg>
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-semibold">LocalizeKit</span>
-                <span className="truncate text-xs">{planDisplayName}</span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <TeamSwitcher />
       </SidebarHeader>
 
       <SidebarContent>

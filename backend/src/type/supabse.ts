@@ -194,6 +194,9 @@ export type Database = {
           owner_id: string;
           slug: string;
           updated_at: string | null;
+          is_deleted: boolean;
+          deleted_at: string | null;
+          archived: boolean;
         };
         Insert: {
           created_at?: string | null;
@@ -205,6 +208,9 @@ export type Database = {
           owner_id: string;
           slug: string;
           updated_at?: string | null;
+          is_deleted?: boolean;
+          deleted_at?: string | null;
+          archived?: boolean;
         };
         Update: {
           created_at?: string | null;
@@ -216,6 +222,9 @@ export type Database = {
           owner_id?: string;
           slug?: string;
           updated_at?: string | null;
+          is_deleted?: boolean;
+          deleted_at?: string | null;
+          archived?: boolean;
         };
         Relationships: [];
       };
@@ -306,6 +315,7 @@ export type Database = {
           owner_id: string;
           created_at: string | null;
           updated_at: string | null;
+          avatar_url: string | null;
         };
         Insert: {
           id?: string;
@@ -313,6 +323,7 @@ export type Database = {
           owner_id: string;
           created_at?: string | null;
           updated_at?: string | null;
+          avatar_url?: string | null;
         };
         Update: {
           id?: string;
@@ -320,6 +331,7 @@ export type Database = {
           owner_id?: string;
           created_at?: string | null;
           updated_at?: string | null;
+          avatar_url?: string | null;
         };
         Relationships: [];
       };

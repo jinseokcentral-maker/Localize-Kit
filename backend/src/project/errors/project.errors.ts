@@ -23,3 +23,7 @@ export class ProjectValidationError extends Data.TaggedError(
 )<{
   readonly reason: string;
 }> {}
+
+export class ProjectArchivedError extends Data.TaggedError(
+  'ProjectArchivedError',
+) {}

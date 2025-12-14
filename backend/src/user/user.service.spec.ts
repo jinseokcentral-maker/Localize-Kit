@@ -4,6 +4,8 @@ import { EntityManager } from '@mikro-orm/postgresql';
 import { Effect, Either } from 'effect';
 import { ProfileEntity } from '../database/entities/profile.entity';
 import { ProjectEntity } from '../database/entities/project.entity';
+import { TeamEntity } from '../database/entities/team.entity';
+import { TeamMembershipEntity } from '../database/entities/team-membership.entity';
 import { UserConflictError, UserNotFoundError } from './errors/user.errors';
 import { UserService } from './user.service';
 import type { RegisterUserInput, UpdateUserInput } from './user.schemas';
@@ -37,6 +39,7 @@ describe('UserService', () => {
   let userService: UserService;
   const em = {
     findOne: jest.fn(),
+    find: jest.fn(),
     create: jest.fn(),
     persistAndFlush: jest.fn(),
     flush: jest.fn(),
@@ -90,13 +93,61 @@ describe('UserService', () => {
     }
   });
 
-  it('gets user by id', async () => {
-    (em.findOne as jest.Mock).mockResolvedValue(mockProfile);
+  it('gets user by id with teams (no memberships)', async () => {
+    (em.findOne as jest.Mock)
+      .mockResolvedValueOnce(mockProfile)
+      .mockResolvedValueOnce(mockProfile);
+    (em.find as jest.Mock).mockResolvedValue([]);
     (em.count as jest.Mock).mockResolvedValue(0);
 
     const user = await Effect.runPromise(userService.getUserById('user-1'));
 
     expect(user.id).toBe('user-1');
+    expect(user.teams).toHaveLength(1);
+    expect(user.teams[0].teamName).toBe('Alice');
+    expect(user.teams[0].memberCount).toBe(1);
+    expect(user.teams[0].avatarUrl).toBeNull();
+  });
+
+  it('gets user by id with teams (with memberships)', async () => {
+    const mockTeam: TeamEntity = Object.assign(new TeamEntity(), {
+      id: 'team-1',
+      name: 'My Team',
+      owner_id: 'user-1',
+      avatar_url: 'https://example.com/team-avatar.png',
+      created_at: '2024-01-01T00:00:00.000Z',
+      updated_at: '2024-01-01T00:00:00.000Z',
+    });
+    const mockMembership: TeamMembershipEntity = Object.assign(
+      new TeamMembershipEntity(),
+      {
+        id: 'membership-1',
+        team_id: 'team-1',
+        user_id: 'user-1',
+        role: 'owner',
+        joined_at: '2024-01-01T00:00:00.000Z',
+        created_at: '2024-01-01T00:00:00.000Z',
+      },
+    );
+
+    (em.findOne as jest.Mock)
+      .mockResolvedValueOnce(mockProfile)
+      .mockResolvedValueOnce(mockProfile);
+    (em.find as jest.Mock)
+      .mockResolvedValueOnce([mockMembership])
+      .mockResolvedValueOnce([mockTeam]);
+    (em.count as jest.Mock)
+      .mockResolvedValueOnce(5)
+      .mockResolvedValueOnce(3);
+
+    const user = await Effect.runPromise(userService.getUserById('user-1'));
+
+    expect(user.id).toBe('user-1');
+    expect(user.teams).toHaveLength(1);
+    expect(user.teams[0].teamName).toBe('My Team');
+    expect(user.teams[0].memberCount).toBe(3);
+    expect(user.teams[0].avatarUrl).toBe('https://example.com/team-avatar.png');
+    expect(user.teams[0].projectCount).toBe(5);
   });
 
   it('fails when user not found', async () => {

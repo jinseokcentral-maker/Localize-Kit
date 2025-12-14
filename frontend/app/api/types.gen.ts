@@ -50,6 +50,7 @@ export type ProjectDto = {
     ownerId: string;
     createdAt: string | unknown;
     updatedAt: string | unknown;
+    archived: boolean;
 };
 
 export type ListProjectsResponseDto = {
@@ -63,6 +64,7 @@ export type ListProjectsResponseDto = {
         ownerId: string;
         createdAt: string | unknown;
         updatedAt: string | unknown;
+        archived: boolean;
     }>;
     meta: {
         index: number;
@@ -212,11 +214,14 @@ export type UserControllerRegisterResponses = {
                 plan?: string | unknown;
                 createdAt?: string | unknown;
                 updatedAt?: string | unknown;
-                team?: {
+                teams?: Array<{
                     projectCount: number;
-                    plan?: string | unknown;
+                    plan: string | unknown;
                     canCreateProject: boolean;
-                };
+                    teamName: string;
+                    memberCount: number;
+                    avatarUrl?: string | unknown;
+                }>;
             };
             accessToken?: string;
             refreshToken?: string;
@@ -253,11 +258,14 @@ export type UserControllerGetMeResponses = {
             plan?: string | unknown;
             createdAt?: string | unknown;
             updatedAt?: string | unknown;
-            team?: {
+            teams?: Array<{
                 projectCount: number;
-                plan?: string | unknown;
+                plan: string | unknown;
                 canCreateProject: boolean;
-            };
+                teamName: string;
+                memberCount: number;
+                avatarUrl?: string | unknown;
+            }>;
         };
     };
 };
@@ -308,11 +316,14 @@ export type UserControllerUpdateMeResponses = {
             plan?: string | unknown;
             createdAt?: string | unknown;
             updatedAt?: string | unknown;
-            team?: {
+            teams?: Array<{
                 projectCount: number;
-                plan?: string | unknown;
+                plan: string | unknown;
                 canCreateProject: boolean;
-            };
+                teamName: string;
+                memberCount: number;
+                avatarUrl?: string | unknown;
+            }>;
         };
     };
 };
@@ -323,6 +334,18 @@ export type ProjectControllerListProjectsData = {
     body?: never;
     path?: never;
     query?: {
+        /**
+         * Sort order (newest or oldest)
+         */
+        sort?: 'newest' | 'oldest';
+        /**
+         * Filter by project status (active or archived)
+         */
+        status?: 'active' | 'archived';
+        /**
+         * Search term to filter projects by name or description
+         */
+        search?: string;
         /**
          * Zero-based page index
          */

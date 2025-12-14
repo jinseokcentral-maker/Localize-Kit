@@ -45,6 +45,12 @@ function mapApiProjectToProject(
             ? apiProject.updatedAt
             : createdAt;
 
+        // Extract archived status
+        const archived = typeof apiProject.archived === "boolean"
+            ? apiProject.archived
+            : false;
+        const status: Project["status"] = archived ? "archived" : "active";
+
         return {
             id: apiProject.id,
             name: apiProject.name,
@@ -57,7 +63,7 @@ function mapApiProjectToProject(
             totalKeys: 0, // API doesn't provide this
             progress: 0, // API doesn't provide this
             updatedAt,
-            status: "active", // API doesn't provide status, default to "active"
+            status,
             slug: apiProject.slug,
             defaultLanguage: defaultLanguage.toUpperCase(),
             languages: languages.map((lang) => lang.toUpperCase()),

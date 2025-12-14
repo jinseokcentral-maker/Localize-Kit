@@ -32,6 +32,7 @@ Testing
 - Use Jest. Follow Arrange-Act-Assert for unit tests and Given-When-Then for acceptance/e2e.
 - Add tests for each public function; mock expensive dependencies.
 - Add admin/test smoke endpoint per controller.
+- When adding or modifying business logic, update or create corresponding test cases. Ensure tests cover new functionality, edge cases, and error scenarios.
 
 Exceptions
 

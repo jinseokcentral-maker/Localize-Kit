@@ -35,4 +35,13 @@ export class ProjectEntity implements ProjectRow {
 
   @Property({ nullable: true, columnType: 'timestamp' })
   updated_at!: string | null;
+
+  @Property({ default: false })
+  is_deleted!: boolean;
+
+  @Property({ nullable: true, columnType: 'timestamp' })
+  deleted_at!: string | null;
+
+  @Property({ default: false })
+  archived!: boolean;
 }

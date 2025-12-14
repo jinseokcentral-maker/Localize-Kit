@@ -10,6 +10,7 @@ import type {
   UpdateProjectInput,
 } from './project.schemas';
 import {
+  ProjectArchivedError,
   ProjectConflictError,
   ProjectNotFoundError,
   ForbiddenProjectAccessError,
@@ -65,6 +66,8 @@ export class ProjectService {
           owner_id: userId,
           created_at: now,
           updated_at: now,
+          is_deleted: false,
+          archived: false,
         });
 
         await this.em.persistAndFlush(project);
@@ -112,11 +115,14 @@ export class ProjectService {
     userId: string,
     pagination: ListProjectsInput,
   ): Effect.Effect<ListProjectsOutput, never> {
-    const { pageSize, index } = pagination;
+    const { pageSize, index, search, status, sort = 'newest' } = pagination;
     return Effect.tryPromise(async () => {
       const [memberRows, ownerProjects] = await Promise.all([
         this.em.find(TeamMemberEntity, { user_id: userId }),
-        this.em.find(ProjectEntity, { owner_id: userId }),
+        this.em.find(ProjectEntity, {
+          owner_id: userId,
+          is_deleted: false,
+        }),
       ]);
 
       const memberProjectIds =
@@ -126,6 +132,7 @@ export class ProjectService {
         memberProjectIds.length > 0
           ? await this.em.find(ProjectEntity, {
               id: { $in: memberProjectIds },
+              is_deleted: false,
             })
           : [];
 
@@ -134,14 +141,31 @@ export class ProjectService {
         ...ownerProjects,
         ...memberProjects.filter((p) => !ownerProjectIds.has(p.id)),
       ];
-      const uniqueProjects = Array.from(
+      let uniqueProjects = Array.from(
         new Map(allProjects.map((p) => [p.id, p])).values(),
       );
 
+      if (status === 'active') {
+        uniqueProjects = uniqueProjects.filter((p) => !p.archived);
+      } else if (status === 'archived') {
+        uniqueProjects = uniqueProjects.filter((p) => p.archived);
+      }
+
+      if (search) {
+        const searchLower = search.toLowerCase();
+        uniqueProjects = uniqueProjects.filter(
+          (p) =>
+            p.name.toLowerCase().includes(searchLower) ||
+            (p.description?.toLowerCase().includes(searchLower) ?? false),
+        );
+      }
+
+      const sortOrder = sort === 'oldest' ? 1 : -1;
       uniqueProjects.sort(
         (a, b) =>
-          new Date(b.created_at ?? 0).getTime() -
-          new Date(a.created_at ?? 0).getTime(),
+          sortOrder *
+          (new Date(b.created_at ?? 0).getTime() -
+            new Date(a.created_at ?? 0).getTime()),
       );
 
       const totalCount = uniqueProjects.length;
@@ -184,10 +208,11 @@ export class ProjectService {
     input: UpdateProjectInput,
   ): Effect.Effect<
     Project,
-    ProjectNotFoundError | ForbiddenProjectAccessError
+    ProjectNotFoundError | ForbiddenProjectAccessError | ProjectArchivedError
   > {
     return pipe(
       this.ensureOwner(userId, projectId),
+      Effect.flatMap((project) => this.ensureNotArchived(project)),
       Effect.flatMap(() => this.performProjectUpdate(projectId, input)),
     );
   }
@@ -198,10 +223,11 @@ export class ProjectService {
     input: AddMemberInput,
   ): Effect.Effect<
     TeamMemberRow,
-    ProjectNotFoundError | ForbiddenProjectAccessError
+    ProjectNotFoundError | ForbiddenProjectAccessError | ProjectArchivedError
   > {
     return pipe(
       this.ensureOwner(userId, projectId),
+      Effect.flatMap((project) => this.ensureNotArchived(project)),
       Effect.flatMap(() =>
         Effect.tryPromise({
           try: async () => {
@@ -234,9 +260,13 @@ export class ProjectService {
     userId: string,
     projectId: string,
     memberId: string,
-  ): Effect.Effect<void, ProjectNotFoundError | ForbiddenProjectAccessError> {
+  ): Effect.Effect<
+    void,
+    ProjectNotFoundError | ForbiddenProjectAccessError | ProjectArchivedError
+  > {
     return pipe(
       this.ensureOwner(userId, projectId),
+      Effect.flatMap((project) => this.ensureNotArchived(project)),
       Effect.flatMap(() =>
         Effect.tryPromise({
           try: async () => {
@@ -264,7 +294,10 @@ export class ProjectService {
   > {
     return Effect.tryPromise({
       try: async () => {
-        const project = await this.em.findOne(ProjectEntity, { id: projectId });
+        const project = await this.em.findOne(ProjectEntity, {
+          id: projectId,
+          is_deleted: false,
+        });
         if (project === null) {
           throw new ProjectNotFoundError();
         }
@@ -289,13 +322,25 @@ export class ProjectService {
     });
   }
 
+  private ensureNotArchived(
+    project: ProjectEntity,
+  ): Effect.Effect<ProjectEntity, ProjectArchivedError> {
+    if (project.archived) {
+      return Effect.fail(new ProjectArchivedError());
+    }
+    return Effect.succeed(project);
+  }
+
   private performProjectUpdate(
     projectId: string,
     input: UpdateProjectInput,
   ): Effect.Effect<Project, ProjectNotFoundError> {
     return Effect.tryPromise({
       try: async () => {
-        const project = await this.em.findOne(ProjectEntity, { id: projectId });
+        const project = await this.em.findOne(ProjectEntity, {
+          id: projectId,
+          is_deleted: false,
+        });
         if (project === null) {
           throw new ProjectNotFoundError();
         }
@@ -342,7 +387,10 @@ export class ProjectService {
   }
 
   private async countProjects(userId: string): Promise<number> {
-    const count = await this.em.count(ProjectEntity, { owner_id: userId });
+    const count = await this.em.count(ProjectEntity, {
+      owner_id: userId,
+      is_deleted: false,
+    });
     return count;
   }
 }
@@ -360,6 +408,7 @@ function mapProject(row: ProjectRow | ProjectEntity): Project {
           owner_id: row.owner_id,
           created_at: row.created_at,
           updated_at: row.updated_at,
+          archived: row.archived,
         }
       : row;
   return {
@@ -372,5 +421,6 @@ function mapProject(row: ProjectRow | ProjectEntity): Project {
     ownerId: projectRow.owner_id,
     createdAt: projectRow.created_at,
     updatedAt: projectRow.updated_at,
+    archived: projectRow.archived ?? false,
   };
 }

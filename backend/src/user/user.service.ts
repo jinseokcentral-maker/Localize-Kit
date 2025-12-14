@@ -41,14 +41,29 @@ export class UserService {
 
   getUserById(userId: string): Effect.Effect<User, UserNotFoundError> {
     return pipe(
-      Effect.all({
-        user: this.fetchProfileById(userId),
-        teamInfo: this.fetchTeamInfo(userId),
-      }),
-      Effect.map(({ user, teamInfo }) => ({
-        ...user,
-        team: teamInfo,
-      })),
+      this.fetchProfileById(userId),
+      Effect.flatMap((user) =>
+        pipe(
+          Effect.tryPromise({
+            try: async () => {
+              const profile = await this.em.findOne(ProfileEntity, {
+                id: userId,
+              });
+              if (profile === null) {
+                throw new UserNotFoundError();
+              }
+              return profile.full_name;
+            },
+            catch: () => new UserNotFoundError(),
+          }),
+          Effect.flatMap((fullName) =>
+            pipe(
+              this.fetchTeamsInfo(userId, fullName),
+              Effect.map((teams) => ({ ...user, teams })),
+            ),
+          ),
+        ),
+      ),
       Effect.mapError(() => new UserNotFoundError()),
     );
   }
@@ -76,7 +91,11 @@ export class UserService {
           plan: input.plan,
         });
         await this.em.persistAndFlush(profile);
-        return mapProfileToUser(profile);
+        const user = mapProfileToUser(profile);
+        const teams = await Effect.runPromise(
+          this.fetchTeamsInfo(profile.id, profile.full_name),
+        );
+        return { ...user, teams };
       },
       catch: (err) => {
         if (
@@ -98,7 +117,7 @@ export class UserService {
 
   private fetchProfileById(
     userId: string,
-  ): Effect.Effect<User, UserNotFoundError> {
+  ): Effect.Effect<Omit<User, 'teams'>, UserNotFoundError> {
     return Effect.tryPromise({
       try: async () => {
         const profile = await this.em.findOne(ProfileEntity, { id: userId });
@@ -131,7 +150,11 @@ export class UserService {
           profile.plan = input.plan;
         }
         await this.em.flush();
-        return mapProfileToUser(profile);
+        const user = mapProfileToUser(profile);
+        const teams = await Effect.runPromise(
+          this.fetchTeamsInfo(profile.id, profile.full_name),
+        );
+        return { ...user, teams };
       },
       catch: () => new UserNotFoundError(),
     });
@@ -169,45 +192,65 @@ export class UserService {
     };
   }
 
-  private fetchTeamInfo(userId: string): Effect.Effect<TeamInfo, never> {
+  private fetchTeamsInfo(
+    userId: string,
+    fullName: string | null,
+  ): Effect.Effect<TeamInfo[], never> {
     return Effect.tryPromise({
       try: async () => {
-        const [projectCount, profile] = await Promise.all([
+        const [projectCount, profile, memberships] = await Promise.all([
           this.countProjects(userId),
           this.em.findOne(ProfileEntity, { id: userId }),
+          this.em.find(TeamMembershipEntity, { user_id: userId }),
         ]);
         const plan = (profile?.plan ?? 'free') as PlanName;
         const canCreate = canCreateProject(plan, projectCount);
 
-        let teamName: string | null = null;
-        let memberCount = 0;
-        if (profile?.team_id !== null && profile?.team_id !== undefined) {
-          const [team, count] = await Promise.all([
-            this.em.findOne(TeamEntity, { id: profile.team_id }),
-            this.em.count(TeamMembershipEntity, { team_id: profile.team_id }),
-          ]);
-          teamName = team?.name ?? null;
-          memberCount = count;
+        if (memberships.length === 0) {
+          return [
+            {
+              projectCount,
+              plan: profile?.plan ?? 'free',
+              canCreateProject: canCreate,
+              teamName: fullName ?? 'My Team',
+              memberCount: 1,
+              avatarUrl: null,
+            },
+          ];
         }
 
-        return {
+        const teamIds = memberships.map((m) => m.team_id);
+        const [teamEntities, memberCounts] = await Promise.all([
+          this.em.find(TeamEntity, { id: { $in: teamIds } }),
+          Promise.all(
+            teamIds.map((teamId) =>
+              this.em.count(TeamMembershipEntity, { team_id: teamId }),
+            ),
+          ),
+        ]);
+
+        return teamEntities.map((team, index) => ({
           projectCount,
           plan: profile?.plan ?? 'free',
           canCreateProject: canCreate,
-          teamName,
-          memberCount,
-        };
+          teamName: team.name,
+          memberCount: memberCounts[index] ?? 0,
+          avatarUrl: team.avatar_url,
+        }));
       },
-      catch: () => new Error('Failed to fetch team info'),
+      catch: () => new Error('Failed to fetch teams info'),
     }).pipe(
       Effect.catchAll(() =>
-        Effect.succeed({
-          projectCount: 0,
-          plan: 'free',
-          canCreateProject: false,
-          teamName: null,
-          memberCount: 0,
-        }),
+        Effect.succeed([
+          {
+            projectCount: 0,
+            plan: 'free',
+            canCreateProject: false,
+            teamName: fullName ?? 'My Team',
+            memberCount: 1,
+            avatarUrl: null,
+          },
+        ]),
       ),
     );
   }
@@ -218,7 +261,9 @@ export class UserService {
   }
 }
 
-function mapProfileToUser(row: UserProfileRow | ProfileEntity): User {
+function mapProfileToUser(
+  row: UserProfileRow | ProfileEntity,
+): Omit<User, 'teams'> {
   const profileRow =
     row instanceof ProfileEntity
       ? {

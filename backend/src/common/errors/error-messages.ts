@@ -12,6 +12,7 @@ export enum ErrorName {
   ProjectConflictError = 'ProjectConflictError',
   ForbiddenProjectAccessError = 'ForbiddenProjectAccessError',
   ProjectValidationError = 'ProjectValidationError',
+  ProjectArchivedError = 'ProjectArchivedError',
   UserNotFoundError = 'UserNotFoundError',
   UserConflictError = 'UserConflictError',
   MissingEnvError = 'MissingEnvError',
@@ -67,6 +68,8 @@ export const errorMessages = {
           ? { reason: context.reason ? `: ${context.reason}` : '' }
           : undefined,
       ),
+    archived: (): string =>
+      'Project is archived. Only read operations are allowed.',
   },
   user: {
     notFound: (): string => 'User not found',
@@ -186,6 +189,8 @@ export function getErrorMessage(
           : undefined;
       return messages.project.validation({ reason });
     }
+    case ErrorName.ProjectArchivedError:
+      return messages.project.archived();
     case ErrorName.UserNotFoundError:
       return messages.user.notFound();
     case ErrorName.UserConflictError: {

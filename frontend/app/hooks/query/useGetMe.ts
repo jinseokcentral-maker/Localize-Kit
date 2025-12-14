@@ -4,6 +4,15 @@ import { apiClient } from "~/lib/api/authClient";
 import { userControllerGetMe } from "~/api";
 import { extractApiData } from "~/lib/api/apiWrapper";
 
+export type TeamInfo = Readonly<{
+    projectCount: number;
+    plan?: string | unknown;
+    canCreateProject: boolean;
+    teamName: string;
+    memberCount: number;
+    avatarUrl?: string | unknown;
+}>;
+
 type UserData = {
     id: string;
     email?: string | unknown;
@@ -12,6 +21,7 @@ type UserData = {
     plan?: string | unknown;
     createdAt?: string | unknown;
     updatedAt?: string | unknown;
+    teams?: TeamInfo[];
 };
 
 /**

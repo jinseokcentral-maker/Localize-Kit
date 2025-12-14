@@ -66,7 +66,8 @@ export const zProjectDto = z.object({
     updatedAt: z.union([
         z.string(),
         z.unknown()
-    ])
+    ]),
+    archived: z.boolean()
 });
 
 export const zListProjectsResponseDto = z.object({
@@ -94,7 +95,8 @@ export const zListProjectsResponseDto = z.object({
         updatedAt: z.union([
             z.string(),
             z.unknown()
-        ])
+        ]),
+        archived: z.boolean()
     })),
     meta: z.object({
         index: z.int().gte(0).lte(9007199254740991),
@@ -193,14 +195,20 @@ export const zUserControllerRegisterResponse = zResponseEnvelopeDto.and(z.object
                 z.iso.datetime(),
                 z.unknown()
             ])),
-            team: z.optional(z.object({
+            teams: z.optional(z.array(z.object({
                 projectCount: z.number(),
-                plan: z.optional(z.union([
+                plan: z.union([
                     z.string(),
                     z.unknown()
-                ])),
-                canCreateProject: z.boolean()
-            }))
+                ]),
+                canCreateProject: z.boolean(),
+                teamName: z.string(),
+                memberCount: z.number(),
+                avatarUrl: z.optional(z.union([
+                    z.url(),
+                    z.unknown()
+                ]))
+            })))
         })),
         accessToken: z.optional(z.string()),
         refreshToken: z.optional(z.string())
@@ -243,14 +251,20 @@ export const zUserControllerGetMeResponse = zResponseEnvelopeDto.and(z.object({
             z.iso.datetime(),
             z.unknown()
         ])),
-        team: z.optional(z.object({
+        teams: z.optional(z.array(z.object({
             projectCount: z.number(),
-            plan: z.optional(z.union([
+            plan: z.union([
                 z.string(),
                 z.unknown()
-            ])),
-            canCreateProject: z.boolean()
-        }))
+            ]),
+            canCreateProject: z.boolean(),
+            teamName: z.string(),
+            memberCount: z.number(),
+            avatarUrl: z.optional(z.union([
+                z.url(),
+                z.unknown()
+            ]))
+        })))
     }))
 }));
 
@@ -294,14 +308,20 @@ export const zUserControllerUpdateMeResponse = zResponseEnvelopeDto.and(z.object
             z.iso.datetime(),
             z.unknown()
         ])),
-        team: z.optional(z.object({
+        teams: z.optional(z.array(z.object({
             projectCount: z.number(),
-            plan: z.optional(z.union([
+            plan: z.union([
                 z.string(),
                 z.unknown()
-            ])),
-            canCreateProject: z.boolean()
-        }))
+            ]),
+            canCreateProject: z.boolean(),
+            teamName: z.string(),
+            memberCount: z.number(),
+            avatarUrl: z.optional(z.union([
+                z.url(),
+                z.unknown()
+            ]))
+        })))
     }))
 }));
 
@@ -309,6 +329,9 @@ export const zProjectControllerListProjectsData = z.object({
     body: z.optional(z.never()),
     path: z.optional(z.never()),
     query: z.optional(z.object({
+        sort: z.optional(z.enum(['newest', 'oldest'])),
+        status: z.optional(z.enum(['active', 'archived'])),
+        search: z.optional(z.string()),
         index: z.optional(z.int().gte(0)).default(0),
         pageSize: z.optional(z.int().gte(1)).default(15)
     }))

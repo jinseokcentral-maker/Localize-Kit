@@ -12,6 +12,9 @@ import type { ListProjectsResponseDto } from "~/api/types.gen";
 interface UseListProjectsSuspenseOptions {
     pageSize?: number;
     index?: number;
+    status?: "active" | "archived";
+    search?: string;
+    sort?: "newest" | "oldest";
 }
 
 /**
@@ -20,6 +23,9 @@ interface UseListProjectsSuspenseOptions {
 function listProjectsEffect(
     pageSize: number = 15,
     index: number = 0,
+    status?: "active" | "archived",
+    search?: string,
+    sort?: "newest" | "oldest",
 ): Effect.Effect<ListProjectsResponseDto, Error> {
     return Effect.tryPromise({
         try: async () => {
@@ -28,6 +34,9 @@ function listProjectsEffect(
                 query: {
                     pageSize,
                     index,
+                    status,
+                    search: search || undefined,
+                    sort,
                 },
                 throwOnError: true,
             });
@@ -47,13 +56,19 @@ function listProjectsEffect(
 export function useListProjectsSuspense(
     options: UseListProjectsSuspenseOptions = {},
 ) {
-    const { pageSize = 15, index = 0 } = options;
+    const {
+        pageSize = 15,
+        index = 0,
+        status,
+        search,
+        sort = "newest",
+    } = options;
 
     const query = useSuspenseQuery({
-        queryKey: ["projects", pageSize, index],
+        queryKey: ["projects", pageSize, index, status, search, sort],
         queryFn: async () => {
             return Effect.runPromise(
-                listProjectsEffect(pageSize, index).pipe(
+                listProjectsEffect(pageSize, index, status, search, sort).pipe(
                     Effect.catchAll((err) => {
                         // Re-throw error so TanStack Query can handle it
                         return Effect.fail(err);

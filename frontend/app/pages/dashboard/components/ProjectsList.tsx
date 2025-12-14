@@ -4,8 +4,8 @@ import { useListProjectsSuspense } from "~/hooks/query/useListProjectsSuspense";
 import { ProjectCard } from "./ProjectCard";
 import { EmptyState } from "./EmptyState";
 import { ProjectPagination } from "./ProjectPagination";
-import { filterAndSortProjects } from "../utils/projectFilters";
 import { mapApiProjectsResponse } from "../utils/projectMapper";
+import { useDebounce } from "~/hooks/useDebounce";
 import {
   VIEW_MODES,
   FILTER_STATUSES,
@@ -42,11 +42,33 @@ export function ProjectsList({
     parseAsStringLiteral(VIEW_MODES).withDefault("list")
   );
 
+  // Debounce search query
+  const debouncedSearchQuery = useDebounce(searchQuery || "", 500);
+
+  // Convert filterStatus to API status parameter
+  const apiStatus: "active" | "archived" | undefined =
+    filterStatus === "active"
+      ? "active"
+      : filterStatus === "archived"
+      ? "archived"
+      : undefined;
+
+  // Convert sortOption to API sort parameter
+  const apiSort: "newest" | "oldest" | undefined =
+    sortOption === "newest"
+      ? "newest"
+      : sortOption === "oldest"
+      ? "oldest"
+      : undefined;
+
   // Use suspense hook - this will suspend on loading/error
   // data is guaranteed to be defined here (loading handled by Suspense, errors by ErrorBoundary)
   const { data } = useListProjectsSuspense({
     pageSize: PAGE_SIZE,
     index: pageIndex,
+    status: apiStatus,
+    search: debouncedSearchQuery || undefined,
+    sort: apiSort,
   });
 
   // Map API response to Project[] using Effect
@@ -58,17 +80,10 @@ export function ProjectsList({
 
   const paginationMeta = data.meta;
 
-  // Filter and sort projects (client-side filtering for now)
-  const filteredProjects = filterAndSortProjects(projects, {
-    searchQuery: searchQuery || "",
-    filterStatus: filterStatus || "all",
-    sortOption: sortOption || "newest",
-  });
-
-  if (filteredProjects.length === 0) {
+  if (projects.length === 0) {
     return (
       <EmptyState
-        hasProjects={projects.length > 0}
+        hasProjects={false}
         searchQuery={searchQuery}
         onClearSearch={onClearSearch}
       />
@@ -84,7 +99,7 @@ export function ProjectsList({
             : "space-y-4 mb-6"
         }
       >
-        {filteredProjects.map((project) => (
+        {projects.map((project) => (
           <ProjectCard
             key={project.id}
             view={(view || "list") as "grid" | "list"}
