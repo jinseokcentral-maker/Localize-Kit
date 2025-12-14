@@ -1,9 +1,7 @@
 import {
   BadRequestException,
   Body,
-  ConflictException,
   Controller,
-  ForbiddenException,
   Get,
   Param,
   Post,
@@ -29,7 +27,7 @@ import type { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec
 import { Effect, pipe } from 'effect';
 import { Private } from '../auth/decorators/auth-access.decorator';
 import type { JwtPayload } from '../auth/guards/jwt-auth.guard';
-import { toUnauthorizedException } from '../common/errors/unauthorized-error';
+import { UnauthorizedError } from '../common/errors/unauthorized-error';
 import {
   runEffectWithErrorHandling,
   unwrapFiberFailure,
@@ -383,7 +381,9 @@ export class ProjectController {
     req: AuthenticatedRequest,
   ): Effect.Effect<string, Error> {
     return Effect.fromNullable(req.user?.sub).pipe(
-      Effect.orElseFail(() => new Error('Unauthorized')),
+      Effect.orElseFail(
+        () => new UnauthorizedError({ reason: 'Unauthorized' }),
+      ),
     );
   }
 
@@ -399,28 +399,8 @@ function mapControllerError(err: unknown): Error {
   if (unwrapped instanceof ZodError) {
     return new BadRequestException(unwrapped.issues);
   }
-  if (unwrapped instanceof ProjectValidationError) {
-    return new BadRequestException(unwrapped.reason);
-  }
-  if (unwrapped instanceof ForbiddenProjectAccessError) {
-    const message =
-      unwrapped.plan &&
-      unwrapped.limit !== undefined &&
-      unwrapped.currentCount !== undefined
-        ? `Project limit exceeded. Your ${unwrapped.plan} plan allows ${unwrapped.limit} project${unwrapped.limit === 1 ? '' : 's'}, and you currently have ${unwrapped.currentCount}.`
-        : 'Forbidden: insufficient project access';
-    return new ForbiddenException(message);
-  }
-  if (unwrapped instanceof ProjectConflictError) {
-    return new ConflictException(unwrapped.reason);
-  }
-  if (unwrapped instanceof ProjectArchivedError) {
-    return new ForbiddenException(
-      'Project is archived. Only read operations are allowed.',
-    );
-  }
   if (unwrapped instanceof Error) {
     return unwrapped;
   }
-  return toUnauthorizedException(unwrapped);
+  return new UnauthorizedError({ reason: 'Unauthorized' });
 }

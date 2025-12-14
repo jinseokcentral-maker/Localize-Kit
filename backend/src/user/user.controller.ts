@@ -23,7 +23,7 @@ import type { SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec
 import { Effect, pipe } from 'effect';
 import { Public } from '../auth/decorators/auth-access.decorator';
 import type { JwtPayload } from '../auth/guards/jwt-auth.guard';
-import { toUnauthorizedException } from '../common/errors/unauthorized-error';
+import { UnauthorizedError } from '../common/errors/unauthorized-error';
 import { runEffectWithErrorHandling } from '../common/effect/effect.util';
 import {
   ResponseEnvelopeDto,
@@ -119,7 +119,7 @@ function mapUserError(err: unknown): Error {
   if (err instanceof Error) {
     return err;
   }
-  return toUnauthorizedException(err);
+  return new UnauthorizedError({ reason: 'Unauthorized' });
 }
 
 function oneOfString(format?: string): SchemaObject {
@@ -259,7 +259,9 @@ export class UserController {
     req: AuthenticatedRequest,
   ): Effect.Effect<string, Error> {
     return Effect.fromNullable(req.user?.sub).pipe(
-      Effect.orElseFail(() => new Error('Unauthorized')),
+      Effect.orElseFail(
+        () => new UnauthorizedError({ reason: 'Unauthorized' }),
+      ),
     );
   }
 }

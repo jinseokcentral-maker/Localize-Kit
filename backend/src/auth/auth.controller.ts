@@ -2,8 +2,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  ForbiddenException,
-  InternalServerErrorException,
   Post,
   Req,
 } from '@nestjs/common';
@@ -33,13 +31,17 @@ import {
   ProviderAuthError,
   TeamAccessForbiddenError,
 } from './errors/auth.errors';
-import { toUnauthorizedException } from '../common/errors/unauthorized-error';
+import { UnauthorizedError } from '../common/errors/unauthorized-error';
 import { errorMessages } from '../common/errors/error-messages';
-import { runEffectWithErrorHandling } from '../common/effect/effect.util';
+import {
+  runEffectWithErrorHandling,
+  unwrapFiberFailure,
+} from '../common/effect/effect.util';
 import { ResponseEnvelopeDto } from '../common/response/response.schema';
 import { buildResponse } from '../common/response/response.util';
 import type { ResponseEnvelope } from '../common/response/response.schema';
 import type { JwtPayload } from './guards/jwt-auth.guard';
+import { ZodError } from 'zod';
 
 type AuthenticatedRequest = {
   user?: JwtPayload;
@@ -203,7 +205,7 @@ export class AuthController {
   ): Promise<ResponseEnvelope<{ accessToken: string; refreshToken: string }>> {
     const userId = req.user?.sub;
     if (!userId) {
-      throw new BadRequestException('User not authenticated');
+      throw new UnauthorizedError({ reason: 'User not authenticated' });
     }
     return runEffectWithErrorHandling(
       pipe(
@@ -222,52 +224,35 @@ export class AuthController {
 }
 
 function mapAuthError(err: unknown): Error {
-  if (err instanceof InvalidTokenError) {
-    return toUnauthorizedException(err);
+  const unwrapped = unwrapFiberFailure(err);
+  if (unwrapped instanceof ZodError) {
+    return new BadRequestException(unwrapped.issues);
   }
-  if (err instanceof ProviderAuthError) {
-    return toUnauthorizedException(err);
+  if (unwrapped instanceof Error) {
+    return unwrapped;
   }
-  if (err instanceof InvalidTeamError) {
-    return new BadRequestException(`Invalid team ID: ${err.teamId}`);
-  }
-  if (err instanceof TeamAccessForbiddenError) {
-    return new ForbiddenException(`User is not a member of team ${err.teamId}`);
-  }
-  if (err instanceof Error) {
-    return err;
-  }
-  return new BadRequestException('Invalid request');
+  return new UnauthorizedError({ reason: 'Unauthorized' });
 }
 
 function mapRefreshError(err: unknown): Error {
-  if (err instanceof InvalidTokenError) {
-    const reason = err.reason;
-    return new InternalServerErrorException(
-      errorMessages.system.refreshTokenFailed({ reason }),
-    );
+  const unwrapped = unwrapFiberFailure(err);
+  if (unwrapped instanceof ZodError) {
+    return new BadRequestException(unwrapped.issues);
   }
-  if (err instanceof Error) {
-    return new InternalServerErrorException(
-      errorMessages.system.refreshTokenFailed({ reason: err.message }),
-    );
+  if (unwrapped instanceof Error) {
+    const reason = unwrapped.message || undefined;
+    return new Error(errorMessages.system.refreshTokenFailed({ reason }));
   }
-  return new InternalServerErrorException(
-    errorMessages.system.refreshTokenFailed(),
-  );
+  return new Error(errorMessages.system.refreshTokenFailed());
 }
 
 function mapSwitchTeamError(err: unknown): Error {
-  if (err instanceof InvalidTeamError) {
-    return new BadRequestException(`Invalid team ID: ${err.teamId}`);
+  const unwrapped = unwrapFiberFailure(err);
+  if (unwrapped instanceof ZodError) {
+    return new BadRequestException(unwrapped.issues);
   }
-  if (err instanceof TeamAccessForbiddenError) {
-    return new ForbiddenException(
-      `User ${err.userId} is not a member of team ${err.teamId}`,
-    );
+  if (unwrapped instanceof Error) {
+    return unwrapped;
   }
-  if (err instanceof Error) {
-    return err;
-  }
-  return new BadRequestException('Invalid request');
+  return new UnauthorizedError({ reason: 'Unauthorized' });
 }

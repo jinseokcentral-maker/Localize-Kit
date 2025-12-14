@@ -7,9 +7,11 @@ import {
 } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
+import { ErrorMapper } from './error-mapper';
 import { UnauthorizedError } from './unauthorized-error';
-import { ErrorName, errorMessages, getErrorMessage } from './error-messages';
+import { errorMessages } from './error-messages';
 import { unwrapFiberFailure } from '../effect/effect.util';
+import { ProviderAuthError } from '../../auth/errors/auth.errors';
 
 type LoggerLike = Readonly<{
   error: (obj: Record<string, unknown>, message?: string) => void;
@@ -32,8 +34,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const request = context.getRequest<FastifyRequest>();
     const reply = context.getResponse<FastifyReply>();
 
-    const status = this.resolveStatus(exception);
-    const body = this.buildBody(exception, request, status);
+    const mapped = this.toHttpException(exception);
+    const status = mapped.getStatus();
+    const body = this.buildBody(mapped, request, status);
 
     this.logger.error(
       {
@@ -41,8 +44,13 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         path: request.url,
         method: request.method,
         statusCode: status,
-        errorName: exception instanceof Error ? exception.name : undefined,
-        errorMessage: this.resolveMessage(exception),
+        errorName:
+          exception instanceof Error
+            ? exception.name
+            : mapped instanceof Error
+              ? mapped.name
+              : undefined,
+        errorMessage: this.resolveMessage(mapped),
       },
       'request_exception',
     );
@@ -50,41 +58,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     void reply.status(status).send(body);
   }
 
-  private resolveStatus(exception: unknown): number {
-    const unwrapped = unwrapFiberFailure(exception);
-    if (this.isProviderAuthError(unwrapped)) {
-      return HttpStatus.INTERNAL_SERVER_ERROR;
-    }
-    if (exception instanceof HttpException) {
-      const status = exception.getStatus();
-      if (
-        status === HttpStatus.UNAUTHORIZED ||
-        this.isJwtRelatedException(exception)
-      ) {
-        return HttpStatus.UNAUTHORIZED;
-      }
-      return status;
-    }
-    if (unwrapped instanceof UnauthorizedError) {
-      return HttpStatus.UNAUTHORIZED;
-    }
-    if (this.isJwtRelatedError(unwrapped)) {
-      return HttpStatus.UNAUTHORIZED;
-    }
-    if (this.isForbiddenProjectAccessError(unwrapped)) {
-      return HttpStatus.FORBIDDEN;
-    }
-    if (this.isPersonalTeamNotFoundError(unwrapped)) {
-      return HttpStatus.INTERNAL_SERVER_ERROR;
-    }
-    if (this.isTaggedError(unwrapped)) {
-      return HttpStatus.BAD_REQUEST;
-    }
-    return HttpStatus.INTERNAL_SERVER_ERROR;
-  }
-
   private buildBody(
-    exception: unknown,
+    exception: HttpException,
     request: FastifyRequest,
     status: number,
   ): ErrorBody {
@@ -114,80 +89,25 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       return exception.message;
     }
     const unwrapped = unwrapFiberFailure(exception);
-    return getErrorMessage(unwrapped, errorMessages);
+    return errorMessages.system.internal();
   }
 
-  private isTaggedError(error: unknown): error is { _tag?: string } {
-    return (
-      typeof error === 'object' &&
-      error !== null &&
-      typeof (error as { _tag?: unknown })._tag === 'string'
-    );
-  }
+  private toHttpException(exception: unknown): HttpException {
+    // Normalize any thrown value into an HttpException using the central mapper.
+    const mapped = ErrorMapper.map(exception);
+    const unwrapped = unwrapFiberFailure(exception);
 
-  private isJwtRelatedException(exception: HttpException): boolean {
-    const res = exception.getResponse();
-    const message =
-      typeof res === 'string'
-        ? res
-        : typeof res === 'object' && res !== null && 'message' in res
-          ? String((res as { message?: unknown }).message)
-          : exception.message;
-    const lowerMessage = message.toLowerCase();
-    return (
-      lowerMessage.includes('jwt') ||
-      lowerMessage.includes('token') ||
-      lowerMessage.includes('unauthorized') ||
-      lowerMessage.includes('invalid token') ||
-      lowerMessage.includes('missing auth') ||
-      lowerMessage.includes('invalid auth scheme')
-    );
-  }
-
-  private isProviderAuthError(error: unknown): boolean {
-    const errorTag = this.getErrorTag(error);
-    return errorTag === ErrorName.ProviderAuthError;
-  }
-
-  private isJwtRelatedError(error: unknown): boolean {
-    if (!(error instanceof Error)) {
-      return false;
-    }
-    const errorTag = this.getErrorTag(error);
-    if (!errorTag) {
-      return error.message?.toLowerCase().includes('jwt expired') === true;
-    }
-    return (
-      errorTag === ErrorName.MissingAuthHeaderError ||
-      errorTag === ErrorName.InvalidAuthSchemeError ||
-      errorTag === ErrorName.InvalidTokenError ||
-      errorTag === ErrorName.UnauthorizedError ||
-      error.message?.toLowerCase().includes('jwt expired') === true
-    );
-  }
-
-  private isForbiddenProjectAccessError(error: unknown): boolean {
-    const errorTag = this.getErrorTag(error);
-    return errorTag === ErrorName.ForbiddenProjectAccessError;
-  }
-
-  private isPersonalTeamNotFoundError(error: unknown): boolean {
-    const errorTag = this.getErrorTag(error);
-    return errorTag === ErrorName.PersonalTeamNotFoundError;
-  }
-
-  private getErrorTag(error: unknown): string | undefined {
+    // Ensure UnauthorizedError always maps to 401 even if thrown directly,
+    // but don't override ProviderAuthError which should stay 500.
     if (
-      typeof error === 'object' &&
-      error !== null &&
-      '_tag' in error &&
-      typeof (error as { _tag?: unknown })._tag === 'string'
+      mapped instanceof HttpException &&
+      unwrapped instanceof UnauthorizedError &&
+      !(unwrapped instanceof ProviderAuthError) &&
+      mapped.getStatus() !== HttpStatus.UNAUTHORIZED
     ) {
-      return (error as { _tag: string })._tag;
+      return new HttpException(mapped.getResponse(), HttpStatus.UNAUTHORIZED);
     }
-    if (error instanceof Error) {
-      return error.constructor.name;
-    }
-    return undefined;
+
+    return mapped;
   }
 }
