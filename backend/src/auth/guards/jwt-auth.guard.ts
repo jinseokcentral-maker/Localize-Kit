@@ -26,6 +26,7 @@ export const jwtPayloadSchema = z.object({
   sub: z.string(),
   email: z.string().email().nullish(),
   plan: z.string().nullish(),
+  teamId: z.string().uuid().nullish(),
   exp: z.number().optional(),
   iat: z.number().optional(),
 });

@@ -9,6 +9,7 @@ export class RefreshTokensDto extends createZodDto(refreshTokensSchema) {}
 
 export const providerLoginSchema = z.object({
   accessToken: z.string().min(1),
+  teamId: z.string().uuid().optional(),
 });
 
 export const providerUserSchema = z.object({
@@ -21,3 +22,9 @@ export const providerUserSchema = z.object({
 export type ProviderUser = z.infer<typeof providerUserSchema>;
 
 export class ProviderLoginDto extends createZodDto(providerLoginSchema) {}
+
+export const switchTeamSchema = z.object({
+  teamId: z.string().uuid(),
+});
+
+export class SwitchTeamDto extends createZodDto(switchTeamSchema) {}

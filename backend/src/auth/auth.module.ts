@@ -9,6 +9,8 @@ import {
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { Data, Effect } from 'effect';
 import { ProfileEntity } from '../database/entities/profile.entity';
+import { TeamEntity } from '../database/entities/team.entity';
+import { TeamMembershipEntity } from '../database/entities/team-membership.entity';
 import { SupabaseModule } from '../supabase/supabase.module';
 import { JWT_EXPIRES_IN_KEY, JWT_SECRET_KEY } from './constants/auth.constants';
 import { AuthController } from './auth.controller';
@@ -38,7 +40,11 @@ class MissingJwtEnvError extends Data.TaggedError('MissingJwtEnvError')<{
         return options;
       },
     }),
-    MikroOrmModule.forFeature([ProfileEntity]),
+    MikroOrmModule.forFeature([
+      ProfileEntity,
+      TeamEntity,
+      TeamMembershipEntity,
+    ]),
   ],
   controllers: [AuthController],
   providers: [

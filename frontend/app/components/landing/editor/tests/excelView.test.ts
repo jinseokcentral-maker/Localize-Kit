@@ -113,4 +113,3 @@ describe("createGridColumns", () => {
     expect(result[0].title).toBe("key");
   });
 });
-

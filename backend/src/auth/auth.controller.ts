@@ -2,8 +2,10 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ForbiddenException,
   InternalServerErrorException,
   Post,
+  Req,
 } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -20,16 +22,27 @@ import { AuthService } from './auth.service';
 import {
   ProviderLoginDto,
   RefreshTokensDto,
+  SwitchTeamDto,
   providerLoginSchema,
   refreshTokensSchema,
+  switchTeamSchema,
 } from './auth.schemas';
-import { InvalidTokenError, ProviderAuthError } from './errors/auth.errors';
+import {
+  InvalidTokenError,
+  ProviderAuthError,
+  TeamAccessForbiddenError,
+} from './errors/auth.errors';
 import { toUnauthorizedException } from '../common/errors/unauthorized-error';
 import { errorMessages } from '../common/errors/error-messages';
 import { runEffectWithErrorHandling } from '../common/effect/effect.util';
 import { ResponseEnvelopeDto } from '../common/response/response.schema';
 import { buildResponse } from '../common/response/response.util';
 import type { ResponseEnvelope } from '../common/response/response.schema';
+import type { JwtPayload } from './guards/jwt-auth.guard';
+
+type AuthenticatedRequest = {
+  user?: JwtPayload;
+};
 
 const errorSchema = {
   type: 'object',
@@ -42,7 +55,12 @@ const errorSchema = {
 };
 
 @ApiTags('auth')
-@ApiExtraModels(RefreshTokensDto, ProviderLoginDto, ResponseEnvelopeDto)
+@ApiExtraModels(
+  RefreshTokensDto,
+  ProviderLoginDto,
+  SwitchTeamDto,
+  ResponseEnvelopeDto,
+)
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -88,7 +106,10 @@ export class AuthController {
           catch: (err) => err,
         }),
         Effect.flatMap((parsed) =>
-          this.authService.loginWithGoogleAccessToken(parsed.accessToken),
+          this.authService.loginWithGoogleAccessToken(
+            parsed.accessToken,
+            parsed.teamId,
+          ),
         ),
         Effect.map((tokens) => buildResponse(tokens)),
       ),
@@ -144,6 +165,59 @@ export class AuthController {
       mapRefreshError,
     );
   }
+
+  @Post('switch-team')
+  @ApiOperation({ summary: 'Switch active team and get new tokens' })
+  @ApiOkResponse({
+    description: 'New token pair with teamId',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(ResponseEnvelopeDto) },
+        {
+          properties: {
+            data: {
+              type: 'object',
+              properties: {
+                accessToken: { type: 'string' },
+                refreshToken: { type: 'string' },
+              },
+              required: ['accessToken', 'refreshToken'],
+            },
+          },
+        },
+      ],
+    },
+  })
+  @ApiBody({
+    description: 'Switch team payload',
+    schema: { $ref: getSchemaPath(SwitchTeamDto) },
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid payload',
+    schema: errorSchema,
+  })
+  async switchTeam(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: unknown,
+  ): Promise<ResponseEnvelope<{ accessToken: string; refreshToken: string }>> {
+    const userId = req.user?.sub;
+    if (!userId) {
+      throw new BadRequestException('User not authenticated');
+    }
+    return runEffectWithErrorHandling(
+      pipe(
+        Effect.try({
+          try: () => switchTeamSchema.parse(body),
+          catch: (err) => err,
+        }),
+        Effect.flatMap((parsed) =>
+          this.authService.switchTeam(userId, parsed.teamId),
+        ),
+        Effect.map((tokens) => buildResponse(tokens)),
+      ),
+      mapSwitchTeamError,
+    );
+  }
 }
 
 function mapAuthError(err: unknown): Error {
@@ -152,6 +226,9 @@ function mapAuthError(err: unknown): Error {
   }
   if (err instanceof ProviderAuthError) {
     return toUnauthorizedException(err);
+  }
+  if (err instanceof TeamAccessForbiddenError) {
+    return new ForbiddenException(`User is not a member of team ${err.teamId}`);
   }
   if (err instanceof Error) {
     return err;
@@ -174,4 +251,16 @@ function mapRefreshError(err: unknown): Error {
   return new InternalServerErrorException(
     errorMessages.system.refreshTokenFailed(),
   );
+}
+
+function mapSwitchTeamError(err: unknown): Error {
+  if (err instanceof TeamAccessForbiddenError) {
+    return new ForbiddenException(
+      `User ${err.userId} is not a member of team ${err.teamId}`,
+    );
+  }
+  if (err instanceof Error) {
+    return err;
+  }
+  return new BadRequestException('Invalid request');
 }

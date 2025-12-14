@@ -16,3 +16,10 @@ export class ProviderAuthError extends UnauthorizedError {
     super({ reason });
   }
 }
+
+export class TeamAccessForbiddenError extends Data.TaggedError(
+  'TeamAccessForbiddenError',
+)<{
+  readonly userId: string;
+  readonly teamId: string;
+}> {}

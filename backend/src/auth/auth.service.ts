@@ -6,10 +6,16 @@ import { randomUUID } from 'crypto';
 import { Effect, pipe } from 'effect';
 import { SupabaseService } from '../supabase/supabase.service';
 import { ProfileEntity } from '../database/entities/profile.entity';
+import { TeamEntity } from '../database/entities/team.entity';
+import { TeamMembershipEntity } from '../database/entities/team-membership.entity';
 import type { User, UserProfileRow } from '../user/user.types';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import { JWT_REFRESH_EXPIRES_IN_KEY } from './constants/auth.constants';
-import { InvalidTokenError, ProviderAuthError } from './errors/auth.errors';
+import {
+  InvalidTokenError,
+  ProviderAuthError,
+  TeamAccessForbiddenError,
+} from './errors/auth.errors';
 import { jwtPayloadSchema, type JwtPayload } from './guards/jwt-auth.guard';
 
 export type TokenPair = Readonly<{
@@ -44,21 +50,80 @@ export class AuthService {
 
   loginWithGoogleAccessToken(
     accessToken: string,
-  ): Effect.Effect<TokenPair, ProviderAuthError> {
+    teamId?: string,
+  ): Effect.Effect<TokenPair, ProviderAuthError | TeamAccessForbiddenError> {
     return pipe(
       this.signInWithGoogle(accessToken),
       Effect.flatMap((authUser) =>
         this.findOrCreateUser(authUser).pipe(
-          Effect.map((user) =>
-            this.issueTokens({
-              sub: user.id,
-              email: user.email ?? undefined,
-              plan: user.plan ?? undefined,
-            }),
-          ),
+          Effect.flatMap((user) => {
+            if (teamId !== undefined) {
+              return pipe(
+                this.verifyTeamMembership(user.id, teamId),
+                Effect.map((verifiedTeamId) =>
+                  this.issueTokens({
+                    sub: user.id,
+                    email: user.email ?? undefined,
+                    plan: user.plan ?? undefined,
+                    teamId: verifiedTeamId,
+                  }),
+                ),
+              ) as Effect.Effect<
+                TokenPair,
+                ProviderAuthError | TeamAccessForbiddenError
+              >;
+            }
+            return pipe(
+              this.getPersonalTeamId(user.id),
+              Effect.map((personalTeamId) =>
+                this.issueTokens({
+                  sub: user.id,
+                  email: user.email ?? undefined,
+                  plan: user.plan ?? undefined,
+                  teamId: personalTeamId,
+                }),
+              ),
+            ) as Effect.Effect<
+              TokenPair,
+              ProviderAuthError | TeamAccessForbiddenError
+            >;
+          }),
         ),
       ),
     );
+  }
+
+  switchTeam(
+    userId: string,
+    teamId: string,
+  ): Effect.Effect<TokenPair, TeamAccessForbiddenError> {
+    return Effect.tryPromise({
+      try: async () => {
+        const membership = await this.em.findOne(TeamMembershipEntity, {
+          user_id: userId,
+          team_id: teamId,
+        });
+        if (membership === null) {
+          throw new TeamAccessForbiddenError({ userId, teamId });
+        }
+        const profile = await this.em.findOne(ProfileEntity, { id: userId });
+        if (profile === null) {
+          throw new TeamAccessForbiddenError({ userId, teamId });
+        }
+        return this.issueTokens({
+          sub: userId,
+          email: profile.email ?? undefined,
+          plan: profile.plan ?? undefined,
+          teamId,
+        });
+      },
+      catch: (err) => {
+        if (err instanceof TeamAccessForbiddenError) {
+          return err;
+        }
+        return new TeamAccessForbiddenError({ userId, teamId });
+      },
+    });
   }
 
   private verifyRefreshToken(
@@ -89,6 +154,7 @@ export class AuthService {
       sub: payload.sub,
       email: payload.email,
       plan: (payload as Record<string, unknown>).plan ?? null,
+      teamId: (payload as Record<string, unknown>).teamId ?? null,
     });
   }
 
@@ -100,6 +166,7 @@ export class AuthService {
         sub: payload.sub,
         email: payload.email,
         plan: payload.plan ?? null,
+        teamId: (payload as Record<string, unknown>).teamId ?? null,
       },
       { expiresIn },
     );
@@ -160,6 +227,52 @@ export class AuthService {
       catch: (err) =>
         new ProviderAuthError(
           err instanceof Error ? err.message : 'Failed to upsert user',
+        ),
+    });
+  }
+
+  private verifyTeamMembership(
+    userId: string,
+    teamId: string,
+  ): Effect.Effect<string, TeamAccessForbiddenError> {
+    return Effect.tryPromise({
+      try: async () => {
+        const membership = await this.em.findOne(TeamMembershipEntity, {
+          user_id: userId,
+          team_id: teamId,
+        });
+        if (membership === null) {
+          throw new TeamAccessForbiddenError({ userId, teamId });
+        }
+        return teamId;
+      },
+      catch: (err) => {
+        if (err instanceof TeamAccessForbiddenError) {
+          return err;
+        }
+        return new TeamAccessForbiddenError({ userId, teamId });
+      },
+    });
+  }
+
+  private getPersonalTeamId(
+    userId: string,
+  ): Effect.Effect<string | undefined, ProviderAuthError> {
+    return Effect.tryPromise({
+      try: async () => {
+        const profile = await this.em.findOne(ProfileEntity, { id: userId });
+        if (profile === null || profile.team_id === null) {
+          return undefined;
+        }
+        const team = await this.em.findOne(TeamEntity, {
+          id: profile.team_id,
+          personal: true,
+        });
+        return team?.id;
+      },
+      catch: (err) =>
+        new ProviderAuthError(
+          err instanceof Error ? err.message : 'Failed to get personal team',
         ),
     });
   }
