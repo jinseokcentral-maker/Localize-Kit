@@ -8,7 +8,12 @@ import { extractApiData } from "~/lib/api/apiWrapper";
 import { apiClient } from "~/lib/api/authClient";
 import { useTokenStore } from "~/stores/tokenStore";
 import { Button } from "../ui/button";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "../ui/sidebar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+} from "../ui/sidebar";
 import { Skeleton } from "../ui/skeleton";
 import type { TeamInfo } from "~/hooks/query/useGetMe";
 import { DashboardSidebarInner } from "./DashboardSidebar";
@@ -35,7 +40,9 @@ function getMeEffect(): Effect.Effect<SidebarUserData, Error> {
       return extractApiData<SidebarUserData>(data);
     },
     catch: (err) =>
-      new Error(err instanceof Error ? err.message : "Failed to fetch user profile"),
+      new Error(
+        err instanceof Error ? err.message : "Failed to fetch user profile"
+      ),
   });
 }
 
@@ -136,7 +143,9 @@ function DashboardSidebarSuspenseInner({ currentPath }: DashboardSidebarProps) {
     staleTime: 5 * 60 * 1000,
   });
 
-  return <DashboardSidebarInner currentPath={currentPath} userData={userData} />;
+  return (
+    <DashboardSidebarInner currentPath={currentPath} userData={userData} />
+  );
 }
 
 export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
@@ -161,5 +170,3 @@ export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
     </ErrorBoundary>
   );
 }
-
-
