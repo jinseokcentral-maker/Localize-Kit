@@ -6,7 +6,14 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiBody,
+  ApiForbiddenResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Effect, pipe } from 'effect';
 import { EntityManager } from '@mikro-orm/postgresql';
 import {
@@ -17,18 +24,41 @@ import { runEffectWithErrorHandling } from '../common/effect/effect.util';
 import type { JwtPayload } from '../auth/guards/jwt-auth.guard';
 import { ProfileEntity } from '../database/entities/profile.entity';
 import { UnauthorizedError } from '../common/errors/unauthorized-error';
+import { Public } from '../auth/decorators/auth-access.decorator';
 
 type AuthenticatedRequest = {
   user?: JwtPayload;
 };
 
 @ApiTags('debug')
+@Public()
 @Controller('debug')
 export class DebugController {
   constructor(private readonly em: EntityManager) {}
 
   @Post('users/plan')
+  @Public()
   @ApiOperation({ summary: 'Debug: update user personal plan (free|pro)' })
+  @ApiOkResponse({
+    description: 'Plan updated',
+    schema: {
+      type: 'object',
+      properties: { success: { type: 'boolean', example: true } },
+    },
+  })
+  @ApiBadRequestResponse({ description: 'Invalid request' })
+  @ApiForbiddenResponse({ description: 'Not allowed in production' })
+  @ApiBody({
+    description: 'Update plan payload (debug only)',
+    schema: {
+      type: 'object',
+      properties: {
+        plan: { type: 'string', enum: ['free', 'pro'] },
+        userId: { type: 'string', format: 'uuid', nullable: true },
+      },
+      required: ['plan'],
+    },
+  })
   updateUserPlan(
     @Req() req: AuthenticatedRequest,
     @Body() body: unknown,
@@ -40,11 +70,15 @@ export class DebugController {
             try: () => updateUserPlanSchema.parse(body),
             catch: (err) => err,
           }),
-          callerId: this.requireUserId(req),
         }),
         Effect.tap(() => this.ensureNonProduction()),
-        Effect.flatMap(({ input, callerId }) =>
-          this.applyUserPlan(input as UpdateUserPlanInput, callerId),
+        Effect.flatMap(({ input }) =>
+          pipe(
+            this.resolveTargetUserId(input as UpdateUserPlanInput, req),
+            Effect.flatMap((targetUserId) =>
+              this.applyUserPlan(input as UpdateUserPlanInput, targetUserId),
+            ),
+          ),
         ),
         Effect.map(() => ({ success: true as const })),
       ),
@@ -54,9 +88,8 @@ export class DebugController {
 
   private applyUserPlan(
     input: UpdateUserPlanInput,
-    callerId: string,
+    targetUserId: string,
   ): Effect.Effect<void, Error> {
-    const targetUserId = input.userId ?? callerId;
     return Effect.tryPromise({
       try: async () => {
         const profile = await this.em.findOne(ProfileEntity, {
@@ -81,14 +114,19 @@ export class DebugController {
     });
   }
 
-  private requireUserId(
+  private resolveTargetUserId(
+    input: UpdateUserPlanInput,
     req: AuthenticatedRequest,
   ): Effect.Effect<string, Error> {
-    return Effect.fromNullable(req.user?.sub).pipe(
-      Effect.orElseFail(
-        () => new UnauthorizedError({ reason: 'Unauthorized' }),
-      ),
-    );
+    return Effect.try(() => {
+      const fromInput = input.userId;
+      const fromJwt = req.user?.sub;
+      const target = fromInput ?? fromJwt;
+      if (!target) {
+        throw new UnauthorizedError({ reason: 'Missing userId or auth' });
+      }
+      return target;
+    });
   }
 }
 

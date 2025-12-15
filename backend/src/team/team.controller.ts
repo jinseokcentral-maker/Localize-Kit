@@ -8,6 +8,8 @@ import {
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
@@ -32,6 +34,26 @@ export class TeamController {
   @ApiOperation({ summary: 'Create a team (org workspace)' })
   @ApiBadRequestResponse({
     description: 'Invalid payload',
+  })
+  @ApiOkResponse({
+    description: 'Team created',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean', example: true },
+      },
+    },
+  })
+  @ApiBody({
+    description: 'Team creation payload',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', minLength: 1 },
+        avatarUrl: { type: 'string', format: 'uri', nullable: true },
+      },
+      required: ['name'],
+    },
   })
   createTeam(
     @Req() req: AuthenticatedRequest,

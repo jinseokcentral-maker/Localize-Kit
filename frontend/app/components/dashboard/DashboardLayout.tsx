@@ -1,5 +1,5 @@
 import React from "react";
-import { DashboardSidebar } from "./DashboardSidebar";
+import { DashboardSidebar } from "./DashboardSidebarBoundary";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "../ui/sidebar";
 import { Separator } from "../ui/separator";
 import { Search, Bell, HelpCircle, Sun, Moon } from "lucide-react";

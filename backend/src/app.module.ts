@@ -26,7 +26,7 @@ const PRODUCTION_ENV = 'production';
     UserModule,
     ProjectModule,
     TeamModule,
-    DebugModule,
+    ...(process.env.NODE_ENV === PRODUCTION_ENV ? [] : [DebugModule]),
   ],
   controllers: [AppController],
   providers: [AppService],

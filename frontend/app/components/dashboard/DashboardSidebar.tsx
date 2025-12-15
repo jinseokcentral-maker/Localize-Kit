@@ -16,7 +16,6 @@ import {
 import { Effect } from "effect";
 import { parseAsString, useQueryState } from "nuqs";
 import { Link, useNavigate } from "react-router";
-import { useGetMe } from "~/hooks/query/useGetMe";
 import { supabase } from "~/lib/supabaseClient";
 import { useTokenStore } from "~/stores/tokenStore";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -47,17 +46,25 @@ import {
   getUserInitialsEffect,
   shouldShowUpgradeEffect,
 } from "./utils/teamUtils";
+import type { TeamInfo } from "~/hooks/query/useGetMe";
 
 interface DashboardSidebarProps {
   currentPath: string;
 }
 
+type SidebarUserData = {
+  fullName?: string | unknown;
+  email?: string | unknown;
+  avatarUrl?: string | unknown;
+  plan?: string | unknown;
+  teams?: TeamInfo[];
+};
+
 /**
  * TeamSwitcher component for selecting teams
  */
-function TeamSwitcher() {
+function TeamSwitcher({ userData }: { userData: SidebarUserData | undefined }) {
   const { isMobile } = useSidebar();
-  const { data: userData } = useGetMe();
   const [teamId, setTeamId] = useQueryState("team", parseAsString);
 
   // Get teams from userData using Effect pattern
@@ -339,10 +346,12 @@ function TeamSwitcher() {
   );
 }
 
-export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
+export function DashboardSidebarInner({
+  currentPath,
+  userData,
+}: DashboardSidebarProps & { userData: SidebarUserData | undefined }) {
   const navigate = useNavigate();
   const { clear } = useTokenStore();
-  const { data: userData } = useGetMe();
   const [teamId] = useQueryState("team", parseAsString);
 
   // Extract user info with fallbacks
@@ -445,7 +454,7 @@ export function DashboardSidebar({ currentPath }: DashboardSidebarProps) {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <TeamSwitcher />
+        <TeamSwitcher userData={userData} />
       </SidebarHeader>
 
       <SidebarContent>
