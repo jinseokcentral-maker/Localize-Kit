@@ -1,6 +1,7 @@
 pub mod error;
 pub mod lang_codes;
 pub mod parser;
+pub mod export;
 pub mod transform;
 pub mod types;
 
@@ -170,4 +171,34 @@ pub fn excel_to_csv(data: &[u8]) -> Result<String, JsValue> {
 #[wasm_bindgen]
 pub fn rewrite_csv_key_separator(csv_text: &str, target_sep: &str) -> String {
     transform::rewrite_key_separator_in_csv(csv_text, target_sep)
+}
+
+/// Merge multiple JSON locale files into a CSV string.
+/// `inputs_json` should be a JSON array of objects:
+/// [{ "language": "en", "content": "{...json...}" }, ...]
+/// Missing translations are filled with an empty string.
+#[wasm_bindgen]
+pub fn jsons_to_csv(inputs_json: &str, separator: &str) -> Result<String, JsValue> {
+    let inputs: Vec<export::LangJsonInput> = serde_json::from_str(inputs_json).map_err(|e| {
+        let err = ParseError::json_parse_error("inputs", e);
+        JsValue::from_str(&err.to_json())
+    })?;
+
+    export::merge_jsons_to_csv(&inputs, separator).map_err(|e| JsValue::from_str(&e.to_json()))
+}
+
+/// Merge multiple JSON locale files into a table (header + rows) serialized as JSON.
+/// Helpful for generating Excel on the frontend without pulling in heavy WASM deps.
+#[wasm_bindgen]
+pub fn jsons_to_table(inputs_json: &str, separator: &str) -> Result<String, JsValue> {
+    let inputs: Vec<export::LangJsonInput> = serde_json::from_str(inputs_json).map_err(|e| {
+        let err = ParseError::json_parse_error("inputs", e);
+        JsValue::from_str(&err.to_json())
+    })?;
+
+    match export::merge_jsons_to_table(&inputs, separator) {
+        Ok(table) => serde_json::to_string(&table)
+            .map_err(|e| JsValue::from_str(&ParseError::json_serialize_error(e).to_json())),
+        Err(e) => Err(JsValue::from_str(&e.to_json())),
+    }
 }

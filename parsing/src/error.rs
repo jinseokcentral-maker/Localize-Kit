@@ -63,6 +63,7 @@ pub enum ErrorKind {
     
     // Conversion errors
     NestedKeyConflict,
+    JsonParseError,
     JsonSerializeError,
     YamlSerializeError,
     
@@ -349,6 +350,24 @@ impl ParseError {
         )
     }
 
+    /// JSON parsing error (for user-provided JSON inputs)
+    pub fn json_parse_error(context: &str, err: serde_json::Error) -> Self {
+        Self::new(
+            ErrorKind::JsonParseError,
+            format!("Failed to parse JSON for '{}': {}", context, err),
+        )
+        .with_suggestion("Ensure the JSON is valid and uses an object as the root")
+    }
+
+    /// Invalid JSON root (non-object)
+    pub fn invalid_json_root(context: &str) -> Self {
+        Self::new(
+            ErrorKind::JsonParseError,
+            format!("Invalid JSON root for '{}': expected an object", context),
+        )
+        .with_suggestion("Use an object at the root level (e.g., { \"common\": { \"hello\": \"Hi\" } })")
+    }
+
     /// YAML serialization error
     pub fn yaml_serialize_error(err: serde_yaml::Error) -> Self {
         Self::new(
@@ -417,6 +436,7 @@ impl fmt::Display for ErrorKind {
             ErrorKind::MissingTranslation => "MISSING_TRANSLATION",
             ErrorKind::ColumnCountMismatch => "COLUMN_COUNT_MISMATCH",
             ErrorKind::NestedKeyConflict => "NESTED_KEY_CONFLICT",
+            ErrorKind::JsonParseError => "JSON_PARSE_ERROR",
             ErrorKind::JsonSerializeError => "JSON_SERIALIZE_ERROR",
             ErrorKind::YamlSerializeError => "YAML_SERIALIZE_ERROR",
             ErrorKind::IoError => "IO_ERROR",
