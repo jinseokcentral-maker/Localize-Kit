@@ -7,6 +7,8 @@ import { SupabaseModule } from './supabase/supabase.module';
 import { UserModule } from './user/user.module';
 import { ProjectModule } from './project/project.module';
 import { DatabaseModule } from './database/database.module';
+import { TeamModule } from './team/team.module';
+import { DebugModule } from './debug/debug.module';
 
 const PRODUCTION_ENV = 'production';
 
@@ -23,6 +25,8 @@ const PRODUCTION_ENV = 'production';
     SupabaseModule,
     UserModule,
     ProjectModule,
+    TeamModule,
+    DebugModule,
   ],
   controllers: [AppController],
   providers: [AppService],

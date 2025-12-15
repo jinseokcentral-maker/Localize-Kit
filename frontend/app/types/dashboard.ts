@@ -2,11 +2,23 @@
 
 export type ProjectStatus = "active" | "warning" | "paused" | "archived";
 
-export type ProjectFramework = "Next.js" | "React" | "React Native" | "Vue" | "Angular" | "Svelte" | "Other";
+export type ProjectFramework =
+  | "Next.js"
+  | "React"
+  | "React Native"
+  | "Vue"
+  | "Angular"
+  | "Svelte"
+  | "Other";
 
 export type ViewMode = "grid" | "list";
 
-export type SortOption = "newest" | "oldest" | "name-asc" | "name-desc" | "updated";
+export type SortOption =
+  | "newest"
+  | "oldest"
+  | "name-asc"
+  | "name-desc"
+  | "updated";
 
 export type FilterStatus = "all" | "active" | "archived" | "paused";
 
@@ -45,4 +57,3 @@ export interface UserPlan {
   apiUsage: number;
   apiLimit: number;
 }
-
