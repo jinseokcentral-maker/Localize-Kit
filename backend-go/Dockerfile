@@ -1,8 +1,8 @@
 # Multi-stage build for Go backend with sqlc
 
 # Stage 1: Build stage
-# Use Go 1.23+ (validator v10.19.0 is compatible with Go 1.23)
-FROM golang:1.23-alpine AS builder
+# Use Go 1.24+ to match go.mod version
+FROM golang:1.24-alpine AS builder
 
 # Install build dependencies (git for go mod, sqlc)
 RUN apk add --no-cache git ca-certificates tzdata
