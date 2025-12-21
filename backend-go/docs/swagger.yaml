@@ -1,0 +1,826 @@
+definitions:
+  auth.ProviderLoginRequest:
+    description: Provider access token payload
+    properties:
+      accessToken:
+        minLength: 1
+        type: string
+      teamId:
+        type: string
+    required:
+    - accessToken
+    type: object
+  auth.RefreshTokensRequest:
+    description: Refresh token payload
+    properties:
+      refreshToken:
+        type: string
+    required:
+    - refreshToken
+    type: object
+  auth.SwitchTeamRequest:
+    description: Switch team payload
+    properties:
+      teamId:
+        type: string
+    required:
+    - teamId
+    type: object
+  auth.TokenPair:
+    description: Token pair response
+    properties:
+      accessToken:
+        example: eyJhbGciOiJSUzI1NiIs...
+        type: string
+      refreshToken:
+        example: eyJhbGciOiJSUzI1NiIs...
+        type: string
+    type: object
+  auth.TokenPairResponse:
+    description: Token pair wrapped in response envelope
+    properties:
+      data:
+        $ref: '#/definitions/auth.TokenPair'
+      timestamp:
+        type: string
+    type: object
+  debug.UpdateUserPlanRequest:
+    description: Update plan payload (debug only)
+    properties:
+      plan:
+        enum:
+        - free
+        - pro
+        type: string
+      userId:
+        type: string
+    required:
+    - plan
+    type: object
+  debug.UpdateUserPlanResponse:
+    description: Plan updated response
+    properties:
+      success:
+        example: true
+        type: boolean
+    type: object
+  debug.UpdateUserPlanResponseWrapper:
+    description: Update user plan response wrapped in response envelope
+    properties:
+      data:
+        $ref: '#/definitions/debug.UpdateUserPlanResponse'
+      timestamp:
+        type: string
+    type: object
+  project.AddMemberRequest:
+    description: Add member payload
+    properties:
+      role:
+        enum:
+        - owner
+        - editor
+        - viewer
+        type: string
+      userId:
+        type: string
+    required:
+    - role
+    - userId
+    type: object
+  project.CreateProjectRequest:
+    description: Project creation payload
+    properties:
+      defaultLanguage:
+        type: string
+      description:
+        type: string
+      languages:
+        items:
+          type: string
+        type: array
+      name:
+        minLength: 1
+        type: string
+      slug:
+        type: string
+    required:
+    - name
+    type: object
+  project.ListProjectsMeta:
+    description: Pagination metadata
+    properties:
+      hasNext:
+        type: boolean
+      index:
+        type: integer
+      pageSize:
+        type: integer
+      totalCount:
+        type: integer
+      totalPageCount:
+        type: integer
+    type: object
+  project.ListProjectsResponse:
+    description: Project list response
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/project.Project'
+        type: array
+      meta:
+        $ref: '#/definitions/project.ListProjectsMeta'
+    type: object
+  project.ListProjectsResponseWrapper:
+    description: Project list wrapped in response envelope
+    properties:
+      data:
+        $ref: '#/definitions/project.ListProjectsResponse'
+      timestamp:
+        type: string
+    type: object
+  project.Project:
+    description: Project details
+    properties:
+      archived:
+        type: boolean
+      createdAt:
+        type: string
+      defaultLanguage:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      languages:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      ownerId:
+        type: string
+      slug:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  project.ProjectResponse:
+    description: Project wrapped in response envelope
+    properties:
+      data:
+        $ref: '#/definitions/project.Project'
+      timestamp:
+        type: string
+    type: object
+  project.RemoveMemberRequest:
+    description: Remove member payload
+    properties:
+      userId:
+        type: string
+    required:
+    - userId
+    type: object
+  project.UpdateProjectRequest:
+    description: Project update payload
+    properties:
+      defaultLanguage:
+        type: string
+      description:
+        type: string
+      languages:
+        items:
+          type: string
+        type: array
+      name:
+        minLength: 1
+        type: string
+      slug:
+        type: string
+    type: object
+  response.ErrorResponse:
+    description: Error response structure
+    properties:
+      message:
+        type: string
+      path:
+        type: string
+      requestId:
+        type: string
+      statusCode:
+        type: integer
+      timestamp:
+        type: string
+    type: object
+  team.CreateTeamRequest:
+    description: Team creation payload
+    properties:
+      avatarUrl:
+        type: string
+      name:
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  team.Team:
+    description: Team details
+    properties:
+      avatarUrl:
+        type: string
+      createdAt:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      ownerId:
+        type: string
+      personal:
+        type: boolean
+      updatedAt:
+        type: string
+    type: object
+  team.TeamResponse:
+    description: Team wrapped in response envelope
+    properties:
+      data:
+        $ref: '#/definitions/team.Team'
+      timestamp:
+        type: string
+    type: object
+  user.RegisterUserRequest:
+    description: User registration payload
+    properties:
+      avatarUrl:
+        type: string
+      email:
+        type: string
+      fullName:
+        type: string
+      id:
+        type: string
+      plan:
+        type: string
+    required:
+    - email
+    - id
+    type: object
+  user.RegisterUserResponse:
+    description: Created user and JWT token
+    properties:
+      accessToken:
+        example: eyJhbGciOiJSUzI1NiIs...
+        type: string
+      refreshToken:
+        example: eyJhbGciOiJSUzI1NiIs...
+        type: string
+      user:
+        $ref: '#/definitions/user.User'
+    type: object
+  user.RegisterUserResponseWrapper:
+    description: Registration response wrapped in response envelope
+    properties:
+      data:
+        $ref: '#/definitions/user.RegisterUserResponse'
+      timestamp:
+        type: string
+    type: object
+  user.TeamInfo:
+    description: Team information
+    properties:
+      avatarUrl:
+        type: string
+      canCreateProject:
+        type: boolean
+      memberCount:
+        type: integer
+      personal:
+        type: boolean
+      plan:
+        type: string
+      projectCount:
+        type: integer
+      teamId:
+        type: string
+      teamName:
+        type: string
+    type: object
+  user.UpdateUserRequest:
+    description: User update payload
+    properties:
+      avatarUrl:
+        type: string
+      fullName:
+        type: string
+      plan:
+        type: string
+    type: object
+  user.User:
+    description: User profile
+    properties:
+      activeTeamId:
+        type: string
+      avatarUrl:
+        type: string
+      createdAt:
+        type: string
+      email:
+        type: string
+      fullName:
+        type: string
+      id:
+        type: string
+      plan:
+        type: string
+      teams:
+        items:
+          $ref: '#/definitions/user.TeamInfo'
+        type: array
+      updatedAt:
+        type: string
+    type: object
+  user.UserResponse:
+    description: User wrapped in response envelope
+    properties:
+      data:
+        $ref: '#/definitions/user.User'
+      timestamp:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /:
+    get:
+      consumes:
+      - application/json
+      description: Returns a greeting string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns a greeting string
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Health check
+      tags:
+      - health
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login with Google access token
+      parameters:
+      - description: Provider access token payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.ProviderLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Issued token pair
+          schema:
+            $ref: '#/definitions/auth.TokenPairResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Login with Google access token
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refresh access/refresh tokens
+      parameters:
+      - description: Refresh token payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RefreshTokensRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New token pair
+          schema:
+            $ref: '#/definitions/auth.TokenPairResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Refresh access/refresh tokens
+      tags:
+      - auth
+  /auth/switch-team:
+    post:
+      consumes:
+      - application/json
+      description: Switch active team and get new tokens
+      parameters:
+      - description: Switch team payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.SwitchTeamRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New token pair with teamId
+          schema:
+            $ref: '#/definitions/auth.TokenPairResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - jwt: []
+      summary: Switch active team and get new tokens
+      tags:
+      - auth
+  /debug/users/plan:
+    post:
+      consumes:
+      - application/json
+      description: 'Debug: update user personal plan (free|pro)'
+      parameters:
+      - description: Update plan payload (debug only)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/debug.UpdateUserPlanRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Plan updated
+          schema:
+            $ref: '#/definitions/debug.UpdateUserPlanResponseWrapper'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "403":
+          description: Not allowed in production
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: 'Debug: update user personal plan (free|pro)'
+      tags:
+      - debug
+  /projects:
+    get:
+      consumes:
+      - application/json
+      description: List my projects
+      parameters:
+      - default: 15
+        description: Page size
+        in: query
+        name: pageSize
+        type: integer
+      - default: 0
+        description: Page index
+        in: query
+        name: index
+        type: integer
+      - description: Search query
+        in: query
+        name: search
+        type: string
+      - description: Filter by status (active, archived)
+        in: query
+        name: status
+        type: string
+      - default: newest
+        description: Sort order (newest, oldest)
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Project list
+          schema:
+            $ref: '#/definitions/project.ListProjectsResponseWrapper'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - jwt: []
+      summary: List my projects
+      tags:
+      - projects
+    post:
+      consumes:
+      - application/json
+      description: Create project
+      parameters:
+      - description: Project creation payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/project.CreateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created project
+          schema:
+            $ref: '#/definitions/project.ProjectResponse'
+        "400":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "403":
+          description: Project limit exceeded
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "409":
+          description: Project conflict
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - jwt: []
+      summary: Create project
+      tags:
+      - projects
+  /projects/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Update project
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Project update payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/project.UpdateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated project
+          schema:
+            $ref: '#/definitions/project.ProjectResponse'
+        "400":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Project not found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "409":
+          description: Project conflict
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - jwt: []
+      summary: Update project
+      tags:
+      - projects
+  /projects/{id}/members:
+    post:
+      consumes:
+      - application/json
+      description: Add project member (owner only)
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Add member payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/project.AddMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Member added
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - jwt: []
+      summary: Add project member (owner only)
+      tags:
+      - projects
+  /projects/{id}/members/remove:
+    post:
+      consumes:
+      - application/json
+      description: Remove project member (owner only)
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Remove member payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/project.RemoveMemberRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Member removed
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "404":
+          description: Project not found
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - jwt: []
+      summary: Remove project member (owner only)
+      tags:
+      - projects
+  /teams:
+    post:
+      consumes:
+      - application/json
+      description: Create a team (org workspace)
+      parameters:
+      - description: Team creation payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/team.CreateTeamRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Team created
+          schema:
+            $ref: '#/definitions/team.TeamResponse'
+        "400":
+          description: Invalid payload
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - jwt: []
+      summary: Create a team (org workspace)
+      tags:
+      - teams
+  /users/me:
+    get:
+      consumes:
+      - application/json
+      description: Get current user profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Current user
+          schema:
+            $ref: '#/definitions/user.UserResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - jwt: []
+      summary: Get current user profile
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Update current user profile
+      parameters:
+      - description: User update payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/user.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated user
+          schema:
+            $ref: '#/definitions/user.UserResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      security:
+      - jwt: []
+      summary: Update current user profile
+      tags:
+      - users
+  /users/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user
+      parameters:
+      - description: User registration payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/user.RegisterUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Created user and JWT token
+          schema:
+            $ref: '#/definitions/user.RegisterUserResponseWrapper'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - users
+swagger: "2.0"

@@ -6,3 +6,4 @@ export const createTeamSchema = z.object({
 });
 
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;
+

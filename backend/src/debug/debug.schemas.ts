@@ -6,3 +6,4 @@ export const updateUserPlanSchema = z.object({
 });
 
 export type UpdateUserPlanInput = z.infer<typeof updateUserPlanSchema>;
+

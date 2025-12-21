@@ -1,5 +1,5 @@
 import { useQueryState, parseAsStringLiteral, parseAsBoolean } from "nuqs";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Effect } from "effect";
 import { cn } from "~/lib/utils";
 import { CsvInputPanel } from "./CsvInputPanel";
@@ -34,9 +34,20 @@ const SEPARATORS = [".", "/", "-"] as const;
 interface EditorSectionProps {
   /** Optional height utility classes (e.g., h-[720px]) for the editor area */
   heightClass?: string;
+  /** Override outer padding classes (default: px-8 py-12) */
+  paddingClass?: string;
+  /**
+   * Custom renderer for the top controls.
+   * If provided, the controls node will be passed here.
+   */
+  renderControls?: (controls: ReactNode) => ReactNode;
 }
 
-export function EditorSection({ heightClass }: EditorSectionProps) {
+export function EditorSection({
+  heightClass,
+  paddingClass = "px-8 py-12",
+  renderControls,
+}: EditorSectionProps) {
   const { csv: csvContent, setCsv } = useCsvStore();
   const wasmStatus = useLoadWasmParser();
   const [jsonOutput, setJsonOutput] = useState<
@@ -338,8 +349,24 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
     });
   }
 
+  const controlsNode = (
+    <EditorControls
+      outputFormat={outputFormat}
+      onOutputFormatChange={setOutputFormat}
+      nestedKeys={nestedKeys}
+      onNestedKeysChange={handleNestedChange}
+      onCopy={handleCopy}
+      onDownload={handleDownload}
+      onDownloadAll={handleDownloadAll}
+    />
+  );
+
+  const renderedControls = renderControls
+    ? renderControls(controlsNode)
+    : controlsNode;
+
   return (
-    <section className="px-8 py-12">
+    <section className={paddingClass}>
       <div
         className={cn(
           "bg-card border border-border rounded-[10px] overflow-hidden shadow-lg flex flex-col",
@@ -347,15 +374,7 @@ export function EditorSection({ heightClass }: EditorSectionProps) {
         )}
       >
         {/* Top Controls */}
-        <EditorControls
-          outputFormat={outputFormat}
-          onOutputFormatChange={setOutputFormat}
-          nestedKeys={nestedKeys}
-          onNestedKeysChange={handleNestedChange}
-          onCopy={handleCopy}
-          onDownload={handleDownload}
-          onDownloadAll={handleDownloadAll}
-        />
+        {renderedControls}
 
         {parseError && (
           <div className="px-4 py-3 border-b border-destructive/40 bg-destructive/10 text-destructive text-sm">
