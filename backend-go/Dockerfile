@@ -1,14 +1,15 @@
 # Multi-stage build for Go backend with sqlc
 
 # Stage 1: Build stage
-# Use Go 1.23+ to support latest sqlc (requires Go 1.23.0+)
+# Use Go 1.23+ (validator v10.19.0 is compatible with Go 1.23)
 FROM golang:1.23-alpine AS builder
 
 # Install build dependencies (git for go mod, sqlc)
 RUN apk add --no-cache git ca-certificates tzdata
 
-# Install sqlc
-RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+# Install sqlc and swag
+RUN go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest && \
+    go install github.com/swaggo/swag/cmd/swag@latest
 
 # Set working directory
 WORKDIR /build
@@ -27,6 +28,9 @@ RUN sqlc generate
 
 # Copy source code
 COPY . .
+
+# Generate Swagger docs (needed for build)
+RUN swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
