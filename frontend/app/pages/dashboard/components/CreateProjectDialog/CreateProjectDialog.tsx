@@ -51,14 +51,14 @@ import { createProjectSchema, type CreateProjectFormValues } from "./schema";
 import { generateSlug } from "./utils";
 import { useCreateProject } from "~/hooks/query/useCreateProject";
 import { useQueryClient } from "@tanstack/react-query";
-import type { ProjectDto } from "~/api";
+import type { ProjectProject } from "~/api/types.gen";
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
 import { getErrorMessage } from "~/lib/api/apiWrapper";
 
 interface CreateProjectDialogContentProps {
   isOpen: boolean;
-  close: (result?: ProjectDto) => void;
+  close: (result?: ProjectProject) => void;
 }
 
 function CreateProjectDialogContent({
@@ -378,8 +378,8 @@ function CreateProjectDialogContent({
  * Open create project dialog using overlay-kit
  * Returns a promise that resolves with form values if user submits, or undefined if cancelled
  */
-export function openCreateProjectDialog(): Promise<ProjectDto | undefined> {
-  return overlay.openAsync<ProjectDto | undefined>(({ isOpen, close }) => {
+export function openCreateProjectDialog(): Promise<ProjectProject | undefined> {
+  return overlay.openAsync<ProjectProject | undefined>(({ isOpen, close }) => {
     return (
       <CreateProjectDialogContent
         isOpen={isOpen}

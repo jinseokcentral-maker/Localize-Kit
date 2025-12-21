@@ -3,7 +3,7 @@ import { ErrorBoundary } from "react-error-boundary";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { Effect } from "effect";
 import { AlertCircle, RefreshCw } from "lucide-react";
-import { userControllerGetMe } from "~/api";
+import { getUsersMe } from "~/api";
 import { extractApiData } from "~/lib/api/apiWrapper";
 import { apiClient } from "~/lib/api/authClient";
 import { useTokenStore } from "~/stores/tokenStore";
@@ -33,11 +33,11 @@ interface DashboardSidebarProps {
 function getMeEffect(): Effect.Effect<SidebarUserData, Error> {
   return Effect.tryPromise({
     try: async () => {
-      const { data } = await userControllerGetMe({
+      const response = await getUsersMe({
         client: apiClient,
         throwOnError: true,
       });
-      return extractApiData<SidebarUserData>(data);
+      return extractApiData<SidebarUserData>(response.data);
     },
     catch: (err) =>
       new Error(

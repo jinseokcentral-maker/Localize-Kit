@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { Effect } from "effect";
 import { mapApiProjectsResponse } from "../projectMapper";
-import type { ListProjectsResponseDto } from "~/api/types.gen";
+import type { ProjectListProjectsResponse } from "~/api/types.gen";
 
 describe("projectMapper", () => {
   describe("mapApiProjectsResponse", () => {
     it("should map API response to Project array", () => {
-      const apiResponse: ListProjectsResponseDto = {
+      const apiResponse: ProjectListProjectsResponse = {
         items: [
           {
             id: "1",
@@ -44,7 +44,7 @@ describe("projectMapper", () => {
     });
 
     it("should handle empty languages array", () => {
-      const apiResponse: ListProjectsResponseDto = {
+      const apiResponse: ProjectListProjectsResponse = {
         items: [
           {
             id: "1",
@@ -74,7 +74,7 @@ describe("projectMapper", () => {
     });
 
     it("should filter out non-string languages", () => {
-      const apiResponse: ListProjectsResponseDto = {
+      const apiResponse: ProjectListProjectsResponse = {
         items: [
           {
             id: "1",
@@ -103,7 +103,7 @@ describe("projectMapper", () => {
     });
 
     it("should handle multiple projects", () => {
-      const apiResponse: ListProjectsResponseDto = {
+      const apiResponse: ProjectListProjectsResponse = {
         items: [
           {
             id: "1",

@@ -16,7 +16,7 @@ vi.mock("~/lib/api/authClient", () => ({
 }));
 
 vi.mock("~/api", () => ({
-  authControllerLoginWithProvider: vi.fn(),
+  postAuthLogin: vi.fn(),
 }));
 
 vi.mock("~/lib/api/apiWrapper", () => ({
@@ -29,7 +29,7 @@ vi.mock("~/lib/routes", () => ({
 }));
 
 import { supabase } from "~/lib/supabaseClient";
-import { authControllerLoginWithProvider } from "~/api";
+import { postAuthLogin } from "~/api";
 import { extractApiData } from "~/lib/api/apiWrapper";
 import { isProtectedRoute, isUnprotectedRoute } from "~/lib/routes";
 
@@ -124,7 +124,7 @@ describe("useBootstrapProfile", () => {
         mockSupabaseSession as never,
       );
 
-      vi.mocked(authControllerLoginWithProvider).mockResolvedValue({
+      vi.mocked(postAuthLogin).mockResolvedValue({
         data: mockLoginResponse,
       } as never);
 
@@ -154,7 +154,7 @@ describe("useBootstrapProfile", () => {
         const loginRes = yield* _(
           Effect.tryPromise({
             try: async () => {
-              const response = await authControllerLoginWithProvider({
+              const response = await postAuthLogin({
                 client: {} as never,
                 body: { accessToken: supabaseJwt, teamId: undefined },
                 throwOnError: true,
@@ -195,7 +195,7 @@ describe("useBootstrapProfile", () => {
       );
 
       expect(supabase.auth.getSession).toHaveBeenCalled();
-      expect(authControllerLoginWithProvider).toHaveBeenCalledWith({
+      expect(postAuthLogin).toHaveBeenCalledWith({
         client: {},
         body: { accessToken: "supabase-jwt-access-token", teamId: undefined },
         throwOnError: true,
@@ -263,7 +263,7 @@ describe("useBootstrapProfile", () => {
         mockSupabaseSession as never,
       );
 
-      vi.mocked(authControllerLoginWithProvider).mockRejectedValue(
+      vi.mocked(postAuthLogin).mockRejectedValue(
         new Error("Login failed"),
       );
 
@@ -289,7 +289,7 @@ describe("useBootstrapProfile", () => {
         yield* _(
           Effect.tryPromise({
             try: async () => {
-              const response = await authControllerLoginWithProvider({
+              const response = await postAuthLogin({
                 client: {} as never,
                 body: { accessToken: supabaseAccess },
                 throwOnError: true,

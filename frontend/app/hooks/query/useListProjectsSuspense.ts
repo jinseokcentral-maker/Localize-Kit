@@ -5,9 +5,9 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Effect } from "effect";
 import { apiClient } from "~/lib/api/authClient";
-import { projectControllerListProjects } from "~/api";
+import { getProjects } from "~/api";
 import { extractApiData } from "~/lib/api/apiWrapper";
-import type { ListProjectsResponseDto } from "~/api/types.gen";
+import type { ProjectListProjectsResponse } from "~/api/types.gen";
 
 interface UseListProjectsSuspenseOptions {
     pageSize?: number;
@@ -26,10 +26,10 @@ function listProjectsEffect(
     status?: "active" | "archived",
     search?: string,
     sort?: "newest" | "oldest",
-): Effect.Effect<ListProjectsResponseDto, Error> {
+): Effect.Effect<ProjectListProjectsResponse, Error> {
     return Effect.tryPromise({
         try: async () => {
-            const { data } = await projectControllerListProjects({
+            const response = await getProjects({
                 client: apiClient,
                 query: {
                     pageSize,
@@ -40,7 +40,7 @@ function listProjectsEffect(
                 },
                 throwOnError: true,
             });
-            return extractApiData<ListProjectsResponseDto>(data);
+            return extractApiData<ProjectListProjectsResponse>(response.data);
         },
         catch: (err) =>
             new Error(

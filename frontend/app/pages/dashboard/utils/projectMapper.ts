@@ -4,14 +4,14 @@
  */
 import { Effect } from "effect";
 import dayjs from "dayjs";
-import type { ListProjectsResponseDto } from "~/api/types.gen";
+import type { ProjectListProjectsResponse } from "~/api/types.gen";
 import type { Project } from "~/types/dashboard";
 
 /**
  * Map API project item to Project type
  */
 function mapApiProjectToProject(
-    apiProject: ListProjectsResponseDto["items"][0],
+    apiProject: ProjectListProjectsResponse["items"][0],
 ): Effect.Effect<Project, Error> {
     return Effect.sync(() => {
         // Extract languages array
@@ -76,7 +76,7 @@ function mapApiProjectToProject(
  * Map API response to Project array
  */
 export function mapApiProjectsResponse(
-    response: ListProjectsResponseDto,
+    response: ProjectListProjectsResponse,
 ): Effect.Effect<Project[], Error> {
     return Effect.gen(function* (_) {
         const projects: Project[] = [];

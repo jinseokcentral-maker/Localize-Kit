@@ -1,24 +1,24 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Effect } from "effect";
 import { apiClient } from "~/lib/api/authClient";
-import { projectControllerCreateProject } from "~/api";
+import { postProjects } from "~/api";
 import { extractApiData, preserveError } from "~/lib/api/apiWrapper";
-import type { CreateProjectDto, ProjectDto } from "~/api/types.gen";
+import type { ProjectCreateProjectRequest, ProjectProject } from "~/api/types.gen";
 
 /**
  * Effect-based API call for creating a project
  */
 function createProjectEffect(
-    input: CreateProjectDto,
-): Effect.Effect<ProjectDto, Error> {
+    input: ProjectCreateProjectRequest,
+): Effect.Effect<ProjectProject, Error> {
     return Effect.tryPromise({
         try: async () => {
-            const { data } = await projectControllerCreateProject({
+            const response = await postProjects({
                 client: apiClient,
                 body: input,
                 throwOnError: true,
             });
-            return extractApiData<ProjectDto>(data);
+            return extractApiData<ProjectProject>(response.data);
         },
         catch: (err) => preserveError(err, "Failed to create project"),
     });
@@ -30,7 +30,7 @@ function createProjectEffect(
  */
 export function useCreateProject() {
     return useMutation({
-        mutationFn: async (input: CreateProjectDto) => {
+        mutationFn: async (input: ProjectCreateProjectRequest) => {
             return Effect.runPromise(
                 createProjectEffect(input).pipe(
                     Effect.catchAll((err) => {

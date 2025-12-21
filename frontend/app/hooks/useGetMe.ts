@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Effect } from "effect";
 import { apiClient } from "~/lib/api/authClient";
-import { userControllerGetMe } from "~/api";
+import { getUsersMe } from "~/api";
 import { extractApiData } from "~/lib/api/apiWrapper";
 import type { TeamInfo } from "./query/useGetMe";
 
@@ -23,11 +23,11 @@ export type UserData = {
 function getMeEffect(): Effect.Effect<UserData, Error> {
     return Effect.tryPromise({
         try: async () => {
-            const { data } = await userControllerGetMe({
+            const response = await getUsersMe({
                 client: apiClient,
                 throwOnError: true,
             });
-            return extractApiData<UserData>(data);
+            return extractApiData<UserData>(response.data);
         },
         catch: (err) =>
             new Error(
