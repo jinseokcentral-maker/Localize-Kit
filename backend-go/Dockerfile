@@ -1,7 +1,8 @@
 # Multi-stage build for Go backend with sqlc
 
 # Stage 1: Build stage
-FROM golang:1.21-alpine AS builder
+# Use Go 1.23+ to support latest sqlc (requires Go 1.23.0+)
+FROM golang:1.23-alpine AS builder
 
 # Install build dependencies (git for go mod, sqlc)
 RUN apk add --no-cache git ca-certificates tzdata
