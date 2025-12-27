@@ -71,7 +71,7 @@
     "tailwind-merge": "^3.4.0",
     "zod": "^4.1.13",
     "zustand": "^5.0.9",
-    "localeeditor": "workspace:*"
+    "localeeditor": "github:jinseokcentral-maker/Localize-editor#main"
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "0.89.0",

@@ -126,8 +126,8 @@ importers:
         specifier: ^1.14.1
         version: 1.14.1
       localeeditor:
-        specifier: workspace:*
-        version: link:../localeEditor
+        specifier: github:jinseokcentral-maker/Localize-editor#main
+        version: https://codeload.github.com/jinseokcentral-maker/Localize-editor/tar.gz/fb2e08fae6baef70c9f89ace0a1240d0954ea7e7(vite@7.2.7(@types/node@25.0.1)(jiti@2.6.1)(lightningcss@1.30.2))
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -2738,6 +2738,10 @@ packages:
   lightningcss@1.30.2:
     resolution: {integrity: sha512-utfs7Pr5uJyyvDETitgsaqSyjCb2qNRAtuqUeWIAKztsOYdcACf2KtARYXg2pSvhkt+9NfoaNY7fxjl6nuMjIQ==}
     engines: {node: '>= 12.0.0'}
+
+  localeeditor@https://codeload.github.com/jinseokcentral-maker/Localize-editor/tar.gz/fb2e08fae6baef70c9f89ace0a1240d0954ea7e7:
+    resolution: {tarball: https://codeload.github.com/jinseokcentral-maker/Localize-editor/tar.gz/fb2e08fae6baef70c9f89ace0a1240d0954ea7e7}
+    version: 0.0.0
 
   locate-path@6.0.0:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
@@ -6095,6 +6099,16 @@ snapshots:
       lightningcss-linux-x64-musl: 1.30.2
       lightningcss-win32-arm64-msvc: 1.30.2
       lightningcss-win32-x64-msvc: 1.30.2
+
+  localeeditor@https://codeload.github.com/jinseokcentral-maker/Localize-editor/tar.gz/fb2e08fae6baef70c9f89ace0a1240d0954ea7e7(vite@7.2.7(@types/node@25.0.1)(jiti@2.6.1)(lightningcss@1.30.2)):
+    dependencies:
+      '@tailwindcss/vite': 4.1.18(vite@7.2.7(@types/node@25.0.1)(jiti@2.6.1)(lightningcss@1.30.2))
+      effect: 3.19.13
+      fuse.js: 7.1.0
+      tailwindcss: 4.1.18
+      zod: 4.2.1
+    transitivePeerDependencies:
+      - vite
 
   locate-path@6.0.0:
     dependencies:
