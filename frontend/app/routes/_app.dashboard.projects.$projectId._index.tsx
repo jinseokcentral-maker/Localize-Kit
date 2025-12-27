@@ -11,6 +11,7 @@ import {
   TranslationTopBar,
 } from "~/components/translations/TranslationTopBar";
 import { TranslationCsvEditor } from "~/components/translations/TranslationCsvEditor";
+import { LocaleEditor } from "~/components/translations/LocaleEditor";
 import type { Route } from "./+types/_app.dashboard.projects.$projectId._index";
 
 export function meta({}: Route.MetaArgs) {
@@ -134,28 +135,13 @@ export default function ProjectTranslationsRoute() {
             <TranslationCsvEditor heightClass="h-[720px]" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
-            <div className="border border-border rounded-md bg-background shadow-sm">
-              <TranslationTable
+          <div className="border border-border rounded-md bg-background shadow-sm">
+            <div className="h-[720px]">
+              <LocaleEditor
                 keys={filteredKeys}
                 sourceLang={sourceLang}
                 targetLangs={targetLangs}
-                selectedKeyId={selectedKeyId}
-                onSelectKey={setSelectedKeyId}
                 onUpdateTranslation={handleUpdateTranslation}
-              />
-            </div>
-
-            <div className="border border-border rounded-md bg-background shadow-sm h-full min-h-[560px]">
-              <TranslationDetailPanel
-                selectedKey={selectedKey}
-                onClose={() => {
-                  // keep the first key selected to avoid empty placeholder
-                  if (keys.length > 0) {
-                    setSelectedKeyId(keys[0].id);
-                  }
-                }}
-                targetLangs={targetLangs}
               />
             </div>
           </div>
