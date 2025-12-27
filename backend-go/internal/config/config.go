@@ -24,8 +24,8 @@ func LoadConfig() (*Config, error) {
 	nodeEnv := os.Getenv("NODE_ENV")
 	if nodeEnv != "production" {
 		if err := godotenv.Load(".env.local"); err != nil {
-			// .env.local is optional
-			_ = err
+			// .env.local is optional, but log if not found
+			fmt.Printf("Warning: .env.local file not found (this is optional): %v\n", err)
 		}
 	}
 

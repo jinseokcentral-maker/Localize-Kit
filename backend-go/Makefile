@@ -20,6 +20,10 @@ test-e2e:
 sqlc:
 	sqlc generate
 
+# Generate Swagger documentation
+swagger:
+	swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal
+
 # Clean build artifacts
 clean:
 	rm -f server

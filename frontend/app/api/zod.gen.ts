@@ -2,131 +2,275 @@
 
 import { z } from 'zod';
 
-export const zResponseEnvelopeDto = z.object({
-    data: z.unknown(),
-    timestamp: z.string(),
+/**
+ * Error response structure
+ */
+export const zBackendGoInternalCommonResponseErrorResponse = z.object({
+    message: z.optional(z.string()),
+    path: z.optional(z.string()),
     requestId: z.optional(z.string()),
-    path: z.optional(z.string())
+    statusCode: z.optional(z.int()),
+    timestamp: z.optional(z.string())
 });
 
-export const zRefreshTokensDto = z.object({
+/**
+ * Provider access token payload
+ */
+export const zInternalAuthProviderLoginRequest = z.object({
+    accessToken: z.string().min(1),
+    teamId: z.optional(z.string())
+});
+
+/**
+ * Refresh token payload
+ */
+export const zInternalAuthRefreshTokensRequest = z.object({
     refreshToken: z.string()
 });
 
-export const zProviderLoginDto = z.object({
-    accessToken: z.string().min(1),
-    teamId: z.optional(z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/))
+/**
+ * Switch team payload
+ */
+export const zInternalAuthSwitchTeamRequest = z.object({
+    teamId: z.string()
 });
 
-export const zSwitchTeamDto = z.object({
-    teamId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/)
+/**
+ * Token pair response
+ */
+export const zInternalAuthTokenPair = z.object({
+    accessToken: z.optional(z.string()),
+    refreshToken: z.optional(z.string())
 });
 
-export const zCreateProjectDto = z.object({
-    name: z.string().min(1).max(200),
-    description: z.optional(z.string().max(1000)),
-    languages: z.optional(z.array(z.string())),
-    defaultLanguage: z.optional(z.string()),
-    slug: z.optional(z.string().min(1).max(200))
+/**
+ * Token pair wrapped in response envelope
+ */
+export const zInternalAuthTokenPairResponse = z.object({
+    data: z.optional(zInternalAuthTokenPair),
+    timestamp: z.optional(z.string())
 });
 
-export const zUpdateProjectDto = z.object({
-    name: z.optional(z.string().min(1).max(200)),
-    description: z.optional(z.string().max(1000)),
-    languages: z.optional(z.array(z.string())),
-    defaultLanguage: z.optional(z.string()),
-    slug: z.optional(z.string().min(1).max(200))
+/**
+ * Update plan payload (debug only)
+ */
+export const zInternalDebugUpdateUserPlanRequest = z.object({
+    plan: z.enum(['free', 'pro']),
+    userId: z.optional(z.string())
 });
 
-export const zAddMemberDto = z.object({
-    userId: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/),
+/**
+ * Plan updated response
+ */
+export const zInternalDebugUpdateUserPlanResponse = z.object({
+    success: z.optional(z.boolean())
+});
+
+/**
+ * Update user plan response wrapped in response envelope
+ */
+export const zInternalDebugUpdateUserPlanResponseWrapper = z.object({
+    data: z.optional(zInternalDebugUpdateUserPlanResponse),
+    timestamp: z.optional(z.string())
+});
+
+/**
+ * Add member payload
+ */
+export const zInternalProjectAddMemberRequest = z.object({
     role: z.enum([
         'owner',
         'editor',
         'viewer'
-    ])
-});
-
-export const zProjectDto = z.object({
-    id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/),
-    name: z.string(),
-    description: z.union([
-        z.string(),
-        z.unknown()
     ]),
-    languages: z.union([
-        z.array(z.string()),
-        z.unknown()
-    ]),
-    defaultLanguage: z.union([
-        z.string(),
-        z.unknown()
-    ]),
-    slug: z.string(),
-    ownerId: z.string(),
-    createdAt: z.union([
-        z.string(),
-        z.unknown()
-    ]),
-    updatedAt: z.union([
-        z.string(),
-        z.unknown()
-    ]),
-    archived: z.boolean()
-});
-
-export const zListProjectsResponseDto = z.object({
-    items: z.array(z.object({
-        id: z.uuid().regex(/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/),
-        name: z.string(),
-        description: z.union([
-            z.string(),
-            z.unknown()
-        ]),
-        languages: z.union([
-            z.array(z.string()),
-            z.unknown()
-        ]),
-        defaultLanguage: z.union([
-            z.string(),
-            z.unknown()
-        ]),
-        slug: z.string(),
-        ownerId: z.string(),
-        createdAt: z.union([
-            z.string(),
-            z.unknown()
-        ]),
-        updatedAt: z.union([
-            z.string(),
-            z.unknown()
-        ]),
-        archived: z.boolean()
-    })),
-    meta: z.object({
-        index: z.int().gte(0).lte(9007199254740991),
-        pageSize: z.int().lte(9007199254740991),
-        hasNext: z.boolean(),
-        totalCount: z.int().gte(0).lte(9007199254740991),
-        totalPageCount: z.int().gte(0).lte(9007199254740991)
-    })
-});
-
-export const zAppControllerGetHelloData = z.object({
-    body: z.optional(z.never()),
-    path: z.optional(z.never()),
-    query: z.optional(z.never())
+    userId: z.string()
 });
 
 /**
- * Returns a greeting string
+ * Project creation payload
  */
-export const zAppControllerGetHelloResponse = zResponseEnvelopeDto.and(z.object({
-    data: z.optional(z.string())
-}));
+export const zInternalProjectCreateProjectRequest = z.object({
+    defaultLanguage: z.optional(z.string()),
+    description: z.optional(z.string()),
+    languages: z.optional(z.array(z.string())),
+    name: z.string().min(1),
+    slug: z.optional(z.string())
+});
 
-export const zAuthControllerLoginWithProviderData = z.object({
-    body: zProviderLoginDto,
+/**
+ * Pagination metadata
+ */
+export const zInternalProjectListProjectsMeta = z.object({
+    hasNext: z.optional(z.boolean()),
+    index: z.optional(z.int()),
+    pageSize: z.optional(z.int()),
+    totalCount: z.optional(z.int()),
+    totalPageCount: z.optional(z.int())
+});
+
+/**
+ * Project details
+ */
+export const zInternalProjectProject = z.object({
+    archived: z.optional(z.boolean()),
+    createdAt: z.optional(z.string()),
+    defaultLanguage: z.optional(z.string()),
+    description: z.optional(z.string()),
+    id: z.optional(z.string()),
+    languages: z.optional(z.array(z.string())),
+    name: z.optional(z.string()),
+    ownerId: z.optional(z.string()),
+    slug: z.optional(z.string()),
+    updatedAt: z.optional(z.string())
+});
+
+/**
+ * Project list response
+ */
+export const zInternalProjectListProjectsResponse = z.object({
+    items: z.optional(z.array(zInternalProjectProject)),
+    meta: z.optional(zInternalProjectListProjectsMeta)
+});
+
+/**
+ * Project list wrapped in response envelope
+ */
+export const zInternalProjectListProjectsResponseWrapper = z.object({
+    data: z.optional(zInternalProjectListProjectsResponse),
+    timestamp: z.optional(z.string())
+});
+
+/**
+ * Project wrapped in response envelope
+ */
+export const zInternalProjectProjectResponse = z.object({
+    data: z.optional(zInternalProjectProject),
+    timestamp: z.optional(z.string())
+});
+
+/**
+ * Remove member payload
+ */
+export const zInternalProjectRemoveMemberRequest = z.object({
+    userId: z.string()
+});
+
+/**
+ * Project update payload
+ */
+export const zInternalProjectUpdateProjectRequest = z.object({
+    defaultLanguage: z.optional(z.string()),
+    description: z.optional(z.string()),
+    languages: z.optional(z.array(z.string())),
+    name: z.optional(z.string().min(1)),
+    slug: z.optional(z.string())
+});
+
+/**
+ * Team creation payload
+ */
+export const zInternalTeamCreateTeamRequest = z.object({
+    avatarUrl: z.optional(z.string()),
+    name: z.string().min(1)
+});
+
+/**
+ * Team details
+ */
+export const zInternalTeamTeam = z.object({
+    avatarUrl: z.optional(z.string()),
+    createdAt: z.optional(z.string()),
+    id: z.optional(z.string()),
+    name: z.optional(z.string()),
+    ownerId: z.optional(z.string()),
+    personal: z.optional(z.boolean()),
+    updatedAt: z.optional(z.string())
+});
+
+/**
+ * Team wrapped in response envelope
+ */
+export const zInternalTeamTeamResponse = z.object({
+    data: z.optional(zInternalTeamTeam),
+    timestamp: z.optional(z.string())
+});
+
+/**
+ * User registration payload
+ */
+export const zInternalUserRegisterUserRequest = z.object({
+    avatarUrl: z.optional(z.string()),
+    email: z.string(),
+    fullName: z.optional(z.string()),
+    id: z.string(),
+    plan: z.optional(z.string())
+});
+
+/**
+ * Team information
+ */
+export const zInternalUserTeamInfo = z.object({
+    avatarUrl: z.optional(z.string()),
+    canCreateProject: z.optional(z.boolean()),
+    memberCount: z.optional(z.int()),
+    personal: z.optional(z.boolean()),
+    plan: z.optional(z.string()),
+    projectCount: z.optional(z.int()),
+    teamId: z.optional(z.string()),
+    teamName: z.optional(z.string())
+});
+
+/**
+ * User update payload
+ */
+export const zInternalUserUpdateUserRequest = z.object({
+    avatarUrl: z.optional(z.string()),
+    fullName: z.optional(z.string()),
+    plan: z.optional(z.string())
+});
+
+/**
+ * User profile
+ */
+export const zInternalUserUser = z.object({
+    activeTeamId: z.optional(z.string()),
+    avatarUrl: z.optional(z.string()),
+    createdAt: z.optional(z.string()),
+    email: z.optional(z.string()),
+    fullName: z.optional(z.string()),
+    id: z.optional(z.string()),
+    plan: z.optional(z.string()),
+    teams: z.optional(z.array(zInternalUserTeamInfo)),
+    updatedAt: z.optional(z.string())
+});
+
+/**
+ * Created user and JWT token
+ */
+export const zInternalUserRegisterUserResponse = z.object({
+    accessToken: z.optional(z.string()),
+    refreshToken: z.optional(z.string()),
+    user: z.optional(zInternalUserUser)
+});
+
+/**
+ * Registration response wrapped in response envelope
+ */
+export const zInternalUserRegisterUserResponseWrapper = z.object({
+    data: z.optional(zInternalUserRegisterUserResponse),
+    timestamp: z.optional(z.string())
+});
+
+/**
+ * User wrapped in response envelope
+ */
+export const zInternalUserUserResponse = z.object({
+    data: z.optional(zInternalUserUser),
+    timestamp: z.optional(z.string())
+});
+
+export const zPostAuthLoginData = z.object({
+    body: zInternalAuthProviderLoginRequest,
     path: z.optional(z.never()),
     query: z.optional(z.never())
 });
@@ -134,15 +278,10 @@ export const zAuthControllerLoginWithProviderData = z.object({
 /**
  * Issued token pair
  */
-export const zAuthControllerLoginWithProviderResponse = zResponseEnvelopeDto.and(z.object({
-    data: z.optional(z.object({
-        accessToken: z.string(),
-        refreshToken: z.string()
-    }))
-}));
+export const zPostAuthLoginResponse = zInternalAuthTokenPairResponse;
 
-export const zAuthControllerRefreshTokensData = z.object({
-    body: zRefreshTokensDto,
+export const zPostAuthRefreshData = z.object({
+    body: zInternalAuthRefreshTokensRequest,
     path: z.optional(z.never()),
     query: z.optional(z.never())
 });
@@ -150,15 +289,10 @@ export const zAuthControllerRefreshTokensData = z.object({
 /**
  * New token pair
  */
-export const zAuthControllerRefreshTokensResponse = zResponseEnvelopeDto.and(z.object({
-    data: z.optional(z.object({
-        accessToken: z.string(),
-        refreshToken: z.string()
-    }))
-}));
+export const zPostAuthRefreshResponse = zInternalAuthTokenPairResponse;
 
-export const zAuthControllerSwitchTeamData = z.object({
-    body: zSwitchTeamDto,
+export const zPostAuthSwitchTeamData = z.object({
+    body: zInternalAuthSwitchTeamRequest,
     path: z.optional(z.never()),
     query: z.optional(z.never())
 });
@@ -166,222 +300,38 @@ export const zAuthControllerSwitchTeamData = z.object({
 /**
  * New token pair with teamId
  */
-export const zAuthControllerSwitchTeamResponse = zResponseEnvelopeDto.and(z.object({
-    data: z.optional(z.object({
-        accessToken: z.string(),
-        refreshToken: z.string()
-    }))
-}));
+export const zPostAuthSwitchTeamResponse = zInternalAuthTokenPairResponse;
 
-export const zUserControllerRegisterData = z.object({
-    body: z.object({
-        id: z.uuid(),
-        email: z.email(),
-        fullName: z.optional(z.string()),
-        avatarUrl: z.optional(z.url()),
-        plan: z.optional(z.string())
-    }),
+export const zPostDebugUsersPlanData = z.object({
+    body: zInternalDebugUpdateUserPlanRequest,
     path: z.optional(z.never()),
     query: z.optional(z.never())
 });
 
 /**
- * Created user and JWT token
+ * Plan updated
  */
-export const zUserControllerRegisterResponse = zResponseEnvelopeDto.and(z.object({
-    data: z.optional(z.object({
-        user: z.optional(z.object({
-            id: z.uuid(),
-            email: z.optional(z.union([
-                z.email(),
-                z.unknown()
-            ])),
-            fullName: z.optional(z.union([
-                z.string(),
-                z.unknown()
-            ])),
-            avatarUrl: z.optional(z.union([
-                z.url(),
-                z.unknown()
-            ])),
-            plan: z.optional(z.union([
-                z.string(),
-                z.unknown()
-            ])),
-            createdAt: z.optional(z.union([
-                z.iso.datetime(),
-                z.unknown()
-            ])),
-            updatedAt: z.optional(z.union([
-                z.iso.datetime(),
-                z.unknown()
-            ])),
-            teams: z.optional(z.array(z.object({
-                teamId: z.optional(z.union([
-                    z.uuid(),
-                    z.unknown()
-                ])),
-                projectCount: z.number(),
-                plan: z.union([
-                    z.string(),
-                    z.unknown()
-                ]),
-                canCreateProject: z.boolean(),
-                teamName: z.string(),
-                memberCount: z.number(),
-                avatarUrl: z.optional(z.union([
-                    z.url(),
-                    z.unknown()
-                ])),
-                personal: z.boolean()
-            })))
-        })),
-        accessToken: z.optional(z.string()),
-        refreshToken: z.optional(z.string())
-    }))
-}));
+export const zPostDebugUsersPlanResponse = zInternalDebugUpdateUserPlanResponseWrapper;
 
-export const zUserControllerGetMeData = z.object({
-    body: z.optional(z.never()),
-    path: z.optional(z.never()),
-    query: z.optional(z.never())
-});
-
-/**
- * Current user
- */
-export const zUserControllerGetMeResponse = zResponseEnvelopeDto.and(z.object({
-    data: z.optional(z.object({
-        id: z.uuid(),
-        email: z.optional(z.union([
-            z.email(),
-            z.unknown()
-        ])),
-        fullName: z.optional(z.union([
-            z.string(),
-            z.unknown()
-        ])),
-        avatarUrl: z.optional(z.union([
-            z.url(),
-            z.unknown()
-        ])),
-        plan: z.optional(z.union([
-            z.string(),
-            z.unknown()
-        ])),
-        createdAt: z.optional(z.union([
-            z.iso.datetime(),
-            z.unknown()
-        ])),
-        updatedAt: z.optional(z.union([
-            z.iso.datetime(),
-            z.unknown()
-        ])),
-        teams: z.optional(z.array(z.object({
-            teamId: z.optional(z.union([
-                z.uuid(),
-                z.unknown()
-            ])),
-            projectCount: z.number(),
-            plan: z.union([
-                z.string(),
-                z.unknown()
-            ]),
-            canCreateProject: z.boolean(),
-            teamName: z.string(),
-            memberCount: z.number(),
-            avatarUrl: z.optional(z.union([
-                z.url(),
-                z.unknown()
-            ])),
-            personal: z.boolean()
-        })))
-    }))
-}));
-
-export const zUserControllerUpdateMeData = z.object({
-    body: z.object({
-        fullName: z.optional(z.string()),
-        avatarUrl: z.optional(z.url()),
-        plan: z.optional(z.string())
-    }),
-    path: z.optional(z.never()),
-    query: z.optional(z.never())
-});
-
-/**
- * Updated user
- */
-export const zUserControllerUpdateMeResponse = zResponseEnvelopeDto.and(z.object({
-    data: z.optional(z.object({
-        id: z.uuid(),
-        email: z.optional(z.union([
-            z.email(),
-            z.unknown()
-        ])),
-        fullName: z.optional(z.union([
-            z.string(),
-            z.unknown()
-        ])),
-        avatarUrl: z.optional(z.union([
-            z.url(),
-            z.unknown()
-        ])),
-        plan: z.optional(z.union([
-            z.string(),
-            z.unknown()
-        ])),
-        createdAt: z.optional(z.union([
-            z.iso.datetime(),
-            z.unknown()
-        ])),
-        updatedAt: z.optional(z.union([
-            z.iso.datetime(),
-            z.unknown()
-        ])),
-        teams: z.optional(z.array(z.object({
-            teamId: z.optional(z.union([
-                z.uuid(),
-                z.unknown()
-            ])),
-            projectCount: z.number(),
-            plan: z.union([
-                z.string(),
-                z.unknown()
-            ]),
-            canCreateProject: z.boolean(),
-            teamName: z.string(),
-            memberCount: z.number(),
-            avatarUrl: z.optional(z.union([
-                z.url(),
-                z.unknown()
-            ])),
-            personal: z.boolean()
-        })))
-    }))
-}));
-
-export const zProjectControllerListProjectsData = z.object({
+export const zGetProjectsData = z.object({
     body: z.optional(z.never()),
     path: z.optional(z.never()),
     query: z.optional(z.object({
-        sort: z.optional(z.enum(['newest', 'oldest'])),
-        status: z.optional(z.enum(['active', 'archived'])),
+        pageSize: z.optional(z.int()).default(15),
+        index: z.optional(z.int()).default(0),
         search: z.optional(z.string()),
-        index: z.optional(z.int().gte(0)).default(0),
-        pageSize: z.optional(z.int().gte(1)).default(15)
+        status: z.optional(z.string()),
+        sort: z.optional(z.string()).default('newest')
     }))
 });
 
 /**
- * Projects list
+ * Project list
  */
-export const zProjectControllerListProjectsResponse = zResponseEnvelopeDto.and(z.object({
-    data: z.optional(zListProjectsResponseDto)
-}));
+export const zGetProjectsResponse = zInternalProjectListProjectsResponseWrapper;
 
-export const zProjectControllerCreateProjectData = z.object({
-    body: zCreateProjectDto,
+export const zPostProjectsData = z.object({
+    body: zInternalProjectCreateProjectRequest,
     path: z.optional(z.never()),
     query: z.optional(z.never())
 });
@@ -389,12 +339,10 @@ export const zProjectControllerCreateProjectData = z.object({
 /**
  * Created project
  */
-export const zProjectControllerCreateProjectResponse = zResponseEnvelopeDto.and(z.object({
-    data: z.optional(zProjectDto)
-}));
+export const zPostProjectsResponse = zInternalProjectProjectResponse;
 
-export const zProjectControllerUpdateProjectData = z.object({
-    body: zUpdateProjectDto,
+export const zPutProjectsByIdData = z.object({
+    body: zInternalProjectUpdateProjectRequest,
     path: z.object({
         id: z.string()
     }),
@@ -404,12 +352,10 @@ export const zProjectControllerUpdateProjectData = z.object({
 /**
  * Updated project
  */
-export const zProjectControllerUpdateProjectResponse = zResponseEnvelopeDto.and(z.object({
-    data: z.optional(zProjectDto)
-}));
+export const zPutProjectsByIdResponse = zInternalProjectProjectResponse;
 
-export const zProjectControllerAddMemberData = z.object({
-    body: zAddMemberDto,
+export const zPostProjectsByIdMembersData = z.object({
+    body: zInternalProjectAddMemberRequest,
     path: z.object({
         id: z.string()
     }),
@@ -419,14 +365,10 @@ export const zProjectControllerAddMemberData = z.object({
 /**
  * Member added
  */
-export const zProjectControllerAddMemberResponse = zResponseEnvelopeDto.and(z.object({
-    data: z.optional(z.unknown())
-}));
+export const zPostProjectsByIdMembersResponse = z.record(z.string(), z.unknown());
 
-export const zProjectControllerRemoveMemberData = z.object({
-    body: z.object({
-        userId: z.uuid()
-    }),
+export const zPostProjectsByIdMembersRemoveData = z.object({
+    body: zInternalProjectRemoveMemberRequest,
     path: z.object({
         id: z.string()
     }),
@@ -436,6 +378,48 @@ export const zProjectControllerRemoveMemberData = z.object({
 /**
  * Member removed
  */
-export const zProjectControllerRemoveMemberResponse = zResponseEnvelopeDto.and(z.object({
-    data: z.optional(z.unknown())
-}));
+export const zPostProjectsByIdMembersRemoveResponse = z.record(z.string(), z.unknown());
+
+export const zPostTeamsData = z.object({
+    body: zInternalTeamCreateTeamRequest,
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+/**
+ * Team created
+ */
+export const zPostTeamsResponse = zInternalTeamTeamResponse;
+
+export const zGetUsersMeData = z.object({
+    body: z.optional(z.never()),
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+/**
+ * Current user
+ */
+export const zGetUsersMeResponse = zInternalUserUserResponse;
+
+export const zPutUsersMeData = z.object({
+    body: zInternalUserUpdateUserRequest,
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+/**
+ * Updated user
+ */
+export const zPutUsersMeResponse = zInternalUserUserResponse;
+
+export const zPostUsersRegisterData = z.object({
+    body: zInternalUserRegisterUserRequest,
+    path: z.optional(z.never()),
+    query: z.optional(z.never())
+});
+
+/**
+ * Created user and JWT token
+ */
+export const zPostUsersRegisterResponse = zInternalUserRegisterUserResponseWrapper;

@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AppControllerGetHelloData, AppControllerGetHelloResponses, AuthControllerLoginWithProviderData, AuthControllerLoginWithProviderErrors, AuthControllerLoginWithProviderResponses, AuthControllerRefreshTokensData, AuthControllerRefreshTokensErrors, AuthControllerRefreshTokensResponses, AuthControllerSwitchTeamData, AuthControllerSwitchTeamErrors, AuthControllerSwitchTeamResponses, ProjectControllerAddMemberData, ProjectControllerAddMemberErrors, ProjectControllerAddMemberResponses, ProjectControllerCreateProjectData, ProjectControllerCreateProjectErrors, ProjectControllerCreateProjectResponses, ProjectControllerListProjectsData, ProjectControllerListProjectsResponses, ProjectControllerRemoveMemberData, ProjectControllerRemoveMemberErrors, ProjectControllerRemoveMemberResponses, ProjectControllerUpdateProjectData, ProjectControllerUpdateProjectErrors, ProjectControllerUpdateProjectResponses, UserControllerGetMeData, UserControllerGetMeErrors, UserControllerGetMeResponses, UserControllerRegisterData, UserControllerRegisterErrors, UserControllerRegisterResponses, UserControllerUpdateMeData, UserControllerUpdateMeErrors, UserControllerUpdateMeResponses } from './types.gen';
+import type { GetProjectsData, GetProjectsErrors, GetProjectsResponses, GetUsersMeData, GetUsersMeErrors, GetUsersMeResponses, PostAuthLoginData, PostAuthLoginErrors, PostAuthLoginResponses, PostAuthRefreshData, PostAuthRefreshErrors, PostAuthRefreshResponses, PostAuthSwitchTeamData, PostAuthSwitchTeamErrors, PostAuthSwitchTeamResponses, PostDebugUsersPlanData, PostDebugUsersPlanErrors, PostDebugUsersPlanResponses, PostProjectsByIdMembersData, PostProjectsByIdMembersErrors, PostProjectsByIdMembersRemoveData, PostProjectsByIdMembersRemoveErrors, PostProjectsByIdMembersRemoveResponses, PostProjectsByIdMembersResponses, PostProjectsData, PostProjectsErrors, PostProjectsResponses, PostTeamsData, PostTeamsErrors, PostTeamsResponses, PostUsersRegisterData, PostUsersRegisterErrors, PostUsersRegisterResponses, PutProjectsByIdData, PutProjectsByIdErrors, PutProjectsByIdResponses, PutUsersMeData, PutUsersMeErrors, PutUsersMeResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -19,14 +19,11 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
- * Health check
- */
-export const appControllerGetHello = <ThrowOnError extends boolean = false>(options?: Options<AppControllerGetHelloData, ThrowOnError>) => (options?.client ?? client).get<AppControllerGetHelloResponses, unknown, ThrowOnError>({ url: '/', ...options });
-
-/**
+ * Login with Google access token
+ *
  * Login with Google access token
  */
-export const authControllerLoginWithProvider = <ThrowOnError extends boolean = false>(options: Options<AuthControllerLoginWithProviderData, ThrowOnError>) => (options.client ?? client).post<AuthControllerLoginWithProviderResponses, AuthControllerLoginWithProviderErrors, ThrowOnError>({
+export const postAuthLogin = <ThrowOnError extends boolean = false>(options: Options<PostAuthLoginData, ThrowOnError>) => (options.client ?? client).post<PostAuthLoginResponses, PostAuthLoginErrors, ThrowOnError>({
     url: '/auth/login',
     ...options,
     headers: {
@@ -37,8 +34,10 @@ export const authControllerLoginWithProvider = <ThrowOnError extends boolean = f
 
 /**
  * Refresh access/refresh tokens
+ *
+ * Refresh access/refresh tokens
  */
-export const authControllerRefreshTokens = <ThrowOnError extends boolean = false>(options: Options<AuthControllerRefreshTokensData, ThrowOnError>) => (options.client ?? client).post<AuthControllerRefreshTokensResponses, AuthControllerRefreshTokensErrors, ThrowOnError>({
+export const postAuthRefresh = <ThrowOnError extends boolean = false>(options: Options<PostAuthRefreshData, ThrowOnError>) => (options.client ?? client).post<PostAuthRefreshResponses, PostAuthRefreshErrors, ThrowOnError>({
     url: '/auth/refresh',
     ...options,
     headers: {
@@ -49,8 +48,10 @@ export const authControllerRefreshTokens = <ThrowOnError extends boolean = false
 
 /**
  * Switch active team and get new tokens
+ *
+ * Switch active team and get new tokens
  */
-export const authControllerSwitchTeam = <ThrowOnError extends boolean = false>(options: Options<AuthControllerSwitchTeamData, ThrowOnError>) => (options.client ?? client).post<AuthControllerSwitchTeamResponses, AuthControllerSwitchTeamErrors, ThrowOnError>({
+export const postAuthSwitchTeam = <ThrowOnError extends boolean = false>(options: Options<PostAuthSwitchTeamData, ThrowOnError>) => (options.client ?? client).post<PostAuthSwitchTeamResponses, PostAuthSwitchTeamErrors, ThrowOnError>({
     url: '/auth/switch-team',
     ...options,
     headers: {
@@ -60,33 +61,12 @@ export const authControllerSwitchTeam = <ThrowOnError extends boolean = false>(o
 });
 
 /**
- * Register a new user
+ * Debug: update user personal plan (free|pro)
+ *
+ * Debug: update user personal plan (free|pro)
  */
-export const userControllerRegister = <ThrowOnError extends boolean = false>(options: Options<UserControllerRegisterData, ThrowOnError>) => (options.client ?? client).post<UserControllerRegisterResponses, UserControllerRegisterErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/users/register',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Get current user profile
- */
-export const userControllerGetMe = <ThrowOnError extends boolean = false>(options?: Options<UserControllerGetMeData, ThrowOnError>) => (options?.client ?? client).get<UserControllerGetMeResponses, UserControllerGetMeErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/users/me',
-    ...options
-});
-
-/**
- * Update current user profile
- */
-export const userControllerUpdateMe = <ThrowOnError extends boolean = false>(options: Options<UserControllerUpdateMeData, ThrowOnError>) => (options.client ?? client).put<UserControllerUpdateMeResponses, UserControllerUpdateMeErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/users/me',
+export const postDebugUsersPlan = <ThrowOnError extends boolean = false>(options: Options<PostDebugUsersPlanData, ThrowOnError>) => (options.client ?? client).post<PostDebugUsersPlanResponses, PostDebugUsersPlanErrors, ThrowOnError>({
+    url: '/debug/users/plan',
     ...options,
     headers: {
         'Content-Type': 'application/json',
@@ -96,18 +76,17 @@ export const userControllerUpdateMe = <ThrowOnError extends boolean = false>(opt
 
 /**
  * List my projects
+ *
+ * List my projects
  */
-export const projectControllerListProjects = <ThrowOnError extends boolean = false>(options?: Options<ProjectControllerListProjectsData, ThrowOnError>) => (options?.client ?? client).get<ProjectControllerListProjectsResponses, unknown, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
-    url: '/projects',
-    ...options
-});
+export const getProjects = <ThrowOnError extends boolean = false>(options?: Options<GetProjectsData, ThrowOnError>) => (options?.client ?? client).get<GetProjectsResponses, GetProjectsErrors, ThrowOnError>({ url: '/projects', ...options });
 
 /**
  * Create project
+ *
+ * Create project
  */
-export const projectControllerCreateProject = <ThrowOnError extends boolean = false>(options: Options<ProjectControllerCreateProjectData, ThrowOnError>) => (options.client ?? client).post<ProjectControllerCreateProjectResponses, ProjectControllerCreateProjectErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
+export const postProjects = <ThrowOnError extends boolean = false>(options: Options<PostProjectsData, ThrowOnError>) => (options.client ?? client).post<PostProjectsResponses, PostProjectsErrors, ThrowOnError>({
     url: '/projects',
     ...options,
     headers: {
@@ -118,9 +97,10 @@ export const projectControllerCreateProject = <ThrowOnError extends boolean = fa
 
 /**
  * Update project
+ *
+ * Update project
  */
-export const projectControllerUpdateProject = <ThrowOnError extends boolean = false>(options: Options<ProjectControllerUpdateProjectData, ThrowOnError>) => (options.client ?? client).put<ProjectControllerUpdateProjectResponses, ProjectControllerUpdateProjectErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
+export const putProjectsById = <ThrowOnError extends boolean = false>(options: Options<PutProjectsByIdData, ThrowOnError>) => (options.client ?? client).put<PutProjectsByIdResponses, PutProjectsByIdErrors, ThrowOnError>({
     url: '/projects/{id}',
     ...options,
     headers: {
@@ -131,9 +111,10 @@ export const projectControllerUpdateProject = <ThrowOnError extends boolean = fa
 
 /**
  * Add project member (owner only)
+ *
+ * Add project member (owner only)
  */
-export const projectControllerAddMember = <ThrowOnError extends boolean = false>(options: Options<ProjectControllerAddMemberData, ThrowOnError>) => (options.client ?? client).post<ProjectControllerAddMemberResponses, ProjectControllerAddMemberErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
+export const postProjectsByIdMembers = <ThrowOnError extends boolean = false>(options: Options<PostProjectsByIdMembersData, ThrowOnError>) => (options.client ?? client).post<PostProjectsByIdMembersResponses, PostProjectsByIdMembersErrors, ThrowOnError>({
     url: '/projects/{id}/members',
     ...options,
     headers: {
@@ -144,10 +125,60 @@ export const projectControllerAddMember = <ThrowOnError extends boolean = false>
 
 /**
  * Remove project member (owner only)
+ *
+ * Remove project member (owner only)
  */
-export const projectControllerRemoveMember = <ThrowOnError extends boolean = false>(options: Options<ProjectControllerRemoveMemberData, ThrowOnError>) => (options.client ?? client).post<ProjectControllerRemoveMemberResponses, ProjectControllerRemoveMemberErrors, ThrowOnError>({
-    security: [{ scheme: 'bearer', type: 'http' }],
+export const postProjectsByIdMembersRemove = <ThrowOnError extends boolean = false>(options: Options<PostProjectsByIdMembersRemoveData, ThrowOnError>) => (options.client ?? client).post<PostProjectsByIdMembersRemoveResponses, PostProjectsByIdMembersRemoveErrors, ThrowOnError>({
     url: '/projects/{id}/members/remove',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Create a team (org workspace)
+ *
+ * Create a team (org workspace)
+ */
+export const postTeams = <ThrowOnError extends boolean = false>(options: Options<PostTeamsData, ThrowOnError>) => (options.client ?? client).post<PostTeamsResponses, PostTeamsErrors, ThrowOnError>({
+    url: '/teams',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get current user profile
+ *
+ * Get current user profile
+ */
+export const getUsersMe = <ThrowOnError extends boolean = false>(options?: Options<GetUsersMeData, ThrowOnError>) => (options?.client ?? client).get<GetUsersMeResponses, GetUsersMeErrors, ThrowOnError>({ url: '/users/me', ...options });
+
+/**
+ * Update current user profile
+ *
+ * Update current user profile
+ */
+export const putUsersMe = <ThrowOnError extends boolean = false>(options: Options<PutUsersMeData, ThrowOnError>) => (options.client ?? client).put<PutUsersMeResponses, PutUsersMeErrors, ThrowOnError>({
+    url: '/users/me',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Register a new user
+ *
+ * Register a new user
+ */
+export const postUsersRegister = <ThrowOnError extends boolean = false>(options: Options<PostUsersRegisterData, ThrowOnError>) => (options.client ?? client).post<PostUsersRegisterResponses, PostUsersRegisterErrors, ThrowOnError>({
+    url: '/users/register',
     ...options,
     headers: {
         'Content-Type': 'application/json',

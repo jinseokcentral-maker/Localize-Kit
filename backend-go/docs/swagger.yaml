@@ -1,5 +1,20 @@
+basePath: /api/v1
 definitions:
-  auth.ProviderLoginRequest:
+  backend-go_internal_common_response.ErrorResponse:
+    description: Error response structure
+    properties:
+      message:
+        type: string
+      path:
+        type: string
+      requestId:
+        type: string
+      statusCode:
+        type: integer
+      timestamp:
+        type: string
+    type: object
+  internal_auth.ProviderLoginRequest:
     description: Provider access token payload
     properties:
       accessToken:
@@ -10,7 +25,7 @@ definitions:
     required:
     - accessToken
     type: object
-  auth.RefreshTokensRequest:
+  internal_auth.RefreshTokensRequest:
     description: Refresh token payload
     properties:
       refreshToken:
@@ -18,7 +33,7 @@ definitions:
     required:
     - refreshToken
     type: object
-  auth.SwitchTeamRequest:
+  internal_auth.SwitchTeamRequest:
     description: Switch team payload
     properties:
       teamId:
@@ -26,7 +41,7 @@ definitions:
     required:
     - teamId
     type: object
-  auth.TokenPair:
+  internal_auth.TokenPair:
     description: Token pair response
     properties:
       accessToken:
@@ -36,15 +51,15 @@ definitions:
         example: eyJhbGciOiJSUzI1NiIs...
         type: string
     type: object
-  auth.TokenPairResponse:
+  internal_auth.TokenPairResponse:
     description: Token pair wrapped in response envelope
     properties:
       data:
-        $ref: '#/definitions/auth.TokenPair'
+        $ref: '#/definitions/internal_auth.TokenPair'
       timestamp:
         type: string
     type: object
-  debug.UpdateUserPlanRequest:
+  internal_debug.UpdateUserPlanRequest:
     description: Update plan payload (debug only)
     properties:
       plan:
@@ -57,22 +72,22 @@ definitions:
     required:
     - plan
     type: object
-  debug.UpdateUserPlanResponse:
+  internal_debug.UpdateUserPlanResponse:
     description: Plan updated response
     properties:
       success:
         example: true
         type: boolean
     type: object
-  debug.UpdateUserPlanResponseWrapper:
+  internal_debug.UpdateUserPlanResponseWrapper:
     description: Update user plan response wrapped in response envelope
     properties:
       data:
-        $ref: '#/definitions/debug.UpdateUserPlanResponse'
+        $ref: '#/definitions/internal_debug.UpdateUserPlanResponse'
       timestamp:
         type: string
     type: object
-  project.AddMemberRequest:
+  internal_project.AddMemberRequest:
     description: Add member payload
     properties:
       role:
@@ -87,7 +102,7 @@ definitions:
     - role
     - userId
     type: object
-  project.CreateProjectRequest:
+  internal_project.CreateProjectRequest:
     description: Project creation payload
     properties:
       defaultLanguage:
@@ -106,7 +121,7 @@ definitions:
     required:
     - name
     type: object
-  project.ListProjectsMeta:
+  internal_project.ListProjectsMeta:
     description: Pagination metadata
     properties:
       hasNext:
@@ -120,25 +135,25 @@ definitions:
       totalPageCount:
         type: integer
     type: object
-  project.ListProjectsResponse:
+  internal_project.ListProjectsResponse:
     description: Project list response
     properties:
       items:
         items:
-          $ref: '#/definitions/project.Project'
+          $ref: '#/definitions/internal_project.Project'
         type: array
       meta:
-        $ref: '#/definitions/project.ListProjectsMeta'
+        $ref: '#/definitions/internal_project.ListProjectsMeta'
     type: object
-  project.ListProjectsResponseWrapper:
+  internal_project.ListProjectsResponseWrapper:
     description: Project list wrapped in response envelope
     properties:
       data:
-        $ref: '#/definitions/project.ListProjectsResponse'
+        $ref: '#/definitions/internal_project.ListProjectsResponse'
       timestamp:
         type: string
     type: object
-  project.Project:
+  internal_project.Project:
     description: Project details
     properties:
       archived:
@@ -164,15 +179,15 @@ definitions:
       updatedAt:
         type: string
     type: object
-  project.ProjectResponse:
+  internal_project.ProjectResponse:
     description: Project wrapped in response envelope
     properties:
       data:
-        $ref: '#/definitions/project.Project'
+        $ref: '#/definitions/internal_project.Project'
       timestamp:
         type: string
     type: object
-  project.RemoveMemberRequest:
+  internal_project.RemoveMemberRequest:
     description: Remove member payload
     properties:
       userId:
@@ -180,7 +195,7 @@ definitions:
     required:
     - userId
     type: object
-  project.UpdateProjectRequest:
+  internal_project.UpdateProjectRequest:
     description: Project update payload
     properties:
       defaultLanguage:
@@ -197,21 +212,7 @@ definitions:
       slug:
         type: string
     type: object
-  response.ErrorResponse:
-    description: Error response structure
-    properties:
-      message:
-        type: string
-      path:
-        type: string
-      requestId:
-        type: string
-      statusCode:
-        type: integer
-      timestamp:
-        type: string
-    type: object
-  team.CreateTeamRequest:
+  internal_team.CreateTeamRequest:
     description: Team creation payload
     properties:
       avatarUrl:
@@ -222,7 +223,7 @@ definitions:
     required:
     - name
     type: object
-  team.Team:
+  internal_team.Team:
     description: Team details
     properties:
       avatarUrl:
@@ -240,15 +241,15 @@ definitions:
       updatedAt:
         type: string
     type: object
-  team.TeamResponse:
+  internal_team.TeamResponse:
     description: Team wrapped in response envelope
     properties:
       data:
-        $ref: '#/definitions/team.Team'
+        $ref: '#/definitions/internal_team.Team'
       timestamp:
         type: string
     type: object
-  user.RegisterUserRequest:
+  internal_user.RegisterUserRequest:
     description: User registration payload
     properties:
       avatarUrl:
@@ -265,7 +266,7 @@ definitions:
     - email
     - id
     type: object
-  user.RegisterUserResponse:
+  internal_user.RegisterUserResponse:
     description: Created user and JWT token
     properties:
       accessToken:
@@ -275,17 +276,17 @@ definitions:
         example: eyJhbGciOiJSUzI1NiIs...
         type: string
       user:
-        $ref: '#/definitions/user.User'
+        $ref: '#/definitions/internal_user.User'
     type: object
-  user.RegisterUserResponseWrapper:
+  internal_user.RegisterUserResponseWrapper:
     description: Registration response wrapped in response envelope
     properties:
       data:
-        $ref: '#/definitions/user.RegisterUserResponse'
+        $ref: '#/definitions/internal_user.RegisterUserResponse'
       timestamp:
         type: string
     type: object
-  user.TeamInfo:
+  internal_user.TeamInfo:
     description: Team information
     properties:
       avatarUrl:
@@ -305,7 +306,7 @@ definitions:
       teamName:
         type: string
     type: object
-  user.UpdateUserRequest:
+  internal_user.UpdateUserRequest:
     description: User update payload
     properties:
       avatarUrl:
@@ -315,7 +316,7 @@ definitions:
       plan:
         type: string
     type: object
-  user.User:
+  internal_user.User:
     description: User profile
     properties:
       activeTeamId:
@@ -334,38 +335,26 @@ definitions:
         type: string
       teams:
         items:
-          $ref: '#/definitions/user.TeamInfo'
+          $ref: '#/definitions/internal_user.TeamInfo'
         type: array
       updatedAt:
         type: string
     type: object
-  user.UserResponse:
+  internal_user.UserResponse:
     description: User wrapped in response envelope
     properties:
       data:
-        $ref: '#/definitions/user.User'
+        $ref: '#/definitions/internal_user.User'
       timestamp:
         type: string
     type: object
+host: localhost:8000
 info:
   contact: {}
+  description: API documentation for LocalizeKit backend
+  title: LocalizeKit API
+  version: 1.0.0
 paths:
-  /:
-    get:
-      consumes:
-      - application/json
-      description: Returns a greeting string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Returns a greeting string
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Health check
-      tags:
-      - health
   /auth/login:
     post:
       consumes:
@@ -377,18 +366,18 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/auth.ProviderLoginRequest'
+          $ref: '#/definitions/internal_auth.ProviderLoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Issued token pair
           schema:
-            $ref: '#/definitions/auth.TokenPairResponse'
+            $ref: '#/definitions/internal_auth.TokenPairResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
       summary: Login with Google access token
       tags:
       - auth
@@ -403,18 +392,18 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/auth.RefreshTokensRequest'
+          $ref: '#/definitions/internal_auth.RefreshTokensRequest'
       produces:
       - application/json
       responses:
         "200":
           description: New token pair
           schema:
-            $ref: '#/definitions/auth.TokenPairResponse'
+            $ref: '#/definitions/internal_auth.TokenPairResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
       summary: Refresh access/refresh tokens
       tags:
       - auth
@@ -429,22 +418,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/auth.SwitchTeamRequest'
+          $ref: '#/definitions/internal_auth.SwitchTeamRequest'
       produces:
       - application/json
       responses:
         "200":
           description: New token pair with teamId
           schema:
-            $ref: '#/definitions/auth.TokenPairResponse'
+            $ref: '#/definitions/internal_auth.TokenPairResponse'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
       security:
       - jwt: []
       summary: Switch active team and get new tokens
@@ -461,22 +450,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/debug.UpdateUserPlanRequest'
+          $ref: '#/definitions/internal_debug.UpdateUserPlanRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Plan updated
           schema:
-            $ref: '#/definitions/debug.UpdateUserPlanResponseWrapper'
+            $ref: '#/definitions/internal_debug.UpdateUserPlanResponseWrapper'
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "403":
           description: Not allowed in production
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
       summary: 'Debug: update user personal plan (free|pro)'
       tags:
       - debug
@@ -515,15 +504,15 @@ paths:
         "200":
           description: Project list
           schema:
-            $ref: '#/definitions/project.ListProjectsResponseWrapper'
+            $ref: '#/definitions/internal_project.ListProjectsResponseWrapper'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
       security:
       - jwt: []
       summary: List my projects
@@ -539,30 +528,30 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/project.CreateProjectRequest'
+          $ref: '#/definitions/internal_project.CreateProjectRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created project
           schema:
-            $ref: '#/definitions/project.ProjectResponse'
+            $ref: '#/definitions/internal_project.ProjectResponse'
         "400":
           description: Invalid payload
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "403":
           description: Project limit exceeded
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "409":
           description: Project conflict
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
       security:
       - jwt: []
       summary: Create project
@@ -584,34 +573,34 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/project.UpdateProjectRequest'
+          $ref: '#/definitions/internal_project.UpdateProjectRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Updated project
           schema:
-            $ref: '#/definitions/project.ProjectResponse'
+            $ref: '#/definitions/internal_project.ProjectResponse'
         "400":
           description: Invalid payload
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "404":
           description: Project not found
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "409":
           description: Project conflict
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
       security:
       - jwt: []
       summary: Update project
@@ -633,7 +622,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/project.AddMemberRequest'
+          $ref: '#/definitions/internal_project.AddMemberRequest'
       produces:
       - application/json
       responses:
@@ -645,19 +634,19 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
       security:
       - jwt: []
       summary: Add project member (owner only)
@@ -679,7 +668,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/project.RemoveMemberRequest'
+          $ref: '#/definitions/internal_project.RemoveMemberRequest'
       produces:
       - application/json
       responses:
@@ -691,19 +680,19 @@ paths:
         "400":
           description: Invalid payload
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "403":
           description: Forbidden
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "404":
           description: Project not found
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
       security:
       - jwt: []
       summary: Remove project member (owner only)
@@ -720,22 +709,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/team.CreateTeamRequest'
+          $ref: '#/definitions/internal_team.CreateTeamRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Team created
           schema:
-            $ref: '#/definitions/team.TeamResponse'
+            $ref: '#/definitions/internal_team.TeamResponse'
         "400":
           description: Invalid payload
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
       security:
       - jwt: []
       summary: Create a team (org workspace)
@@ -752,11 +741,11 @@ paths:
         "200":
           description: Current user
           schema:
-            $ref: '#/definitions/user.UserResponse'
+            $ref: '#/definitions/internal_user.UserResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
       security:
       - jwt: []
       summary: Get current user profile
@@ -772,22 +761,22 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/user.UpdateUserRequest'
+          $ref: '#/definitions/internal_user.UpdateUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Updated user
           schema:
-            $ref: '#/definitions/user.UserResponse'
+            $ref: '#/definitions/internal_user.UserResponse'
         "400":
           description: Invalid request
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
       security:
       - jwt: []
       summary: Update current user profile
@@ -804,23 +793,26 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/user.RegisterUserRequest'
+          $ref: '#/definitions/internal_user.RegisterUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: Created user and JWT token
           schema:
-            $ref: '#/definitions/user.RegisterUserResponseWrapper'
+            $ref: '#/definitions/internal_user.RegisterUserResponseWrapper'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
         "409":
           description: Conflict
           schema:
-            $ref: '#/definitions/response.ErrorResponse'
+            $ref: '#/definitions/backend-go_internal_common_response.ErrorResponse'
       summary: Register a new user
       tags:
       - users
+schemes:
+- http
+- https
 swagger: "2.0"

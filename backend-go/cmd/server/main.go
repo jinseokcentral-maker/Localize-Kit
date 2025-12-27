@@ -1,3 +1,9 @@
+// @title LocalizeKit API
+// @version 1.0.0
+// @description API documentation for LocalizeKit backend
+// @BasePath /api/v1
+// @schemes http https
+// @host localhost:8000
 package main
 
 import (
@@ -140,9 +146,9 @@ func main() {
 	authGroup.POST("/refresh", authController.Refresh, auth.Public())
 	authGroup.POST("/switch-team", authController.SwitchTeam)
 
-	// Protected routes
+	// User routes
 	userGroup := api.Group("/users")
-	userGroup.POST("/register", userController.Register)
+	userGroup.POST("/register", userController.Register, auth.Public()) // Public: user registration
 	userGroup.GET("/me", userController.GetMe)
 	userGroup.PUT("/me", userController.UpdateMe)
 

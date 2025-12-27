@@ -233,9 +233,11 @@ const tokenStoreProvider: TokenProvider = {
     },
 };
 
-export const apiBaseUrl = typeof window !== "undefined"
+const baseUrl = typeof window !== "undefined"
     ? (import.meta.env.VITE_API_URL as string) ?? "http://localhost:8000"
     : (import.meta.env.VITE_API_URL as string) ?? "http://localhost:8000";
+
+export const apiBaseUrl = `${baseUrl}/api/v1`;
 
 /**
  * Public API client (no auth header injection, no refresh-on-401)

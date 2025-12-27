@@ -19,15 +19,14 @@ func JWTMiddleware(jwtSecret string) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			path := c.Request().URL.Path
-			
+
 			// Skip JWT check for public paths
-			if path == "/" || strings.HasPrefix(path, "/docs") || path == "/docs-json" {
+			if isPublicPath(path) {
 				return next(c)
 			}
 			
 			// Check if route is marked as public
-			isPublic := c.Get("public") != nil
-			if isPublic {
+			if c.Get("public") != nil {
 				return next(c)
 			}
 
@@ -121,5 +120,30 @@ func Public() echo.MiddlewareFunc {
 			return next(c)
 		}
 	}
+}
+
+// isPublicPath returns true when the current request path should bypass JWT validation.
+func isPublicPath(path string) bool {
+	// Remove trailing slash for consistent matching
+	path = strings.TrimSuffix(path, "/")
+	
+	if path == "/" || strings.HasPrefix(path, "/docs") || path == "/docs-json" {
+		return true
+	}
+
+	// Auth endpoints must remain publicly accessible to issue or refresh tokens
+	// Support both /auth/login and /api/v1/auth/login for compatibility
+	if path == "/api/v1/auth/login" || path == "/auth/login" ||
+		path == "/api/v1/auth/refresh" || path == "/auth/refresh" {
+		return true
+	}
+
+	// User registration endpoint must be publicly accessible
+	// Support both /users/register and /api/v1/users/register for compatibility
+	if path == "/api/v1/users/register" || path == "/users/register" {
+		return true
+	}
+
+	return false
 }
 

@@ -15,30 +15,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/": {
-            "get": {
-                "description": "Returns a greeting string",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "health"
-                ],
-                "summary": "Health check",
-                "responses": {
-                    "200": {
-                        "description": "Returns a greeting string",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
         "/auth/login": {
             "post": {
                 "description": "Login with Google access token",
@@ -59,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.ProviderLoginRequest"
+                            "$ref": "#/definitions/internal_auth.ProviderLoginRequest"
                         }
                     }
                 ],
@@ -67,13 +43,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Issued token pair",
                         "schema": {
-                            "$ref": "#/definitions/auth.TokenPairResponse"
+                            "$ref": "#/definitions/internal_auth.TokenPairResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     }
                 }
@@ -99,7 +75,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.RefreshTokensRequest"
+                            "$ref": "#/definitions/internal_auth.RefreshTokensRequest"
                         }
                     }
                 ],
@@ -107,13 +83,13 @@ const docTemplate = `{
                     "200": {
                         "description": "New token pair",
                         "schema": {
-                            "$ref": "#/definitions/auth.TokenPairResponse"
+                            "$ref": "#/definitions/internal_auth.TokenPairResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     }
                 }
@@ -144,7 +120,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.SwitchTeamRequest"
+                            "$ref": "#/definitions/internal_auth.SwitchTeamRequest"
                         }
                     }
                 ],
@@ -152,19 +128,19 @@ const docTemplate = `{
                     "200": {
                         "description": "New token pair with teamId",
                         "schema": {
-                            "$ref": "#/definitions/auth.TokenPairResponse"
+                            "$ref": "#/definitions/internal_auth.TokenPairResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     }
                 }
@@ -190,7 +166,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/debug.UpdateUserPlanRequest"
+                            "$ref": "#/definitions/internal_debug.UpdateUserPlanRequest"
                         }
                     }
                 ],
@@ -198,19 +174,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Plan updated",
                         "schema": {
-                            "$ref": "#/definitions/debug.UpdateUserPlanResponseWrapper"
+                            "$ref": "#/definitions/internal_debug.UpdateUserPlanResponseWrapper"
                         }
                     },
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Not allowed in production",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     }
                 }
@@ -273,19 +249,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Project list",
                         "schema": {
-                            "$ref": "#/definitions/project.ListProjectsResponseWrapper"
+                            "$ref": "#/definitions/internal_project.ListProjectsResponseWrapper"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     }
                 }
@@ -314,7 +290,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/project.CreateProjectRequest"
+                            "$ref": "#/definitions/internal_project.CreateProjectRequest"
                         }
                     }
                 ],
@@ -322,31 +298,31 @@ const docTemplate = `{
                     "201": {
                         "description": "Created project",
                         "schema": {
-                            "$ref": "#/definitions/project.ProjectResponse"
+                            "$ref": "#/definitions/internal_project.ProjectResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid payload",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Project limit exceeded",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Project conflict",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     }
                 }
@@ -384,7 +360,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/project.UpdateProjectRequest"
+                            "$ref": "#/definitions/internal_project.UpdateProjectRequest"
                         }
                     }
                 ],
@@ -392,37 +368,37 @@ const docTemplate = `{
                     "200": {
                         "description": "Updated project",
                         "schema": {
-                            "$ref": "#/definitions/project.ProjectResponse"
+                            "$ref": "#/definitions/internal_project.ProjectResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid payload",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Project not found",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Project conflict",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     }
                 }
@@ -460,7 +436,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/project.AddMemberRequest"
+                            "$ref": "#/definitions/internal_project.AddMemberRequest"
                         }
                     }
                 ],
@@ -475,25 +451,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     }
                 }
@@ -531,7 +507,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/project.RemoveMemberRequest"
+                            "$ref": "#/definitions/internal_project.RemoveMemberRequest"
                         }
                     }
                 ],
@@ -546,25 +522,25 @@ const docTemplate = `{
                     "400": {
                         "description": "Invalid payload",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "403": {
                         "description": "Forbidden",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Project not found",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     }
                 }
@@ -595,7 +571,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/team.CreateTeamRequest"
+                            "$ref": "#/definitions/internal_team.CreateTeamRequest"
                         }
                     }
                 ],
@@ -603,19 +579,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Team created",
                         "schema": {
-                            "$ref": "#/definitions/team.TeamResponse"
+                            "$ref": "#/definitions/internal_team.TeamResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid payload",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     }
                 }
@@ -643,13 +619,13 @@ const docTemplate = `{
                     "200": {
                         "description": "Current user",
                         "schema": {
-                            "$ref": "#/definitions/user.UserResponse"
+                            "$ref": "#/definitions/internal_user.UserResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     }
                 }
@@ -678,7 +654,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/user.UpdateUserRequest"
+                            "$ref": "#/definitions/internal_user.UpdateUserRequest"
                         }
                     }
                 ],
@@ -686,19 +662,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Updated user",
                         "schema": {
-                            "$ref": "#/definitions/user.UserResponse"
+                            "$ref": "#/definitions/internal_user.UserResponse"
                         }
                     },
                     "400": {
                         "description": "Invalid request",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     }
                 }
@@ -724,7 +700,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/user.RegisterUserRequest"
+                            "$ref": "#/definitions/internal_user.RegisterUserRequest"
                         }
                     }
                 ],
@@ -732,19 +708,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Created user and JWT token",
                         "schema": {
-                            "$ref": "#/definitions/user.RegisterUserResponseWrapper"
+                            "$ref": "#/definitions/internal_user.RegisterUserResponseWrapper"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     },
                     "409": {
                         "description": "Conflict",
                         "schema": {
-                            "$ref": "#/definitions/response.ErrorResponse"
+                            "$ref": "#/definitions/backend-go_internal_common_response.ErrorResponse"
                         }
                     }
                 }
@@ -752,7 +728,28 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "auth.ProviderLoginRequest": {
+        "backend-go_internal_common_response.ErrorResponse": {
+            "description": "Error response structure",
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "requestId": {
+                    "type": "string"
+                },
+                "statusCode": {
+                    "type": "integer"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_auth.ProviderLoginRequest": {
             "description": "Provider access token payload",
             "type": "object",
             "required": [
@@ -768,7 +765,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.RefreshTokensRequest": {
+        "internal_auth.RefreshTokensRequest": {
             "description": "Refresh token payload",
             "type": "object",
             "required": [
@@ -780,7 +777,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.SwitchTeamRequest": {
+        "internal_auth.SwitchTeamRequest": {
             "description": "Switch team payload",
             "type": "object",
             "required": [
@@ -792,7 +789,7 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.TokenPair": {
+        "internal_auth.TokenPair": {
             "description": "Token pair response",
             "type": "object",
             "properties": {
@@ -806,19 +803,19 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.TokenPairResponse": {
+        "internal_auth.TokenPairResponse": {
             "description": "Token pair wrapped in response envelope",
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/auth.TokenPair"
+                    "$ref": "#/definitions/internal_auth.TokenPair"
                 },
                 "timestamp": {
                     "type": "string"
                 }
             }
         },
-        "debug.UpdateUserPlanRequest": {
+        "internal_debug.UpdateUserPlanRequest": {
             "description": "Update plan payload (debug only)",
             "type": "object",
             "required": [
@@ -837,7 +834,7 @@ const docTemplate = `{
                 }
             }
         },
-        "debug.UpdateUserPlanResponse": {
+        "internal_debug.UpdateUserPlanResponse": {
             "description": "Plan updated response",
             "type": "object",
             "properties": {
@@ -847,19 +844,19 @@ const docTemplate = `{
                 }
             }
         },
-        "debug.UpdateUserPlanResponseWrapper": {
+        "internal_debug.UpdateUserPlanResponseWrapper": {
             "description": "Update user plan response wrapped in response envelope",
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/debug.UpdateUserPlanResponse"
+                    "$ref": "#/definitions/internal_debug.UpdateUserPlanResponse"
                 },
                 "timestamp": {
                     "type": "string"
                 }
             }
         },
-        "project.AddMemberRequest": {
+        "internal_project.AddMemberRequest": {
             "description": "Add member payload",
             "type": "object",
             "required": [
@@ -880,7 +877,7 @@ const docTemplate = `{
                 }
             }
         },
-        "project.CreateProjectRequest": {
+        "internal_project.CreateProjectRequest": {
             "description": "Project creation payload",
             "type": "object",
             "required": [
@@ -908,7 +905,7 @@ const docTemplate = `{
                 }
             }
         },
-        "project.ListProjectsMeta": {
+        "internal_project.ListProjectsMeta": {
             "description": "Pagination metadata",
             "type": "object",
             "properties": {
@@ -929,34 +926,34 @@ const docTemplate = `{
                 }
             }
         },
-        "project.ListProjectsResponse": {
+        "internal_project.ListProjectsResponse": {
             "description": "Project list response",
             "type": "object",
             "properties": {
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/project.Project"
+                        "$ref": "#/definitions/internal_project.Project"
                     }
                 },
                 "meta": {
-                    "$ref": "#/definitions/project.ListProjectsMeta"
+                    "$ref": "#/definitions/internal_project.ListProjectsMeta"
                 }
             }
         },
-        "project.ListProjectsResponseWrapper": {
+        "internal_project.ListProjectsResponseWrapper": {
             "description": "Project list wrapped in response envelope",
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/project.ListProjectsResponse"
+                    "$ref": "#/definitions/internal_project.ListProjectsResponse"
                 },
                 "timestamp": {
                     "type": "string"
                 }
             }
         },
-        "project.Project": {
+        "internal_project.Project": {
             "description": "Project details",
             "type": "object",
             "properties": {
@@ -995,19 +992,19 @@ const docTemplate = `{
                 }
             }
         },
-        "project.ProjectResponse": {
+        "internal_project.ProjectResponse": {
             "description": "Project wrapped in response envelope",
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/project.Project"
+                    "$ref": "#/definitions/internal_project.Project"
                 },
                 "timestamp": {
                     "type": "string"
                 }
             }
         },
-        "project.RemoveMemberRequest": {
+        "internal_project.RemoveMemberRequest": {
             "description": "Remove member payload",
             "type": "object",
             "required": [
@@ -1019,7 +1016,7 @@ const docTemplate = `{
                 }
             }
         },
-        "project.UpdateProjectRequest": {
+        "internal_project.UpdateProjectRequest": {
             "description": "Project update payload",
             "type": "object",
             "properties": {
@@ -1044,28 +1041,7 @@ const docTemplate = `{
                 }
             }
         },
-        "response.ErrorResponse": {
-            "description": "Error response structure",
-            "type": "object",
-            "properties": {
-                "message": {
-                    "type": "string"
-                },
-                "path": {
-                    "type": "string"
-                },
-                "requestId": {
-                    "type": "string"
-                },
-                "statusCode": {
-                    "type": "integer"
-                },
-                "timestamp": {
-                    "type": "string"
-                }
-            }
-        },
-        "team.CreateTeamRequest": {
+        "internal_team.CreateTeamRequest": {
             "description": "Team creation payload",
             "type": "object",
             "required": [
@@ -1081,7 +1057,7 @@ const docTemplate = `{
                 }
             }
         },
-        "team.Team": {
+        "internal_team.Team": {
             "description": "Team details",
             "type": "object",
             "properties": {
@@ -1108,19 +1084,19 @@ const docTemplate = `{
                 }
             }
         },
-        "team.TeamResponse": {
+        "internal_team.TeamResponse": {
             "description": "Team wrapped in response envelope",
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/team.Team"
+                    "$ref": "#/definitions/internal_team.Team"
                 },
                 "timestamp": {
                     "type": "string"
                 }
             }
         },
-        "user.RegisterUserRequest": {
+        "internal_user.RegisterUserRequest": {
             "description": "User registration payload",
             "type": "object",
             "required": [
@@ -1145,7 +1121,7 @@ const docTemplate = `{
                 }
             }
         },
-        "user.RegisterUserResponse": {
+        "internal_user.RegisterUserResponse": {
             "description": "Created user and JWT token",
             "type": "object",
             "properties": {
@@ -1158,23 +1134,23 @@ const docTemplate = `{
                     "example": "eyJhbGciOiJSUzI1NiIs..."
                 },
                 "user": {
-                    "$ref": "#/definitions/user.User"
+                    "$ref": "#/definitions/internal_user.User"
                 }
             }
         },
-        "user.RegisterUserResponseWrapper": {
+        "internal_user.RegisterUserResponseWrapper": {
             "description": "Registration response wrapped in response envelope",
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/user.RegisterUserResponse"
+                    "$ref": "#/definitions/internal_user.RegisterUserResponse"
                 },
                 "timestamp": {
                     "type": "string"
                 }
             }
         },
-        "user.TeamInfo": {
+        "internal_user.TeamInfo": {
             "description": "Team information",
             "type": "object",
             "properties": {
@@ -1204,7 +1180,7 @@ const docTemplate = `{
                 }
             }
         },
-        "user.UpdateUserRequest": {
+        "internal_user.UpdateUserRequest": {
             "description": "User update payload",
             "type": "object",
             "properties": {
@@ -1219,7 +1195,7 @@ const docTemplate = `{
                 }
             }
         },
-        "user.User": {
+        "internal_user.User": {
             "description": "User profile",
             "type": "object",
             "properties": {
@@ -1247,7 +1223,7 @@ const docTemplate = `{
                 "teams": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/user.TeamInfo"
+                        "$ref": "#/definitions/internal_user.TeamInfo"
                     }
                 },
                 "updatedAt": {
@@ -1255,12 +1231,12 @@ const docTemplate = `{
                 }
             }
         },
-        "user.UserResponse": {
+        "internal_user.UserResponse": {
             "description": "User wrapped in response envelope",
             "type": "object",
             "properties": {
                 "data": {
-                    "$ref": "#/definitions/user.User"
+                    "$ref": "#/definitions/internal_user.User"
                 },
                 "timestamp": {
                     "type": "string"
@@ -1272,12 +1248,12 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "",
-	Host:             "",
-	BasePath:         "",
-	Schemes:          []string{},
-	Title:            "",
-	Description:      "",
+	Version:          "1.0.0",
+	Host:             "localhost:8000",
+	BasePath:         "/api/v1",
+	Schemes:          []string{"http", "https"},
+	Title:            "LocalizeKit API",
+	Description:      "API documentation for LocalizeKit backend",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

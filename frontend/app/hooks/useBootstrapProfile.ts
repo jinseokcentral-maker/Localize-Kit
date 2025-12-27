@@ -6,7 +6,7 @@ import { apiClient, publicApiClient } from "~/lib/api/authClient";
 import { extractApiData, preserveError } from "~/lib/api/apiWrapper";
 import { useTokenStore } from "../stores/tokenStore";
 import { useSupabase } from "./useAuth";
-import { authControllerLoginWithProvider, userControllerGetMe } from "~/api";
+import { postAuthLogin, getUsersMe } from "~/api";
 import { isProtectedRoute, isUnprotectedRoute } from "~/lib/routes";
 import type { UserData } from "./useGetMe";
 import { toast } from "sonner";
@@ -75,7 +75,7 @@ function isLogoutInProgress(): boolean {
 function getActiveTeamIdFromMeEffect(): Effect.Effect<string | null, Error> {
   return Effect.tryPromise({
     try: async () => {
-      const { data } = await userControllerGetMe({
+      const { data } = await getUsersMe({
         client: apiClient,
         throwOnError: true,
       });
@@ -154,7 +154,7 @@ function syncSupabaseSessionEffect(
     const loginRes = yield* _(
       Effect.tryPromise({
         try: async () => {
-          const response = await authControllerLoginWithProvider({
+          const response = await postAuthLogin({
             client: publicApiClient,
             body: {
               accessToken: supabaseJwt,

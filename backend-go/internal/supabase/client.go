@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -27,16 +28,21 @@ type User struct {
 	Metadata map[string]interface{}
 }
 
+// Supabase /auth/v1/user endpoint returns user object directly, not wrapped in "user" field
 type getUserResponse struct {
-	User struct {
-		ID           string                 `json:"id"`
-		Email        string                 `json:"email"`
-		UserMetadata map[string]interface{} `json:"user_metadata"`
-	} `json:"user"`
+	ID           string                 `json:"id"`
+	Email        string                 `json:"email"`
+	UserMetadata map[string]interface{} `json:"user_metadata"`
 }
 
 func (c *Client) GetUser(ctx context.Context, accessToken string) (*User, error) {
-	url := c.url + "/auth/v1/user"
+	// Ensure URL doesn't have trailing slash
+	baseURL := c.url
+	if baseURL[len(baseURL)-1] == '/' {
+		baseURL = baseURL[:len(baseURL)-1]
+	}
+	url := baseURL + "/auth/v1/user"
+	
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -51,23 +57,27 @@ func (c *Client) GetUser(ctx context.Context, accessToken string) (*User, error)
 	}
 	defer resp.Body.Close()
 
+	// Read response body for error details
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	bodyStr := string(bodyBytes)
+
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("supabase returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("supabase returned status %d: %s", resp.StatusCode, bodyStr)
 	}
 
 	var userResp getUserResponse
-	if err := json.NewDecoder(resp.Body).Decode(&userResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if err := json.Unmarshal(bodyBytes, &userResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w (body: %s)", err, bodyStr)
 	}
 
-	if userResp.User.ID == "" {
-		return nil, fmt.Errorf("user not found")
+	if userResp.ID == "" {
+		return nil, fmt.Errorf("user not found (response: %s)", bodyStr)
 	}
 
 	return &User{
-		ID:       userResp.User.ID,
-		Email:    userResp.User.Email,
-		Metadata: userResp.User.UserMetadata,
+		ID:       userResp.ID,
+		Email:    userResp.Email,
+		Metadata: userResp.UserMetadata,
 	}, nil
 }
 
